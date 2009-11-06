@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "28-10-2009"
+__date__ = "6-11-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD"
 
+# Changes in version 0.4.4 6-11-2009.
+# - Improved index searching strategy.
+# - Fix XIO compatibility with pilatus det.
+# - Improve detector specific definitions in XIO exports.
 # Changes in version 0.4.3 28-10-2009.
 # - Fixe compatibility problems with Python2.2 and Python2.3
 # - Add proper error message when image file can't be read.
@@ -77,9 +81,14 @@ _usage = """
     -R,  --low-resolution
          Set a low resolution cutoff. Default is 9999.
 
-    -b,  --beam-center-optimize
+    -b,  --beam-center-optimize-i
          Starting from the initial given values, search and optimize the beam
          center coordinates (given by -x, -y or extracted form the header).
+         Best solution is chosen after i-score ranking.
+
+    -B,  --beam-center-optimize-z
+         Like -b/--beam-center-optimize-i, but best solution is chosen with after
+         a z-score ranking.
 
     -d,  --distance
          Set the detector to crystal distance.
@@ -825,12 +834,13 @@ class XDS:
         RD = res.results
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         #RD["indexed_percentage"] < 70. or \
-        if optimize or RD["xy_spot_position_ESD"] > 2. or \
-          RD["z_spot_position_ESD"] > 1*self.inpParam["OSCILLATION_RANGE"]:
+        #if optimize or RD["xy_spot_position_ESD"] > 2. or \
+        #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
+        if optimize:
             TestResults = [RD]
             print " Number of possible origin coordinates: %d" % \
                               len(RD["index_origin_table"])
-            maxTestOrigin = min(6,len(RD["index_origin_table"]))
+            maxTestOrigin = min(20,len(RD["index_origin_table"]))
             origins = RD["index_origin_table"][:maxTestOrigin]
             for origin in origins:
                 self.inpParam["ORGX"] = origin[5]
@@ -848,7 +858,7 @@ class XDS:
             print "\n"
             # Need to lookup in the results for the beam-center giving 
             # the best indexation
-            best_beam_center = rank_indexation(TestResults)
+            best_beam_center = rank_indexation(TestResults, optimize)
             self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_center
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
@@ -934,9 +944,10 @@ class XDS:
         """
         return 1 #res.resutls
 
-def rank_indexation(indexations):
+def rank_indexation(indexations, optim):
     "Rank indexations obtained using different beam-center coordinates."
     #
+    if not optim: optim="ISCORE"
     best_quality_contrast = 0
     best_beam_center = None
     #
@@ -951,6 +962,7 @@ def rank_indexation(indexations):
     pp += "pixels and  %(z_spot_position_ESD).2f degrees"        
     #
     n = 0
+    i_score = []
     for indexation in indexations:
         n+=1
         print " Test indexation number: %d" % n
@@ -963,6 +975,7 @@ def rank_indexation(indexations):
                                    2*indexation["xy_spot_position_ESD"] + 
                                    indexation["z_spot_position_ESD"]/ \
                                       indexation["oscillation_range"])
+        i_score.append(indexation["i_score"])
         #
         for items in rank_items:
             rank_table[items].append(indexation[items])
@@ -1003,13 +1016,24 @@ def rank_indexation(indexations):
     #
     print "%22s: " % "z_score",
     print " %3d"*len(z_score) % tuple(z_score)
-    print "\n Min value for Z_score: %d " % min(z_score)
-    i_best = z_score.index(min(z_score))
-    best_beam_center = indexations[i_best]["index_origin_table"][0][5:7]
-
-    print " Best estimate for the beam-center: %7.1f,%7.1f\n" \
-                % tuple(best_beam_center),
-    return best_beam_center
+    z_best_index = z_score.index(min(z_score))
+    i_best_index = i_score.index(min(i_score))-1
+    best_beam_center = {}
+    best_beam_center["ISCORE"] = \
+        indexations[i_best_index]["index_origin_table"][0][5:7]
+    best_beam_center["ZSCORE"] = \
+        indexations[z_best_index]["index_origin_table"][0][5:7]
+    if optim == "ISCORE":
+        _z, _i = "   ", "***"
+    else:
+        _i, _z = "   ", "***"
+    _best =  best_beam_center[optim]
+    print "\n %s Best  Z_score rank: %3d  for Solution #%-3d" % (_z,min(z_score),z_best_index),
+    print " ORGX=%7.1f,ORGY=%7.1f" % tuple(best_beam_center["ZSCORE"])
+    print   " %s Best  I_score rank: %3d  for Solution #%-3d" % (_i,min(i_score)+1,i_best_index+1),
+    print " ORGX=%7.1f ORGY=%7.1f" % tuple(best_beam_center["ISCORE"])
+    
+    return _best
 
 def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
@@ -1192,7 +1216,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbc:d:f:i:O:p:s:Sr:R:x:y:vw:SF"
+    short_opt =  "123456aAbBc:d:f:i:O:p:s:Sr:R:x:y:vw:SF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1206,7 +1230,8 @@ if __name__ == "__main__":
                 "reference=",
                 "oscillation",
                 "project",
-                "beam-center-optimize",
+                "beam-center-optimize-i",
+                "beam-center-optimize-z",
                 "xds-input=",
                 "verbose",
                 "wavelength=",
@@ -1292,8 +1317,10 @@ if __name__ == "__main__":
                 _beam_in_mm = True
                 a = a.replace("mm","")
             _beam_y = float(a)
-        if o in ("-b", "--beam-center-optimize"):
-            _beam_center_optimize = True
+        if o in ("-b", "--beam-center-optimize-i"):
+            _beam_center_optimize = "ISCORE"
+        if o in ("-B", "--beam-center-optimize-z"):
+            _beam_center_optimize = "ZSCORE"
         if o in ("-S", "--Slow"):
             _slow = True
         if o in ("-h", "--help"):
@@ -1333,14 +1360,14 @@ if __name__ == "__main__":
     imgDir = collect.directory
     newPar = collect.export("xds")
 
-    # In case no beam origin is defined, take the detector center.
+# In case no beam origin is defined, take the detector center.
     if newPar["ORGX"] == 0: newPar["ORGX"] = newPar["NX"]/2.
     if newPar["ORGY"] == 0: newPar["ORGY"] = newPar["NY"]/2.
 
     #write_autoPar(collect.export("adp"))
 
     # Update some default values.
-    newPar["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = 9
+    # Defined by XDS.export xds: newPar["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = 9
     newPar["STRONG_PIXEL"] = 7
 
     newrun = XDS()
