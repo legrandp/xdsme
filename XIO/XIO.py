@@ -520,7 +520,7 @@ class Collect:
             if not M:
               M = rec_fullImageName2.match(init)
               self._naming_convension = 2
-	      if M: print "N2:", M.groups()
+	      #if M: print "N2:", M.groups()
             elif not M:
               M = rec_fullImageName3.match(init)
               self._naming_convension = 3
@@ -750,7 +750,6 @@ class Collect:
             self.interpretImage()
 
         self.lookup_imageRanges()
-
         try:
            exportDict = self.image.export(exportType)
         except:
