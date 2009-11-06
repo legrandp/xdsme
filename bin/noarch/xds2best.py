@@ -1,1 +1,0 @@
-../../XOconv/xds2best.py
