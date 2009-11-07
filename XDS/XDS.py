@@ -1028,11 +1028,10 @@ def rank_indexation(indexations, optim):
     else:
         _i, _z = "   ", "***"
     _best =  best_beam_center[optim]
-    print "\n %s Best  Z_score rank: %3d  for Solution #%-3d" % (_z,min(z_score),z_best_index),
+    print "\n %s Best  Z_score rank: %3d  for Solution #%-3d" % (_z,min(z_score),z_best_index+1),
     print " ORGX=%7.1f,ORGY=%7.1f" % tuple(best_beam_center["ZSCORE"])
-    print   " %s Best  I_score rank: %3d  for Solution #%-3d" % (_i,min(i_score)+1,i_best_index+1),
+    print   " %s Best  I_score rank: %3d  for Solution #%-3d" % (_i, 1,i_best_index+1),
     print " ORGX=%7.1f ORGY=%7.1f" % tuple(best_beam_center["ISCORE"])
-    
     return _best
 
 def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
