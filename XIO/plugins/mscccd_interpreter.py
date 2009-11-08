@@ -1,10 +1,17 @@
 
-__version__ = "0.2"
+__version__ = "0.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "08-04-2007"
-__copyright__ = "Copyright (c) 2007 Pierre Legrand"
+__date__ = "08-11-2009"
+__copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
 __license__ = "LGPL"
 
+import time
+
+def _datetime(timestr):
+    return time.strptime(timestr)
+    
+def _dateseconds(timestr):
+    return time.mktime(time.strptime(timestr, "%d-%b-%Y %H:%M:%S"))
 
 def getEdgeResolution(PixelX, Width, Distance, Wavelength):
             "Calculate EdgeResolution: Graeme's Method"
@@ -43,6 +50,15 @@ class Interpreter:
     'PhiWidth':(['ROTATION'], lambda x: float(x.split()[2])),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),
+    # Added keys from Graeme's convention.
+    'TwoTheta':(['CCD_GONIO_VALUES'], lambda x: float(x.split()[1])),   # _FIXME_ Not really here now...
+    'SerialNumber':(['CCD_SERIAL_NUMBER'], str),
+    'HeaderSize':(['HEADER_BYTES'], int),
+    'EndianType':(['BYTE_ORDER'], endian),
+    # Date and time
+    #'DateTime':(['DATE'], _datetime),
+    'DateStr':(['DTREK_DATE_TIME'], str),
+    'DateSeconds':(['DTREK_DATE_TIME'], _dateseconds),
     }
     #'EdgeResolution':(['PIXEL_SIZE','SIZE1','DISTANCE','WAVELENGTH'],
     #    getEdgeResolution),
