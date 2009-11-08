@@ -383,7 +383,7 @@ class Image:
         exportDict = {}
         for k in exporter.HTD.keys():
             args, func = exporter.HTD[k]
-            exportDict[k] = func(*map(self.header.get,args))
+            exportDict[k] = func(*map(self.header.get, args))
         return exportDict
 
     def info(self, verbose=0):
@@ -765,6 +765,7 @@ class Collect:
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
         exportDict = self.export(exportType)
+	print exportDict
         return exporter.TEMPLATE % exportDict
 
     def get_export_template(self, exportType='xds'):
