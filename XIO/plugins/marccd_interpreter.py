@@ -182,6 +182,7 @@ class Interpreter:
     '4':('ESRF','BM14','MarCCD 225'),
     '5':('ESRF','ID23-2','MarCCD 225'),
     '10':('EMBL_HAMBURG','???','MarCCD 225'),
+    '12':('SLS','X06SA','MarCCD 225'),
     '21':('EMBL_HAMBURG','???','MarCCD 225'),
     '20':('SSRL4','BL11-1','MarCCD 325'),
     }
