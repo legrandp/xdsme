@@ -72,16 +72,16 @@ class Interpreter:
     # ESRF info found at
     # http://www.esrf.eu/UsersAndScience/Experiments/MX/Software/PXSOFT/Denzo
     # Based on Serial Number. Contains (Synchrotron,BLname,DetectorType)
-    401:('ALS','???','ADSC Q4'),
-    413:('ESRF','ID14-2','ADSC Q4'),
-    420:('ESRF','ID14-3','ADSC Q4R'),
-    428:('ESRF','ID14-2','ADSC Q4'),
-    444:('ESRF','ID29 or ID14-1','ADSC Q210'),
-    445:('USA?','UNKN','ADSC 210'),
-    917:('ESRF','ID23-1','ADSC 315'),
-    918:('ESRF','ID14-4','ADSC 315'),
-    926:('ALS','ALS831','ADSC 315r'),
-    927:('SOLEIL','PROXIMA1','ADSC 315r'),
+    '401':('ALS','???','ADSC Q4'),
+    '413':('ESRF','ID14-2','ADSC Q4'),
+    '420':('ESRF','ID14-3','ADSC Q4R'),
+    '428':('ESRF','ID14-2','ADSC Q4'),
+    '444':('ESRF','ID29 or ID14-1','ADSC Q210'),
+    '445':('USA?','UNKN','ADSC 210'),
+    '917':('ESRF','ID23-1','ADSC 315'),
+    '918':('ESRF','ID14-4','ADSC 315'),
+    '926':('ALS','ALS831','ADSC 315r'),
+    '927':('SOLEIL','PROXIMA1','ADSC 315r'),
     }
     
     def getRawHeadDict(self, rawHead):

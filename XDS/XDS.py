@@ -142,8 +142,8 @@ _fmt_hello = """
   Detector distance:             %(DETECTOR_DISTANCE)8.2f mm
   X-ray wavelength:            %(X_RAY_WAVELENGTH)10.4f A
   Oscillation range:           %(OSCILLATION_RANGE)10.4f degree\n
-  Beam coordinate X:             %(ORGX)8.2f pixel
-                  Y:             %(ORGY)8.2f pixel
+  Beam coordinate X:             %(ORGX)8.1f pixel
+                  Y:             %(ORGY)8.1f pixel
   Resolution range:           %(INCLUDE_RESOLUTION_RANGE)11s
   Image range:                %(DATA_RANGE)11s
 """
