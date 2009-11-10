@@ -17,10 +17,10 @@
 
 #from __future__ import division
 
-__version__ = "0.4.2"
+__version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "28-10-2009"
-__copyright__ = "Copyright (c) 2009 Pierre Legrand"
+__date__ = "10-11-2009"
+__copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "LGPL"
 
 #
@@ -40,9 +40,8 @@ verbose = 0
 
 _re_dirPath =        r"(.*/+)?"               # opt. directory path
 _re_imageName1 =      r"(.*)_(\d+)\.(\w+)"     # image name with prefix_num.ext
-_re_imageName2 =      r"(.*)\.(\d{3,4})"     # image name with prefixnum.ext
-_re_imageName3 =      r"([A-Za-z1-9_-]*)(\d{3,4})\.(\w+)"     # image name with prefixnum.ext
-#_re_imageName2 =      r"(.*)(\d+)\.(\w+)"     # image name with prefixnum.ext
+_re_imageName2 =      r"(.*)\.(\d{3,5})"     # image name with prefixnum.ext
+_re_imageName3 =      r"(.*)(\d{3,5})\.(\w+)"     # image name with prefixnum.ext
 _re_extCompression = r"(\.gz|\.Z|\.bz2)?\Z"   # opt. ending compression ext
 _re_extCompressed =   _re_extCompression.replace('?','+')   # compression signature
 _re_fullImageName1 =  _re_dirPath + _re_imageName1 + _re_extCompression
@@ -517,13 +516,16 @@ class Collect:
         if type(init) == str:
             self._naming_convension = 1
             M = rec_fullImageName1.match(init)
+
             if not M:
-              M = rec_fullImageName2.match(init)
-              self._naming_convension = 2
-	      #if M: print "N2:", M.groups()
-            elif not M:
-              M = rec_fullImageName3.match(init)
-              self._naming_convension = 3
+                #print "2nd conv"
+                M = rec_fullImageName2.match(init)
+                self._naming_convension = 2
+
+            if not M:
+    	        #print "3rd conv."
+                M = rec_fullImageName3.match(init)
+                self._naming_convension = 3
 
             if not M:
                 _err_message = "String constructor: %s doesn't match Collect "
@@ -638,8 +640,6 @@ class Collect:
 
         # Get numbers and remove non matching
         images_num = filter(None, map(self.getNumber, files))
-        #print images_num
-        #print images_num
         #print len(images_num), ( images_num[-1] - images_num[0] + 1)
 
         # If the list contains duplicates: remove duplicate numbers.
@@ -699,18 +699,19 @@ class Collect:
     def isContinuous(self, imagename_list, methode=0, _epsilon=1e-4):
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
-        if not self.imageNumbers:
+	if not self.imageNumbers:
             self.lookup_imageNumbers()
         if not self.image:
             self.image = Image(self.initialImageName)
+	last_image = self.pythonTemplate % self.imageNumbers[-1]
         # Check only for the initialImageName and last images of the list
         # their phi_osc range is compatible with their numbering.
         if methode == 0:
             phi_range = self.image.header['PhiWidth']
             phi_start = self.image.header['PhiStart']
-            phi_last = Image(imagename_list[-1]).header['PhiStart']
-            num_start = self.getNumber(self.initialImageName)
-            num_last = self.getNumber(imagename_list[-1])
+            phi_last = Image(last_image).header['PhiStart']
+            num_start = self.imageNumbers[0]
+            num_last = self.imageNumbers[-1]
             diff = (phi_last - phi_start)/phi_range - (num_last - num_start)
             #print phi_last, phi_start, phi_range, diff
         if diff < _epsilon:
@@ -765,7 +766,6 @@ class Collect:
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
         exportDict = self.export(exportType)
-	print exportDict
         return exporter.TEMPLATE % exportDict
 
     def get_export_template(self, exportType='xds'):
@@ -812,16 +812,21 @@ def _test_regexp():
     r3 = rec_fullImageName1.match("_1_023.img")
     r4 = rec_fullImageName1.match("/d/r/_9923.i.bz2")
     r5 = rec_fullImageName3.match("/d/r/toto9923.i.bz2")
+    rc = rec_fullImageName3.match("/TH050916A0001.img")
     r6 = rec_fullImageName3.match("/d/r/tot1o9923.i.bz2")
     r7 = rec_fullImageName3.match("/d/r/9923.i.bz2")
     r8 = rec_fullImageName2.match("/d/r/toto.9923")
     r9 = rec_fullImageName2.match("/d/r/toto.9923.bz2")
     ra = rec_fullImageName2.match("/d/r/1.9923.bz2")
     rb = rec_fullImageName2.match("/d/r/654082.0086")
+    print r1.groups()
+    print r2.groups()
+    print r3.groups()
+    print r4.groups()
     print r8.groups()
     print r9.groups()
     print ra.groups()
-    print rb.groups()
+    print rc.groups()
     assert r1.groups() == ('./', 'ref-trypsin_1', '023', 'img', '.gz')
     assert r2.groups() == (None, 'ref-trypsin_1', '023', 'img', None)
     assert r3.groups() == (None, '_1', '023', 'img', None)
