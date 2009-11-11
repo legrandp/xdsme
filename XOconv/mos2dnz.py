@@ -4,13 +4,14 @@
     by John W. Campbell.
     Uses the mat3 and vec3 classes from Python Computer Graphics Kit v1.2.0
     module by Matthias Baas (see http://cgkit.sourceforge.net).
-
+    
+    License: http://www.opensource.org/licenses/bsd-license.php
 """
 
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "13-11-2005"
 __copyright__ = "Copyright (c) 2005  Pierre Legrand"
-__license__ = "GPL"
+__license__ = "New BSD License"
 __version__ = "0.4.4"
 
 import sys

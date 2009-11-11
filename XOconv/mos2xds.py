@@ -14,12 +14,13 @@
     Uses the ScientificPython module by Konrad Hinsen
     http://starship.python.net/crew/hinsen/scientific.html
     
+    License: http://www.opensource.org/licenses/bsd-license.php
 """
 
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "16-11-2005"
 __copyright__ = "Copyright (c) 2005  Pierre Legrand"
-__license__ = "GPL"
+__license__ = "New BSD License"
 __version__ = "0.2.2"
 
 import math

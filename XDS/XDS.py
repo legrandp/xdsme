@@ -5,7 +5,7 @@ __version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "6-11-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
-__license__ = "New BSD"
+__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
 # Changes in version 0.4.4 6-11-2009.
 # - Improved index searching strategy.
