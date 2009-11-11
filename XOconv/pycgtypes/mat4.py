@@ -559,7 +559,7 @@ class mat4:
                      0.0, 0.0, -1.0, 0.0)
     
     def perspective(self, fovy, aspect, near, far):
-        """von Mesa übernommen (glu.c)"""
+        """von Mesa ubernommen (glu.c)"""
 
         top    = near * math.tan(fovy * math.pi / 360.0)
         bottom = -top

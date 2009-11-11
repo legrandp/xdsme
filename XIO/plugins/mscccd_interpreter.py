@@ -3,7 +3,7 @@ __version__ = "0.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "08-11-2009"
 __copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 

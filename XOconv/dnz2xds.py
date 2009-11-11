@@ -11,12 +11,14 @@
     TODO:
         - detector conversion
         - finding the good film rotation for each detector...
+	
+    License: http://www.opensource.org/licenses/bsd-license.php
 """
 
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "22-10-2005"
-__copyright__ = "Copyright (c) 2005  Pierre Legrand"
-__license__ = "GPL"
+__copyright__ = "Copyright (c) 2005-2009  Pierre Legrand"
+__license__ = "New BSD License"
 __version__ = "0.4.4"
 
 

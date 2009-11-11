@@ -21,7 +21,7 @@ __version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "10-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
 #
 # Standard modules
@@ -365,7 +365,8 @@ class Image:
            (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"]):
             self.header["BeamX"] = self.header["BeamX"]*self.header["PixelX"]
             self.header["BeamY"] = self.header["BeamY"]*self.header["PixelY"]
-        #
+        self.header["ImageType"] = self.type
+	#
         return self.header
 
     def export(self, exportType='xds'):
