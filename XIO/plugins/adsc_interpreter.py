@@ -1,34 +1,51 @@
 # -*- coding: utf-8 -*-
 
+""" XIO plugin for the ADSC image format.
+"""
+
 __version__ = "0.4.0"
-__author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "27-10-2009"
+__author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
+__date__ = "12-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 
-def _datetime(timestr):
-    return time.strptime(timestr)
-    
-def _dateseconds(timestr):
-    return time.mktime(time.strptime(timestr))
+def date_time(time_str):
+    "from str return standard str: 'Wed Oct 28 16:42:12 2009'"
+    return time.ctime(date_seconds(time_str))
 
-def getEdgeResolution(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
-            from math import sin, atan
-            if Distance > 0.0:
-                r = 0.5 * float(PixelX) * int(Width)
-                return float(Wavelength)/sin(atan(r/float(Distance)))
-            else:
-                return 0.
+#def _dateseconds(timestr):
+#    return time.mktime(time.strptime(timestr))
+
+def date_seconds(time_str):
+    "from tupple return seconds"
+    try:
+        return time.mktime(time.strptime(time_str))
+    except ValueError, err:
+        print "Warning:", err
+        print "... Using time.time() instead."
+        return time.time()
+
+def get_edge_resolution(pixel_x, width, distance, wavelength):
+    "Calculate EdgeResolution: Graeme's Method"
+    from math import sin, atan
+    if distance > 0.0:
+        rad = 0.5 * float(pixel_x) * int(width)
+        return float(wavelength)/sin(atan(rad/float(distance)))
+    else:
+        return 0.
 
 def endian(code):
-    if code == 'big_endian': return '>'
-    else: return '<'
-    
+    "From str to struct convention."
+    if code == 'big_endian':
+        return '>'
+    else:
+        return '<'
+
 class Interpreter:
-    
+    "Dummy class, container for standard Dict and Function."
+
     HTD = {
     # The adsc Header Translator Dictionary.
     # Potential problems:
@@ -50,24 +67,23 @@ class Interpreter:
     'PhiEnd':(['OSC_START','OSC_RANGE'], lambda x,y: float(x)+float(y)),
     'PhiWidth':(['OSC_RANGE'], float),
     'EdgeResolution':(['PIXEL_SIZE','SIZE1','DISTANCE','WAVELENGTH'],
-        getEdgeResolution),
+           get_edge_resolution),
 
     # Added keys from Graeme's convention.
-    'TwoTheta':(['TWO_THETA'], float),   # _FIXME_ Not really here now...
+    'TwoTheta':(['TWO_THETA'], float),   # Example missing.
     'SerialNumber':(['DETECTOR_SN'], str),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),
     # Date and time
-    #'DateTime':(['DATE'], _datetime),
+    #'DateTime':(['DATE'], date_time),
     'DateStr':(['DATE'], str),
-    'DateSeconds':(['DATE'], _dateseconds),
+    'DateSeconds':(['DATE'], date_seconds),
     }
 
     SpecialRules = {
-    
     # No special rules for now
     }
-    
+
     Identifiers = {
     # ESRF info found at
     # http://www.esrf.eu/UsersAndScience/Experiments/MX/Software/PXSOFT/Denzo
@@ -83,9 +99,14 @@ class Interpreter:
     '926':('ALS','ALS831','ADSC 315r'),
     '927':('SOLEIL','PROXIMA1','ADSC 315r'),
     }
-    
-    def getRawHeadDict(self, rawHead):
-        _lis = rawHead[2:].split("}")[0].split(";\n")[:-1]
-        RawHeadDict = dict([par.split("=") for par in _lis])
-        RawHeadDict.update({'MESSAGE':'','TWO_THETA':'0'}) # _FIXME_ Not really here now...
-        return RawHeadDict
+
+    def __init__(self):
+        self.raw_head_dict = None
+
+    def getRawHeadDict(self, raw_head):
+        "Intepret the ascii structure of the asdc image header."
+
+        _lis = raw_head[2:].split("}")[0].split(";\n")[:-1]
+        self.raw_head_dict = dict([par.split("=") for par in _lis])
+        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0'}) # Example missing
+        return self.raw_head_dict
