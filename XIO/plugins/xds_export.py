@@ -1,62 +1,70 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.3.1"
+""" XIO plugin for the export parameters as an XDS.INP format
+    See http://xds.mpimf-heidelberg.mpg.de/html_doc/xds_prepare.html
+"""
+
+__version__ = "0.3.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "10-11-2009"
+__date__ = "12-11-2009"
 __copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
-__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
-from math import pi, cos, sin
 
 from pycgtypes import vec3
 from pycgtypes import mat3
 
-X, Y, Z = vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)
-fmt = "%9.6f %9.6f %9.6f"
-
-def detCoordinates2(X, Y, twotheta_vect, twotheta_angle):
-    fmt = "0.000000 %.6f %.6f"
-    return fmt % (cos(twotheta*pi/180.), sin(twotheta*pi/180.))
-
-def detCoordinates(twotheta):
-    fmt = "0.000000 %.6f %.6f"
-    return fmt % (cos(twotheta*pi/180.), sin(twotheta*pi/180.))
+EX, EY, EZ = vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)
+V3FMT = "%9.6f %9.6f %9.6f"
+PI = 3.1415926535897931
+D2R = PI/180.
 
 def det_dist(distance, dettype):
-    detori = XDS_detector_dict["orient"][dettype]
+    "Return the disance with the proper sign."
+    detori = XDS_DETECTOR_DICT["orient"][dettype]
     return distance*detori[2]
 
 def det_spindle(dettype):
-    return fmt % tuple(XDS_detector_dict["orient"][dettype][3])
-    
+    "Return the spindle axis vector."
+    return V3FMT % tuple(XDS_DETECTOR_DICT["orient"][dettype][3])
+
 def polarization(wavelength):
-    if 1.5414 < wavelength < 1.5422:
+    "Guess the polarization fraction from the wavelength."
+    if 1.5415 < wavelength < 1.5421:
         return 0.5
     else:
         return 0.99
 
 def det_axis_x(twotheta, dettype):
-    detori = XDS_detector_dict["orient"][dettype]
-    return fmt % tuple(detori[0]*mat3().rotation(twotheta*pi/180, detori[4]))
+    "Return the X axis vector of the Dector surface."
+    detori = XDS_DETECTOR_DICT["orient"][dettype]
+    return V3FMT % tuple(detori[0]*mat3().rotation(twotheta*D2R, detori[4]))
 
 def det_axis_y(twotheta, dettype):
-    detori = XDS_detector_dict["orient"][dettype]
-    return fmt % tuple(detori[1]*mat3().rotation(twotheta*pi/180, detori[4]))
+    "Return the Y axis vector of the Dector surface."
+    detori = XDS_DETECTOR_DICT["orient"][dettype]
+    return V3FMT % tuple(detori[1]*mat3().rotation(twotheta*D2R, detori[4]))
 
 def det_beam_x(x0, y0, qx, qy, dettype):
-    _def = XDS_detector_dict["orient"][dettype][5]
+    "Return the X position of the beam coordinate."
+    _def = XDS_DETECTOR_DICT["orient"][dettype][5]
     orgx, orgy = x0/qx, y0/qy
-    if _def == "XY": return orgx
-    elif _def == "YX": return orgy
+    if _def == "XY":
+        return orgx
+    elif _def == "YX":
+        return orgy
 
 def det_beam_y(x0, y0, qx, qy, dettype):
-    _def = XDS_detector_dict["orient"][dettype][5]
+    "Return the Y position of the beam coordinate."
+    _def = XDS_DETECTOR_DICT["orient"][dettype][5]
     orgx, orgy = x0/qx, y0/qy
-    if _def == "XY": return orgy
-    elif _def == "YX": return orgx
+    if _def == "XY":
+        return orgy
+    elif _def == "YX":
+        return orgx
 
-XDS_detector_dict = {
+XDS_DETECTOR_DICT = {
   "detector_name":{
     "mar":       "MAR345",
     "mar555":    "MAR345",
@@ -71,7 +79,7 @@ XDS_detector_dict = {
     "mar555":    250000,
     "marccd":     65000,
     "adsc":       65000,
-    "raxis":     262100, # this is for raxisII. 1000000 for raxisIV. and 2000000 for raxisV
+    "raxis":     262100, # for raxisII. raxisIV: 1000000, raxisV: 2000000.
     "minicbf":  1048500,
     "mscccd":   1000000,
   },
@@ -94,13 +102,13 @@ XDS_detector_dict = {
     "mscccd":   8,
   },
   "orient":{ # X_det, Y_det, distanceSign, spindle_axis, twoThetaAxis, beamdef
-    "mar":      ( X, Y, 1, X, Y, "XY"),
-    "mar555":   ( X, Y, 1, X, X, "XY"),
-    "marccd":   ( X, Y, 1, X, X, "YX"),
-    "adsc":     ( X, Y, 1, X, X, "YX"),
-    "raxis":    ( X, Y,-1, Y, Y, "XY"),
-    "minicbf":  ( X, Y, 1, X, X, "XY"),
-    "mscccd":   (-X, Y,-1,-Y, Y, "XY"),
+    "mar":      ( EX, EY,  1,  EX,  EY, "XY"),
+    "mar555":   ( EX, EY,  1,  EX,  EX, "XY"),
+    "marccd":   ( EX, EY,  1,  EX,  EX, "YX"),
+    "adsc":     ( EX, EY,  1,  EX,  EX, "YX"),
+    "raxis":    ( EX, EY, -1,  EY,  EY, "XY"),
+    "minicbf":  ( EX, EY,  1,  EX,  EX, "XY"),
+    "mscccd":   (-EX, EY, -1, -EY,  EY, "XY"),
   }
 }
 
@@ -120,14 +128,19 @@ TEMPLATE += """
  OSCILLATION_RANGE= %(OSCILLATION_RANGE).3f
  STARTING_ANGLE= %(STARTING_ANGLE).3f
  STARTING_FRAME= %(_DRI)d
+ 
  X-RAY_WAVELENGTH= %(X_RAY_WAVELENGTH).5f
  DETECTOR_DISTANCE= %(DETECTOR_DISTANCE).2f
- ORGX= %(ORGX).2f   ORGY= %(ORGY).2f
- DETECTOR= %(DETECTOR)s   MINIMUM_VALID_PIXEL_VALUE= %(MINIMUM_VALID_PIXEL_VALUE)d   OVERLOAD= %(OVERLOAD)d
- DIRECTION_OF_DETECTOR_X-AXIS= %(DIRECTION_OF_DETECTOR_X-AXIS)s
- DIRECTION_OF_DETECTOR_Y-AXIS= %(DIRECTION_OF_DETECTOR_Y-AXIS)s
+ 
+ DETECTOR= %(DETECTOR)s
+    MINIMUM_VALID_PIXEL_VALUE= %(MINIMUM_VALID_PIXEL_VALUE)d
+    OVERLOAD= %(OVERLOAD)d
+    DIRECTION_OF_DETECTOR_X-AXIS= %(DIRECTION_OF_DETECTOR_X-AXIS)s
+    DIRECTION_OF_DETECTOR_Y-AXIS= %(DIRECTION_OF_DETECTOR_Y-AXIS)s
+    NX= %(NX)d    NY= %(NY)d
+    QX= %(QX).5f  QY= %(QY).5f
+    ORGX= %(ORGX).2f   ORGY= %(ORGY).2f
 
- NX= %(NX)d    NY= %(NX)d    QX= %(QX).5f  QY= %(QY).5f
  ROTATION_AXIS= %(ROTATION_AXIS)s
  INCIDENT_BEAM_DIRECTION= 0.0 0.0 1.0
  FRACTION_OF_POLARIZATION= %(FRACTION_OF_POLARIZATION).3f
@@ -192,10 +205,13 @@ CTD = {
 '_DRF':(['imageNumbers'], lambda x: x[-1]),
 '_DRB':(['imageNumbers'], lambda x: min(x[0]+9,x[-1])),
 'SPOT_RANGE':(['imageRanges'], list),
-'BACKGROUND_RANGE':(['imageRanges'], lambda x: [x[0][0],min(x[0][0]+7,x[0][1])]),
-'DETECTOR':(['imageType'], lambda x: XDS_detector_dict["detector_name"][x]),
+'BACKGROUND_RANGE':(['imageRanges'], lambda x: \
+                                        [x[0][0], min(x[0][0]+7, x[0][1])]),
+'DETECTOR':(['imageType'], lambda x: XDS_DETECTOR_DICT["detector_name"][x]),
 'NAME_TEMPLATE_OF_DATA_FRAMES':(['xdsTemplate'], str),
-'OVERLOAD':(['imageType'], lambda x: XDS_detector_dict["overload"][x]),
-'MINIMUM_VALID_PIXEL_VALUE':(['imageType'], lambda x: XDS_detector_dict["minval"][x]),
-'MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT':(['imageType'], lambda x: XDS_detector_dict["min_number_of_pixels"][x]),
+'OVERLOAD':(['imageType'], lambda x: XDS_DETECTOR_DICT["overload"][x]),
+'MINIMUM_VALID_PIXEL_VALUE':(['imageType'], lambda x: \
+                                             XDS_DETECTOR_DICT["minval"][x]),
+'MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT':(['imageType'], lambda x: \
+                               XDS_DETECTOR_DICT["min_number_of_pixels"][x]),
 }

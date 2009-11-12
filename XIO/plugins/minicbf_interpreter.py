@@ -1,52 +1,54 @@
+# -*- coding: utf-8 -*-
 
-__version__ = "0.0.3"
+""" XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
+"""
+
+__version__ = "0.1.0"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "03-11-2009"
+__date__ = "12-11-2009"
 __copyright__ = "Copyright (c) 2009 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 
-def _datetime(timestr):
-    t1,t2 = timestr.split(".")
-    return time.strptime(t1, "%Y/%b/%d %H:%M:%S"),float("0."+t2)
-    
-def _dateseconds(timestr):
-    t1,msec = _datetime(timestr)
-    return time.mktime(t1)+msec
-    
-#def _timestr():
-#    pass
+HEADER_KEYS = ["Detector:", "Pixel_size", "Silicon", "Exposure_time",
+"Exposure_period", "Tau", "Count_cutoff", "Threshold_setting",
+"N_excluded_pixels","Excluded_pixels:", "Flat_field:", "Trim_directory:",
+"Wavelength", "Energy_range", "Detector_distance", "Detector_Voffset",
+"Beam_xy","Flux","Filter_transmission","Start_angle", "Angle_increment",
+"Detector_2theta", "Polarization", "Alpha", "Kappa", "Phi", "Chi",
+"Oscillation_axis", "N_oscillations"]
 
-def getEdgeResolution(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
-            from math import sin, atan
-            if Distance > 0.0:
-                r = 0.5 * float(PixelX) * int(Width)
-                return float(Wavelength)/sin(atan(r/float(Distance)))
-            else:
-                return 0.
+def date_time(timestr):
+    "from str return timestr + msec"
+    t_a, t_b = timestr.split(".")
+    return time.strptime(t_a, "%Y/%b/%d %H:%M:%S"), float("0."+t_b)
 
-float1 = lambda x: float(x.split()[0])
-float2 = lambda x: float(x.split()[0])*1e3
-beamx = lambda x,y: float(x[x.find("(")+1:x.find(")")-1].split(",")[0])*float2(y)
-beamy = lambda x,y: float(x[x.find("(")+1:x.find(")")-1].split(",")[1])*float2(y)
+def date_seconds(timestr):
+    "from str return seconds"
+    t_a, msec = date_time(timestr)
+    return time.mktime(t_a) + msec
 
+def get_edge_resolution(pixel_x, width, distance, wavelength):
+    "Calculate EdgeResolution: Graeme's Method"
+    from math import sin, atan
+    if distance > 0.0:
+        rad = 0.5 * float(pixel_x) * int(width)
+        return float(wavelength)/sin(atan(rad/float(distance)))
+    else:
+        return 0.
 
-def endian(code):
-    if code == 'big_endian': return '>'
-    else: return '<'
+FLOAT1 = lambda x: float(x.split()[0])
+FLOAT2 = lambda x: float(x.split()[0])*1e3
 
-_hKeys = ["Detector:", "Pixel_size", "Silicon", "Exposure_time", "Exposure_period",
-"Tau", "Count_cutoff","Threshold_setting","N_excluded_pixels","Excluded_pixels:",
-"Flat_field:","Trim_directory:","Wavelength","Energy_range","Detector_distance",
-"Detector_Voffset","Beam_xy","Flux","Filter_transmission","Start_angle",
-"Angle_increment","Detector_2theta","Polarization","Alpha","Kappa","Phi","Chi",
-"Oscillation_axis","N_oscillations"]
+BEAMX = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[0])\
+                                                               *FLOAT2(y)
+BEAMY = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[1])\
+                                                               *FLOAT2(y)
 
- 
 class Interpreter:
-    
+    "Dummy class, container for standard Dict and Function."
+
     HTD = {
     # The adsc Header Translator Dictionary.
     # Potential problems:
@@ -54,52 +56,62 @@ class Interpreter:
     # = The orientation of SIZE1 and SIZE2 is unknown
     #     Not a problem as long as SIZE1 = SIZE2..
 
-    'ExposureTime':(['Exposure_time'], float1),
-    'BeamX':(['Beam_xy', 'Pixel_size'], beamx),
-    'BeamY':(['Beam_xy', 'Pixel_size'], beamy),
-    'Distance':(['Detector_distance'], float2),
-    'Wavelength':(['Wavelength'], float1),
-    'PixelX':(['Pixel_size'], float2),
-    'PixelY':(['Pixel_size'], float2),
+    'ExposureTime':(['Exposure_time'], FLOAT1),
+    'BeamX':(['Beam_xy', 'Pixel_size'], BEAMX),
+    'BeamY':(['Beam_xy', 'Pixel_size'], BEAMY),
+    'Distance':(['Detector_distance'], FLOAT2),
+    'Wavelength':(['Wavelength'], FLOAT1),
+    'PixelX':(['Pixel_size'], FLOAT2),
+    'PixelY':(['Pixel_size'], FLOAT2),
     'Width':(['Binary-Size-Fastest-Dimension'], int),
     'Height':(['Binary-Size-Second-Dimension'], int),
     #'Message':(['MESSAGE'], lambda x: x.split(';')),
-    'PhiStart':(['Start_angle'], float1),
-    'PhiEnd':(['Start_angle','Angle_increment'], lambda x,y: float1(x)+float1(y)),
-    'PhiWidth':(['Angle_increment'], float1),
+    'PhiStart':(['Start_angle'], FLOAT1),
+    'PhiEnd':(['Start_angle', 'Angle_increment'], \
+                     lambda x, y: FLOAT1(x)+FLOAT1(y)),
+    'PhiWidth':(['Angle_increment'], FLOAT1),
     #'EdgeResolution':(['PIXEL_SIZE','SIZE1','DISTANCE','WAVELENGTH'],
     #    getEdgeResolution),
 
     # Added keys from Graeme's convention.
-    'TwoTheta':(['Detector_2theta'], float1),   # _FIXME_ Not really here now...
+    'TwoTheta':(['Detector_2theta'], FLOAT1),   # No example yet...
     'SerialNumber':(['Detector:'], str),
     'HeaderSize':(['HEADER_SIZE'], int),
     'DateStr':(['DATE'], str),
-    'DateSeconds':(['DATE'], _dateseconds),
-    #'EndianType':(['BYTE_ORDER'], endian),
+    'DateSeconds':(['DATE'], date_seconds),
     }
 
     SpecialRules = {
-    
     # No special rules for now
     }
-    
+
     Identifiers = {
     # Based on Serial Number. Contains (Synchrotron,BLname,DetectorType)
     #413:('ESRF','ID14EH2','ADSC Q4'),
     #420:('ESRF','ID14EH4','ADSC Q4R'),
     }
-    
-    def getRawHeadDict(self, rawHead):
-        i1 = 28+rawHead.find("_array_data.header_contents")
-        i2 = rawHead.find("_array_data.data", i1)
-        i3 = rawHead.find("--CIF-BINARY-FORMAT-SECTION--",i2)+29
-        i4 = i3+500
-        _lis = [l[2:].strip().split(" ",1) for l in rawHead[i1:i2].splitlines() if l and l[0]=="#"]
-        _lis2 =  [l[2:].strip().split(": ",1) for l in rawHead[i3:i4].splitlines() if l and l[0:2]=="X-"]
-        RawHeadDict = dict([ val for val in _lis if val[0] in _hKeys])
-        RawHeadDict.update(dict([ val for val in _lis2 if "Binary-" in val[0]]))
-        RawHeadDict.update({'HEADER_SIZE':i3})
-        RawHeadDict.update({'DATE':" ".join(_lis[1])})
-        RawHeadDict.update({'MESSAGE':'','TWO_THETA':'0'}) # _FIXME_ Not really here now...
-        return RawHeadDict
+
+    def __init__(self):
+        self.raw_head_dict = None
+
+    def getRawHeadDict(self, raw_head):
+        "Intepret the ascii structure of the minicbf image header."
+        
+        i_1 = 28+raw_head.find("_array_data.header_contents")
+        i_2 = raw_head.find("_array_data.data", i_1)
+        i_3 = raw_head.find("--CIF-BINARY-FORMAT-SECTION--", i_2)+29
+        i_4 = i_3+500
+        lis = [line[2:].strip().split(" ", 1) \
+                   for line in raw_head[i_1:i_2].splitlines() \
+                       if line and line[0]=="#"]
+        lis2 = [line[2:].strip().split(": ", 1) \
+                   for line in raw_head[i_3:i_4].splitlines() \
+                       if line and line[0:2]=="X-"]
+        self.raw_head_dict = dict([ val for val in lis \
+                                        if val[0] in HEADER_KEYS])
+        self.raw_head_dict.update(dict([ val for val in lis2 \
+                                             if "Binary-" in val[0]]))
+        self.raw_head_dict.update({'HEADER_SIZE': i_3})
+        self.raw_head_dict.update({'DATE': " ".join(lis[1])})
+        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0'})
+        return self.raw_head_dict
