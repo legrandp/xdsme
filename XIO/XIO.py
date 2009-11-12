@@ -1,27 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# __init__.py
-# Maintained by P.Legrand
-# 28th March 2005
-#
-# TODO:
-# - What needs to be unicode compatible (type(val) == str or unicode)???
-# - Image class:
-#    o Include SerialNumber + identifier
-# - Include Collect class
-#    o read a serie of images to guess data collection infos.
-# - Include Param class with
-#    o import/export for auto.par
-#    o export for XDS.INP
-#
 
-#from __future__ import division
+""" Maintained by P.Legrand
+ 28th March 2005
+
+ TODO:
+ - What needs to be unicode compatible (type(val) == str or unicode)???
+
+New BSD License http://www.opensource.org/licenses/bsd-license.php
+"""
 
 __version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "10-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
-__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
+__license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
 #
 # Standard modules
@@ -32,36 +25,36 @@ import struct
 import re
 import time
 
-_pluginDirName = "plugins"
-verbose = 0
+PLUGIN_DIR_NAME = "plugins"
+VERBOSE = 0
 
 # Defines General regexp for the complete image names:
 # dirPath + imageName + externalCompression
 
-_re_dirPath =        r"(.*/+)?"               # opt. directory path
-_re_imageName1 =      r"(.*)_(\d+)\.(\w+)"     # image name with prefix_num.ext
-_re_imageName2 =      r"(.*)\.(\d{3,5})"     # image name with prefixnum.ext
-_re_imageName3 =      r"(.*)(\d{3,5})\.(\w+)"     # image name with prefixnum.ext
-_re_extCompression = r"(\.gz|\.Z|\.bz2)?\Z"   # opt. ending compression ext
-_re_extCompressed =   _re_extCompression.replace('?','+')   # compression signature
-_re_fullImageName1 =  _re_dirPath + _re_imageName1 + _re_extCompression
-_re_fullImageName2 =  _re_dirPath + _re_imageName2 + _re_extCompression
-_re_fullImageName3 =  _re_dirPath + _re_imageName3 + _re_extCompression
+RE_DIRPATH =       r"(.*/+)?"               # opt. directory path
+RE_IMAGE_NAME1 =    r"(.*)_(\d+)\.(\w+)"    # image name with prefix_num.ext
+RE_IMAGE_NAME2 =    r"(.*)\.(\d{3,5})"      # image name with prefixnum.ext
+RE_IMAGE_NAME3 =    r"(.*)(\d{3,5})\.(\w+)" # image name with prefixnum.ext
+RE_EXT_COMPRESSION = r"(\.gz|\.Z|\.bz2)?\Z"   # opt. ending compression ext
+RE_EXTCOMPRESSED =   RE_EXT_COMPRESSION.replace('?','+')  # compression
+RE_FULLIMAGENAME1 =  RE_DIRPATH + RE_IMAGE_NAME1 + RE_EXT_COMPRESSION
+RE_FULLIMAGENAME2 =  RE_DIRPATH + RE_IMAGE_NAME2 + RE_EXT_COMPRESSION
+RE_FULLIMAGENAME3 =  RE_DIRPATH + RE_IMAGE_NAME3 + RE_EXT_COMPRESSION
 
-rec_dirPath =         re.compile(_re_dirPath)
-rec_extCompression =  re.compile(_re_extCompression)
-rec_extCompressed =   re.compile(_re_extCompressed)
-rec_fullImageName1 =  re.compile(_re_fullImageName1)
-rec_fullImageName2 =  re.compile(_re_fullImageName2)
-rec_fullImageName3 =  re.compile(_re_fullImageName3)
+REC_DIRPATH =         re.compile(RE_DIRPATH)
+REC_EXTCOMPRESSION =  re.compile(RE_EXT_COMPRESSION)
+REC_EXTCOMPRESSED =   re.compile(RE_EXTCOMPRESSED)
+REC_FULLIMAGENAME1 =  re.compile(RE_FULLIMAGENAME1)
+REC_FULLIMAGENAME2 =  re.compile(RE_FULLIMAGENAME2)
+REC_FULLIMAGENAME3 =  re.compile(RE_FULLIMAGENAME3)
 
-def _listOfString(arg):
+def list_of_string(arg):
     "Return True if all the component of the list are of string type."
-    return reduce(lambda a,b: a and b, map(lambda s: type(s) == str, arg))
+    return reduce(lambda a, b: a and b, map(lambda s: type(s) == str, arg))
 
 def isExtCompressed(filename):
     "Tells from the filename suffix if the file is externaly compressed"
-    if rec_extCompressed.search(filename):
+    if REC_EXTCOMPRESSED.search(filename):
         return True
     else:
         return False
@@ -69,14 +62,14 @@ def isExtCompressed(filename):
 def uncompressedName(filename):
     "Remove the compression extention in filename"
     if isExtCompressed(filename):
-       return filename[:filename.rindex(".")]
+        return filename[:filename.rindex(".")]
     else: return filename
 
 def remove_redundancy(seq):
     "Fast way to remove the redundant elements in any sorted sequence."
     _seq_shift = seq[1:]
     _seq_shift.append(None)
-    return [E for E,C in zip(seq,map(cmp,seq, _seq_shift)) if C]
+    return [E for E, C in zip(seq, map(cmp, seq, _seq_shift)) if C]
 
 def add_reduce(seq):
     "Like Numeric.add.reduce(array)..."
@@ -148,11 +141,12 @@ class Image:
 
         self.fileName = imageFileName
         #
-        # Add shared library path to sys.path to be used with the "plugin" __import__
-        # based mecanism. __file__ work for python version > 2.2.
+        # Add shared library path to sys.path to be used with the "
+        # plugin" __import__ based mecanism. __file__ work for
+	# python version > 2.2.
         try:
             sys.path.append(os.path.join(os.path.split(__file__)[0],
-                                          _pluginDirName))
+                                          PLUGIN_DIR_NAME))
             #print "DEBUG: __file__ = ",os.path.split(__file__)[0]
         except:
             pass
@@ -164,11 +158,12 @@ class Image:
             self.rawHead = _image.read(9000)
             _image.close()
         except XIOError, msg:
-                print msg
-                raise XIOError("Can't read compressed file %s" \
-                                            % (imageFileName))
+            print msg
+            raise XIOError("Can't read compressed file %s" \
+                                             % (imageFileName))
         if len(self.rawHead) < 9000:
-            raise XIOError("File %s seems incomplete. Check its size." % imageFileName)
+            msg = "File %s seems incomplete. Check its size." % imageFileName
+            raise XIOError(msg)
 
         #
         self.type = ""
@@ -184,13 +179,13 @@ class Image:
         if doInterpret:
             self.headerInterpreter()
         try:
-	    self.guessDetModel()
+            self.guessDetModel()
         except:
-	    pass
-	try:
-	    self.guessBeamline()
-	except:
-	    pass
+            pass
+        try:
+            self.guessBeamline()
+        except:
+            pass
 
     def open(self):
         "Open with the appropriate function (in read only)."
@@ -295,11 +290,11 @@ class Image:
             return self.type
     
     def guessDetModel(self):
-	if (not "Width" in self.header) or (not "PixelX" in self.header):
-	    return
+        if (not "Width" in self.header) or (not "PixelX" in self.header):
+            return
         _size = self.header["Width"]*self.header["PixelX"]
-	#print "SIZE= %.2f" % _size
-	if self.type == "marccd":
+        #print "SIZE= %.2f" % _size
+        if self.type == "marccd":
             if 167. > _size > 160.:
                 self.detModel = "MarCCD 165"
             elif 228. > _size > 220.:
@@ -308,7 +303,7 @@ class Image:
                 self.detModel = "MarCCD 300"
             elif 328. > _size > 319.:
                 self.detModel = "MarCCD 325"
-	elif self.type == "adsc":
+        elif self.type == "adsc":
             if 190. > _size > 187.:
                 self.detModel = "ADSC Q4"
             elif 212. > _size > 207.:
@@ -318,10 +313,11 @@ class Image:
 
     def guessBeamline(self):
         if hasattr(self.interpreter, "Identifiers"):
-	    if self.header["SerialNumber"] in self.interpreter.Identifiers:
-	        self.beamline = self.interpreter.Identifiers[self.header["SerialNumber"]]
-	else:
-	    return
+            if self.header["SerialNumber"] in self.interpreter.Identifiers:
+                self.beamline = self.interpreter.Identifiers[
+                                              self.header["SerialNumber"]]
+        else:
+            return
 
     def guessIntCompression(self):
         """Try to guess the image detector internal compression type.
@@ -356,17 +352,17 @@ class Image:
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(RawHeadDict.get,args))
-            self.header[k] = func(*map(RawHeadDict.get,args))
+            self.header[k] = func(*map(RawHeadDict.get, args))
         #
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
         # Some time the beam center is expressed in pixels rather than in mm.
-        if (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"]) and \
+        if (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"])\
+	      and \
            (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"]):
             self.header["BeamX"] = self.header["BeamX"]*self.header["PixelX"]
             self.header["BeamY"] = self.header["BeamY"]*self.header["PixelY"]
         self.header["ImageType"] = self.type
-	#
         return self.header
 
     def export(self, exportType='xds'):
@@ -391,10 +387,10 @@ class Image:
         #import pprint
         print ">> Interpreting header of image:  %s" % self.fileName
         print ">> Image format:      %s" % self.type
-	if self.detModel:
-	      print ">> Detector type:     %s" % self.detModel 
-	if hasattr(self, "beamline") and self.beamline:
-	      print ">> Beamline guess:    %s %s %s" % self.beamline 
+        if self.detModel:
+            print ">> Detector type:     %s" % self.detModel 
+        if hasattr(self, "beamline") and self.beamline:
+            print ">> Beamline guess:    %s %s %s" % self.beamline 
         if self.intCompression:
             print ">> Image Compression:\t%s" % self.intCompression
         if verbose:
@@ -402,7 +398,7 @@ class Image:
             pprint.pprint(self.header)
         return self.header
 
-    def info2(self, verbose=0):
+    def info2(self):
         "Print object internal information"
         import pprint
         pprint.pprint(self.header)
@@ -429,11 +425,12 @@ class Image:
             mean_data = add_reduce(data)/len_data
             print ">> MaxI: %d, AvgI: %.1f" % (max(data), mean_data)
         except XIOError:
-            print ">> Don't know yet how to read PCK and CBF compressed raw data."
+            print ">> Don't know how to read PCK and CBF compressed raw data."
 
     def getData(self):
-        """Read the image bytes. For now only support the 16bits unsigned, and
-        uncompressed internaly. Can read compressed file directly (.gz or .Z)."""
+        """Read the image bytes. For now only support the 16bits unsigned,
+	and uncompressed internaly. Can read compressed file directly
+	(like .gz or .Z)."""
 
         if not self.interpreter:
             self.headerInterpreter()
@@ -509,23 +506,23 @@ class Collect:
         self.imageRanges = []  # set by lookup_imageRanges()
         self.image = None
 
-        if type(init) == list and _listOfString(init):
+        if type(init) == list and list_of_string(init):
             _init_list_of_images = init
             init = init[0]
 
         #print "D1: %s" % init
         if type(init) == str:
             self._naming_convension = 1
-            M = rec_fullImageName1.match(init)
+            M = REC_FULLIMAGENAME1.match(init)
 
             if not M:
                 #print "2nd conv"
-                M = rec_fullImageName2.match(init)
+                M = REC_FULLIMAGENAME2.match(init)
                 self._naming_convension = 2
 
             if not M:
     	        #print "3rd conv."
-                M = rec_fullImageName3.match(init)
+                M = REC_FULLIMAGENAME3.match(init)
                 self._naming_convension = 3
 
             if not M:
@@ -536,11 +533,12 @@ class Collect:
                 print _err_message
 
             #print M.groups()
-	    if self._naming_convension == 2:
+            if self._naming_convension == 2:
                 self.directory, self.prefix, num, compres = M.groups()
-		self.suffix = ""
-	    else:
-	        self.directory, self.prefix, num, self.suffix, compres = M.groups()
+                self.suffix = ""
+            else:
+                self.directory, self.prefix, num, \
+                                self.suffix, compres = M.groups()
 
             self.nDigits = len(num)
             # Just a verification that the regexp for the dir works...
@@ -572,9 +570,9 @@ class Collect:
         elif self._naming_convension == 3: re_fmt = r"%s([0-9]{%d,})\.%s"
 
         _re_imageNameID = re_fmt % (self.prefix, self.nDigits, self.suffix)
-        self.rec_imageNameID = re.compile(_re_dirPath + 
+        self.rec_imageNameID = re.compile(RE_DIRPATH + 
                                           _re_imageNameID +
-                                          _re_extCompression)
+                                          RE_EXT_COMPRESSION)
         if _init_list_of_images:
             self.lookup_imageNumbers(_init_list_of_images)
 
@@ -602,14 +600,15 @@ class Collect:
                               self.suffix
 
         # python template format
-        self.pythonTemplate = self.formatTemplate % ("%0" + "%sd" % self.nDigits)
+        self.pythonTemplate = self.formatTemplate % \
+	                                 ("%0" + "%sd" % self.nDigits)
 
         # MOSFLM Template
         self.mosflmTemplate = self.formatTemplate % ("#" * self.nDigits)
 
         # XDS Template
         self.xdsTemplate = self.formatTemplate % ("?" * self.nDigits)
-        if len(self.xdsTemplate) > 50 and verbose:
+        if len(self.xdsTemplate) > 50 and VERBOSE:
             _mess = " Warning NAME_TEMPLATE_OF_DATA_FRAMES has more than 50 ",
             _mess += "characters! XDS will stop. Lengthy path names should "
             _mess += "be abbreviated by a symboliclink for frames directory."
@@ -663,15 +662,15 @@ class Collect:
         prev, i = seq[0]-1, seq[0]
         for n in seq:
             if n != prev+1:
-                _range.append([i,prev])
+                _range.append([i, prev])
                 i = n
             prev  = n
-        _range.append([i,prev])
+        _range.append([i, prev])
         return _range
 
     def _ranges_to_sequence(self, ranges):
-        _rangePlus1 = lambda R: range(R[0],R[1]+1)
-        _add = lambda a,b: a+b
+        _rangePlus1 = lambda R: range(R[0], R[1]+1)
+        _add = lambda a, b: a+b
         return reduce(_add, map(_rangePlus1, ranges))
 
 
@@ -700,11 +699,11 @@ class Collect:
     def isContinuous(self, imagename_list, methode=0, _epsilon=1e-4):
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
-	if not self.imageNumbers:
+        if not self.imageNumbers:
             self.lookup_imageNumbers()
         if not self.image:
             self.image = Image(self.initialImageName)
-	last_image = self.pythonTemplate % self.imageNumbers[-1]
+        last_image = self.pythonTemplate % self.imageNumbers[-1]
         # Check only for the initialImageName and last images of the list
         # their phi_osc range is compatible with their numbering.
         if methode == 0:
@@ -723,8 +722,8 @@ class Collect:
     def get_range(self, minf=None, maxf=None):
         if self.imageRanges:
             min_c, max_c = self.imageRanges[0][0], self.imageRanges[-1][-1]
-            if minf: min_c = max(minf,min_c)
-            if maxf: max_c = min(maxf,max_c)
+            if minf: min_c = max(minf, min_c)
+            if maxf: max_c = min(maxf, max_c)
             return [min_c, max_c]
         else:
             return []
@@ -753,7 +752,7 @@ class Collect:
 
         self.lookup_imageRanges()
         try:
-           exportDict = self.image.export(exportType)
+            exportDict = self.image.export(exportType)
         except:
             exportDict = {}
         for k in exporter.CTD.keys():
@@ -792,7 +791,7 @@ class Interpreter:
         EndianType = ">"
         headerStructureFmt = EndianType + \
                              "".join([fmt for key,fmt in headerStructure])
-        headerStructureKeys = [key for key,fmt in headerStructure]
+        headerStructureKeys = [key for key, fmt in headerStructure]
 
         # uncoding from headerStructureFmt
         read_size = struct.calcsize(headerStructureFmt)
@@ -807,49 +806,54 @@ class Interpreter:
         """ Return a data list """
         return data
 
-def _test_regexp():
-    r1 = rec_fullImageName1.match("./ref-trypsin_1_023.img.gz")
-    r2 = rec_fullImageName1.match("ref-trypsin_1_023.img")
-    r3 = rec_fullImageName1.match("_1_023.img")
-    r4 = rec_fullImageName1.match("/d/r/_9923.i.bz2")
-    r5 = rec_fullImageName3.match("/d/r/toto9923.i.bz2")
-    rc = rec_fullImageName3.match("/TH050916A0001.img")
-    r6 = rec_fullImageName3.match("/d/r/tot1o9923.i.bz2")
-    r7 = rec_fullImageName3.match("/d/r/9923.i.bz2")
-    r8 = rec_fullImageName2.match("/d/r/toto.9923")
-    r9 = rec_fullImageName2.match("/d/r/toto.9923.bz2")
-    ra = rec_fullImageName2.match("/d/r/1.9923.bz2")
-    rb = rec_fullImageName2.match("/d/r/654082.0086")
-    print r1.groups()
-    print r2.groups()
-    print r3.groups()
-    print r4.groups()
-    print r8.groups()
-    print r9.groups()
-    print ra.groups()
-    print rc.groups()
-    assert r1.groups() == ('./', 'ref-trypsin_1', '023', 'img', '.gz')
-    assert r2.groups() == (None, 'ref-trypsin_1', '023', 'img', None)
-    assert r3.groups() == (None, '_1', '023', 'img', None)
-    assert r4.groups() == ('/d/r/', '', '9923', 'i', '.bz2')
+def test_regexp():
+    "Just testing some cases of image names"
+    r_1 = REC_FULLIMAGENAME1.match("./ref-trypsin_1_023.img.gz")
+    r_2 = REC_FULLIMAGENAME1.match("ref-trypsin_1_023.img")
+    r_3 = REC_FULLIMAGENAME1.match("_1_023.img")
+    r_4 = REC_FULLIMAGENAME1.match("/d/r/_9923.i.bz2")
+    r_5 = REC_FULLIMAGENAME3.match("/d/r/toto9923.i.bz2")
+    r_6 = REC_FULLIMAGENAME3.match("/d/r/tot1o9923.i.bz2")
+    r_7 = REC_FULLIMAGENAME3.match("/d/r/9923.i.bz2")
+    r_8 = REC_FULLIMAGENAME2.match("/d/r/toto.9923")
+    r_9 = REC_FULLIMAGENAME2.match("/d/r/toto.9923.bz2")
+    r_a = REC_FULLIMAGENAME2.match("/d/r/1.9923.bz2")
+    r_b = REC_FULLIMAGENAME2.match("/d/r/654082.0086")
+    r_c = REC_FULLIMAGENAME3.match("/TH050916A0001.img")
+    print r_1.groups()
+    print r_2.groups()
+    print r_3.groups()
+    print r_4.groups()
+    print r_8.groups()
+    print r_9.groups()
+    print r_a.groups()
+    print r_b.groups()
+    print r_c.groups()
+    assert r_1.groups() == ('./', 'ref-trypsin_1', '023', 'img', '.gz')
+    assert r_2.groups() == (None, 'ref-trypsin_1', '023', 'img', None)
+    assert r_3.groups() == (None, '_1', '023', 'img', None)
+    assert r_4.groups() == ('/d/r/', '', '9923', 'i', '.bz2')
     #print r5.groups()
     #if r6: print r6.groups()
     #if r7: print r7.groups()
-    assert r5.groups() == ('/d/r/', 'toto9', '923', 'i', '.bz2')
-    assert r6.groups() == ('/d/r/', 'tot1o9', '923', 'i', '.bz2')
-    assert r7.groups() == ('/d/r/', '9', '923', 'i', '.bz2')
+    assert r_5.groups() == ('/d/r/', 'toto9', '923', 'i', '.bz2')
+    assert r_6.groups() == ('/d/r/', 'tot1o9', '923', 'i', '.bz2')
+    assert r_7.groups() == ('/d/r/', '9', '923', 'i', '.bz2')
 
-def _test0():
-    _test_regexp()
+def test0():
+    "Doctest."
+    test_regexp()
     import doctest
     doctest.testmod()
 
-def _test1(filename):
+def test1(filename):
+    "Simple test"
     im = Image(filename)
     im.info()
     dc = Collect(filename)
 
-def _test2(filename):
+def test2(filename):
+    "More complete test"
     import time
     from DiffractionImage_getHeader import GetHeader
     s1 = time.time()
@@ -873,16 +877,16 @@ def _test2(filename):
     pprint.pprint(DH1)
 
 
-def _test3(filename):
+def test3(filename):
     im = Image(filename)
     im.info()
     pprint.pprint(im.export('xds'))
 
 if __name__ == "__main__":
     import pprint
-    _test0()
-    #_test_regexp()
+    test0()
+    #test_regexp()
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-        _test1(filename)
-        _test3(filename)
+        test1(filename)
+        test3(filename)
