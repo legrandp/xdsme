@@ -1,44 +1,49 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+ Changes in version 0.4.4 6-11-2009.
+ - Improved index searching strategy.
+ - Fix XIO compatibility with pilatus det.
+ - Improve detector specific definitions in XIO exports.
+ Changes in version 0.4.3 28-10-2009.
+ - Fixe compatibility problems with Python2.2 and Python2.3
+ - Add proper error message when image file can't be read.
+ Changes in version 0.4.0 27-07-2009
+ - Strategy: after indexing ask to choose which lattice and rerun idxref+xplan
+ - Reference option for adding reference dataset (XPLAN parsing need modif).
+ - during INTEGRATE, display overloads and mean strong refl/images.
+ - Add compatibility for subprocess.Popen (python > 2.4.0) and Popen2 for
+   previous versions
+
+ TODO-0: If just the space group is selected and not the cell:
+         try to find the proper cell if it is not ambigous
+         (like P21212, P2122,,,),
+ TODO-1: Add in the CORRECT summary the Rmrgd-F, image range, and total
+         overloaded refl.
+ TODO-2: Start multiple COLSPOT with different thresholds+ multiple IDXREF...
+"""
+
 __version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "6-11-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
-__license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
-
-# Changes in version 0.4.4 6-11-2009.
-# - Improved index searching strategy.
-# - Fix XIO compatibility with pilatus det.
-# - Improve detector specific definitions in XIO exports.
-# Changes in version 0.4.3 28-10-2009.
-# - Fixe compatibility problems with Python2.2 and Python2.3
-# - Add proper error message when image file can't be read.
-# Changes in version 0.4.0 27-07-2009
-# - Strategy: after indexing ask to choose which lattice and rerun idxref+xplan
-# - Reference option for adding reference dataset (then XPLAN parsing need modif).
-# - during INTEGRATE, display overloads and mean strong refl/images.
-# - Add compatibility for subprocess.Popen (python > 2.4.0) and Popen2 for
-#   previous versions
-
-# TODO-0: If just the space group is selected and not the cell:
-#         try to find the proper cell if it is not ambigous (like P21212, P2122,,,),
-# TODO-1: Add in the CORRECT summary the Rmrgd-F, image range, and total overloaded refl.
-# TODO-2: Start multiple COLSPOT with different thresholds+ multiple IDXREF...
-# TODO-3: 
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
 import re
 
-if sys.version_info <= (2,4,0):
+if sys.version_info <= (2, 4, 0):
     from popen2 import Popen3
 else:
     from subprocess import Popen, PIPE
 
+from pycgtypes import vec3
+from pycgtypes import mat3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
-                 SPGlib, Lattice, resum_scaling, write_xscale_resum, \
+                 SPGlib, Lattice, resum_scaling, \
 		 get_BravaisToSpgs
 import XIO
 
@@ -113,10 +118,10 @@ _usage = """
          Set the expected space group using either the space group number
          or simple string.
          For example: -s 18 or -s P21212
-    
+
     -S, --strategy
          Force to go for calculating strategy (XPLAN) and then stops.
-         
+
     -x,  --beam-x
          Set a new value for ORGX: X-coordinates (in pixels) of the
          detector origin.
@@ -130,7 +135,7 @@ _usage = """
 
     -w, --wavelength
          Set the x-ray wavelength.
-         
+
     --Slow, --Fast
          Set options to process either more accurately of faster.
 
@@ -153,7 +158,7 @@ _fmt_final_stat = """
       Refined Parameters and Scaling Statistics
       =========================================\n
       Image Range   %(image_start)5d  to  %(image_last)5d
-      
+
       Space group   number    %(spg_num)d
                     symbol    %(spg_sym)s
 
@@ -193,7 +198,7 @@ _fmt_anomal = """
 
 """
 
-stepmark = re.compile(r"^( [*]{5} (\w{4,}) [*]{5}  )")
+STEPMARK = re.compile(r"^( [*]{5} (\w{4,}) [*]{5}  )")
 integrate_step = re.compile(r" PROCESSING OF IMAGES ")
 integrate_mosaicity = re.compile(r"CRYSTAL MOSAICITY \(DEGREES\)")
 integrate_strong = re.compile(r"REFLECTIONS ACCEPTED FOR REFINEMENT")
@@ -232,52 +237,51 @@ def _mkdir(newdir):
             os.mkdir(newdir)
 
 def makeXDSImageLinks(imagename_list,linkDir="img_links",
-                       prefix="image", start_num=1, verbose=False):
-        """All image names in the imagename_list are supposed to be part
-        of one continous sequence of collected images.
-        Todo:
-            - How to safely modulate PhiStart outside the [-180,180] range ? 
+                    prefix="image", start_num=1, verbose=False):
+    """All image names in the imagename_list are supposed to be part
+    of one continous sequence of collected images.
+    Todo:
+        - How to safely modulate PhiStart outside the [-180,180] range ?
+    """
+    link_list = []
+    if linkDir not in os.listdir("."):
+        try:
+            _mkdir(linkDir)
+        except Exception, e:
+            print "Error\n", e
+            sys.exit(0)
+    #
+    linkDir = os.path.abspath(linkDir)
+    _collect = {}
+    _osc_range = []
+    for _image in imagename_list:
+        _I = XIO.Image(_image)
+        if verbose: print _image
+        # How to safely modulate PhiStart outside the [-180,180] range?
+        if verbose: print "\tPhiStart %8.2f" % _I.header['PhiStart']
+        if verbose: print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
+        _collect[_I.header['PhiStart']] = _image
+        _osc_range.append(_I.header['PhiWidth'])
 
-        """
-        link_list = []
-        if linkDir not in os.listdir("."):
-                try:
-                        _mkdir(linkDir)
-                except Exception, e:
-                        print "Error\n", e
-                        sys.exit(0)
-        #
-        linkDir = os.path.abspath(linkDir)
-        _collect = {}
-        _osc_range = []
-        for _image in imagename_list:
-                _I = XIO.Image(_image)
-                if verbose: print _image
-                # How to safely modulate PhiStart outside the [-180,180] range?
-                if verbose: print "\tPhiStart %8.2f" % _I.header['PhiStart']
-                if verbose: print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
-                _collect[_I.header['PhiStart']] = _image
-                _osc_range.append(_I.header['PhiWidth'])
-
-        if max(_osc_range) != min(_osc_range):
-                print "Error. Image list contains different oscillation range!"
-                sys.exit(0)
-        #
-        _osc_starts = _collect.keys()
-        _osc_starts.sort()
-        _osc1 = _osc_starts[0]
-        _oscR = _osc_range[0]
-        for _osc in _osc_starts:
-                _num =  start_num+ (_osc-_osc1)/_oscR
-                link_name = os.path.join(linkDir, prefix+"_%04.0f.img" % _num)
-                #print _osc,_osc1,_oscR,1+(_osc-_osc1)/_oscR, _num,link_name
-                if os.path.lexists(link_name) and os.path.islink(link_name):
-                        if verbose:
-                            print "==> Removing existing link: %s" % link_name
-                        os.remove(link_name)
-                os.symlink(os.path.abspath(_collect[_osc]), link_name)
-                link_list.append(link_name)
-        return link_list
+    if max(_osc_range) != min(_osc_range):
+        print "Error. Image list contains different oscillation range!"
+        sys.exit(0)
+    #
+    _osc_starts = _collect.keys()
+    _osc_starts.sort()
+    _osc1 = _osc_starts[0]
+    _oscR = _osc_range[0]
+    for _osc in _osc_starts:
+        _num =  start_num+ (_osc-_osc1)/_oscR
+        link_name = os.path.join(linkDir, prefix+"_%04.0f.img" % _num)
+        #print _osc,_osc1,_oscR,1+(_osc-_osc1)/_oscR, _num,link_name
+        if os.path.lexists(link_name) and os.path.islink(link_name):
+            if verbose:
+                print "==> Removing existing link: %s" % link_name
+            os.remove(link_name)
+        os.symlink(os.path.abspath(_collect[_osc]), link_name)
+        link_list.append(link_name)
+    return link_list
 
 class XDSLogParserException(Exception):
     """This level of exception raises a recoverable error which can be fixed."""
@@ -306,7 +310,6 @@ class XDSLogParser:
             fp.close()
         except:
             raise IOError, "Can't read file: %s" % full_filename
-        #
         # Catch Errors:
         _err = self.lp.find(" !!! ERROR !!!" )
         _err_type = None
@@ -504,7 +507,6 @@ class XDSLogParser:
         st0 = self.lp.index(72*"*")
         st1 = self.lp.index(72*"*", st0+72)
         st2 = self.lp.index(72*"*", st1+72)
-	
         #
         #R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A PIXEL")
         pp =  "  Friedel's law:   %(friedels_law)s\n"
@@ -526,11 +528,11 @@ class XDSLogParser:
         R_d["I_sigma"], R_d["Rsym"] = r[2], r[4]
         R_d["Compared"], R_d["Total"] = r[6], r[7]
         ### Select Diffraction range.
-	sp1 = self.lp.index("RESOLUTION RANGE  I/Sigma")
-	sp2 = self.lp.index(10*"-",sp1)
-	_table = self.lp[sp1:sp2].splitlines()[3:-1]
-	_table = [ map(float, l.split()[1:3]) for l in _table ]
-	R_d["HighResCutoff"] = self.get_proper_resolition_range(_table)	
+        sp1 = self.lp.index("RESOLUTION RANGE  I/Sigma")
+        sp2 = self.lp.index(10*"-",sp1)
+        _table = self.lp[sp1:sp2].splitlines()[3:-1]
+        _table = [ map(float, l.split()[1:3]) for l in _table ]
+        R_d["HighResCutoff"] = self.get_proper_resolition_range(_table)
         pp = ""
         if R_d["Mosaicity"]:
             pp += "  RMSd spot position in pixel:      %(RMSd_spotPosition)9.2f\n"
@@ -538,29 +540,29 @@ class XDSLogParser:
             pp += "  Refined Mosaicity:                %(Mosaicity)9.2f\n\n"
         pp += "  Rsym:                             %(Rsym)9.1f\n"
         pp += "  I/sigma:                          %(I_sigma)9.1f\n"
-	if R_d["HighResCutoff"]:
-	    pp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
+        if R_d["HighResCutoff"]:
+            pp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
         pp += "  Compared reflections:                 %(Compared)d\n"
         pp += "  Total number of measures:             %(Total)d\n"
         if self.verbose: print pp % R_d
         return R_d, pp
-    
+
     def get_proper_resolition_range(self, res_table):
         # High res is selected when at least 3 values of I/sigma are below 1.
-	_highT, _high = [], None
-	for res, IoS in res_table:
-	    if IoS < 1.:
-	        _highT.append(res)
-		if not _high and len(_highT) == 3:
-		    _high = _highT[0]
+        _highT, _high = [], None
+        for res, IoS in res_table:
+            if IoS < 1.:
+                _highT.append(res)
+                if not _high and len(_highT) == 3:
+                    _high = _highT[0]
             else:
-	        _highT = []
-	    #print "%8.3f  %8.3f  %s" % (res, IoS, IoS >= 1.)
-	if not _high and len(_highT) >= 1:
-	    _high = _highT[0]
+                _highT = []
+            #print "%8.3f  %8.3f  %s" % (res, IoS, IoS >= 1.)
+        if not _high and len(_highT) >= 1:
+            _high = _highT[0]
         #print "Suggested high resolution cut-off: %.2f" % _high
-	return _high
-    
+        return _high
+
     def get_spot_number(self):
         _execstr = "wc -l %s/SPOT.XDS" % self.run_dir
         if sys.version_info <= (2,4,0):
@@ -613,7 +615,7 @@ class XDS:
             return Popen(_execstr, stdin=PIPE, stdout=PIPE, 
                               stderr=PIPE, bufsize=1, close_fds=True,
                               universal_newlines=True)
-                            
+
     def cancel (self):
         self.__cancelled = 1
 
@@ -705,7 +707,7 @@ class XDS:
                 if hit:
                     _talbInt = hit.groups()
                     overLoad += int(hit.groups()[3])
-            sm = stepmark.match(nl)
+            sm = STEPMARK.match(nl)
             if sm:
                 self.step += 1
                 self.step_name = sm.group(2)
@@ -713,7 +715,6 @@ class XDS:
                 if verbose:
                     print "\n --->  Running job: %20s\n" % self.step_name
             if nl: self.outp.append(nl)
-        #
         self.step += 1
         self.step_name = "FINISHED"
         if self.__cancelled: result = -1
@@ -769,7 +770,7 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 8
         _trial = 0
-        
+
         if self.mode == "slow":
             FRAMES_PER_COLSPOT_SEQUENCE = 32
         elif self.mode == "fast":
@@ -833,19 +834,29 @@ class XDS:
 
         RD = res.results
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
+        dist = self.inpParam["DETECTOR_DISTANCE"]
+        det_X = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
+        det_Y = vec3(self.inpParam["DIRECTION_OF_DETECTOR_Y-AXIS"])
         #RD["indexed_percentage"] < 70. or \
         #if optimize or RD["xy_spot_position_ESD"] > 2. or \
         #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
         if optimize:
             TestResults = [RD]
-            print " Number of possible origin coordinates: %d" % \
+            print " Number of possible beam coordinates: %d" % \
                               len(RD["index_origin_table"])
             maxTestOrigin = min(20,len(RD["index_origin_table"]))
             origins = RD["index_origin_table"][:maxTestOrigin]
             for origin in origins:
-                self.inpParam["ORGX"] = origin[5]
-                self.inpParam["ORGY"] = origin[6]
-                print "   Testing beam origin: (%.2fmm, %.2fmm) = " % \
+                # We first need to calculate the beam_origin from the
+                # beam_coordinate and beam_vector given in the table
+                beam = vec3(origin[7:10])
+                beam_origin = get_beam_origin(origin[5:7], dist, beam,
+                                                    det_X, det_Y, qx, qy)
+                self.inpParam["ORGX"] = beam_origin[0]
+                self.inpParam["ORGY"] = beam_origin[1]
+                #print "DEBUG:  %7.1f %7.1f  - %7.1f %7.1f" % \
+                #  (coorx, coory, self.inpParam["ORGX"], self.inpParam["ORGY"])
+                print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
                                            (origin[5]*qx, origin[6]*qy), 
                 print "  (%.1f, %.1f)" % (origin[5], origin[6])
                 self.run(rsave=True, verbose=False)
@@ -858,8 +869,10 @@ class XDS:
             print "\n"
             # Need to lookup in the results for the beam-center giving 
             # the best indexation
-            best_beam_center = rank_indexation(TestResults, optimize)
-            self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_center
+            best_beam_coor = rank_indexation(TestResults, optimize)
+            best_beam_orig = get_beam_origin(best_beam_coor, dist, beam,
+                                                    det_X, det_Y, qx, qy)
+            self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_orig
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
         return res.results
@@ -912,23 +925,22 @@ class XDS:
         self.inpParam["JOB"] = "CORRECT",
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
-	L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
-	newH = res.results["HighResCutoff"]
-	if newH > H:
-	    print "   ->  Rerunning CORRECT with a new high resolution cutoff."
-	    self.inpParam["INCLUDE_RESOLUTION_RANGE"] = L, newH
-	    self.run(rsave=True)
-	s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
+        L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
+        newH = res.results["HighResCutoff"]
+        if newH > H:
+            print "   ->  Rerunning CORRECT with a new high resolution cutoff."
+            self.inpParam["INCLUDE_RESOLUTION_RANGE"] = L, newH
+            self.run(rsave=True)
+        s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         if not s:
             print "\nERROR while running CORRECT"
             sys.exit()
         print _fmt_final_stat % vars(s)
         if s.absent:
-           print _fmt_AbsIav % vars(s)
+            print _fmt_AbsIav % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
-           print _fmt_anomal % vars(s)
-
+            print _fmt_anomal % vars(s)
         return res.results
 
     def run_scaleLaueGroup(self):
@@ -1028,11 +1040,20 @@ def rank_indexation(indexations, optim):
     else:
         _i, _z = "   ", "***"
     _best =  best_beam_center[optim]
-    print "\n %s Best  Z_score rank: %3d  for Solution #%-3d" % (_z,min(z_score),z_best_index+1),
+    fmt =  "%s Best  %s_score rank: %3d  for Solution #%-3d"
+    print "\n" + fmt % (_z, "Z", min(z_score), z_best_index+1),
     print " ORGX=%7.1f,ORGY=%7.1f" % tuple(best_beam_center["ZSCORE"])
-    print   " %s Best  I_score rank: %3d  for Solution #%-3d" % (_i, 1,i_best_index+1),
+    print fmt % (_i, "I", 1, i_best_index+1),
     print " ORGX=%7.1f ORGY=%7.1f" % tuple(best_beam_center["ISCORE"])
     return _best
+
+def get_beam_origin(beam_coor, dist, beam_vec, det_x, det_y, qx, qy):
+    "Calculate beam_origin from beam_coordinate."
+    det_z = det_x.cross(det_y)
+    beamOx, beamOy, beamOz = beam_coor[0]*qx, beam_coor[1]*qy, beam_vec*det_z
+    return (beamOx - beam_vec*det_x*dist/beamOz)/qx, \
+           (beamOy - beam_vec*det_y*dist/beamOz)/qy
+
 
 def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
@@ -1041,7 +1062,6 @@ def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Internal: set the smallest RMAX radius,
     # External: set the biggest RMAX radius and Midle...
     pass
-    
 
 def write_autoPar(adpPar):
     link_name_to_image = "img"
@@ -1062,7 +1082,7 @@ def write_autoPar(adpPar):
         #
         keys = adpPar.keys()
         keys.sort()
-        paramStr = "".join(["%s = %s\n" % (k,adpPar[k]) for k in keys])
+        paramStr = "".join(["%s = %s\n" % (k, adpPar[k]) for k in keys])
         opWriteCl("auto.par", paramStr)
     os.chdir("..")
 
@@ -1237,16 +1257,15 @@ if __name__ == "__main__":
                 "Slow", "Fast"]
 
     if len(sys.argv) == 1:
-            print _usage
-            sys.exit(2)
-
+        print _usage
+        sys.exit(2)
     try:
         opts, inputf = getopt.getopt(sys.argv[1:], short_opt, long_opt)
     except getopt.GetoptError:
         # print help information and exit:
         print _usage
         sys.exit(2)
-    
+
     _warning = ""
     _verbose = False
     _anomal = False
@@ -1325,7 +1344,7 @@ if __name__ == "__main__":
         if o in ("-h", "--help"):
             print _usage
             sys.exit()
-    
+
     if not os.path.isfile(inputf[0]):
         print "\nERROR. Can't open file: %s\n" % inputf[0] 
         sys.exit(2)
@@ -1359,14 +1378,15 @@ if __name__ == "__main__":
     imgDir = collect.directory
     newPar = collect.export("xds")
 
-# In case no beam origin is defined, take the detector center.
+   # In case no beam origin is defined, take the detector center.
     if newPar["ORGX"] == 0: newPar["ORGX"] = newPar["NX"]/2.
     if newPar["ORGY"] == 0: newPar["ORGY"] = newPar["NY"]/2.
 
     #write_autoPar(collect.export("adp"))
 
     # Update some default values.
-    # Defined by XDS.export xds: newPar["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = 9
+    # Defined by XDS.export xds:
+    #    newPar["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = 9
     newPar["STRONG_PIXEL"] = 7
 
     newrun = XDS()
@@ -1386,7 +1406,8 @@ if __name__ == "__main__":
         newPar["SPACE_GROUP_NUMBER"] = _spg
         newPar["UNIT_CELL_CONSTANTS"] = _cell
     elif _spg and not _cell:
-        _warning = "  WARNING: Spacegroup is defined but not cell. Watting for indexation for setting cell."
+        _warning = "  WARNING: Spacegroup is defined but not cell."
+        _warning += " Waiting for indexation for setting cell."
     elif _cell and not _spg:
         _warning = "  WARNING: Cell is defined but not spacegroup, setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
@@ -1418,9 +1439,8 @@ if __name__ == "__main__":
         newrun.mode = "slow"
     else:
         newrun.mode = None
-        
+
     print _fmt_hello % vars(newrun.inpParam)
-    
     if _warning: print _warning
     if _spg:
         print _spg_str
@@ -1428,7 +1448,7 @@ if __name__ == "__main__":
     #newrun.run()
     R1 = R2 = R3 = R4 = R5 = None
     if _step > 1:
-        print "\n Starting at step: %d (%s)\n" % (_step,STEPS[_step-1])
+        print "\n Starting at step: %d (%s)\n" % (_step, STEPS[_step-1])
     if _step <= 1: R1 = newrun.run_init()
     if _step <= 2: R2 = newrun.run_colspot()
     if _step <= 3:
@@ -1447,16 +1467,13 @@ if __name__ == "__main__":
         for LAT in R3["lattices_table"]:
             if LAT.fit <= LATTICE_GEOMETRIC_FIT_CUTOFF:
                 i += 1
-                
                 print fmt_lat % (i, LAT.symmetry_str1,
                             LAT.fit, LAT.multiplicity, LAT)
         # If not multiple possible solutions (like P2, or P1...) try to define
         # unitcell from spacegroup.
         #if _spg and not _cell:
-        #
         if (len(collect.imageRanges) > 1) or _strategy:
             newrun.run_xplan(collect.imageRanges, ridx=R3)
-        
     if _step <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
     if _step <= 5:
