@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Copyright (C) 2005, Pierre Legrand
 #
@@ -18,10 +19,10 @@
 
 """
     19/10/05 First version
-    
+
     Uses the mat3 and vec3 classes from Python Computer Graphics Kit v1.2.0
     module by Matthias Baas (see http://cgkit.sourceforge.net).
-        
+
     TODO:
       - 
 """
@@ -71,68 +72,65 @@ def mat3T(*args):
         return mat3(args[0][0], args[0][1], args[0][2]).transpose()
     else:
         raise Exception, "Number of argument should be 1 or 3!"
-        
+
 class ParserError(Exception):
     """This level of exception raises a recoverable error which can be fixed.
     """
-    
+
 class DenzoParser:
 
     def __init__(self, filename=None):
-        
         self.DNZAxes = ey, -ex, -ez
         self.verticalAxis = vec3(1, 0, 0)
         self.spindleAxis = vec3(0, 0, 1)
         self.motorAxis = [0.,1.,0.]
         self.info = "Denzo Parser"
         self.fileType = "Denzo"
-        
         if filename:
             self.parse(filename)
             self.spaceGroupName = self.spg.upper()
             self.spaceGroupNumber = SPGlib2[self.spg.lower()]
-            
+
     def parse(self, filename):
-    
+        "Denzo x-file parser"
         try:
             xfile = open(filename,"r").read().splitlines()
             xhead = xfile[:7]
             xtail = xfile[-30:]
-	
+
         except:
             raise ParserError, "Error, Can't read file: %s" % filename
-    
-        if xhead[0][:6] == "HEADER": xhead =  xhead[1:]
+
+        if xhead[0][:6] == "HEADER":
+            xhead =  xhead[1:]
         self.title = xhead[0]
-	
         mats = map(str2floats, xhead[1:4])
-	self.UB = mat3(mats[0][:3], mats[1][:3], mats[2][:3]).transpose()
-	self.U =  mat3(mats[0][3:], mats[1][3:], mats[2][3:]).transpose()
+        self.UB = mat3(mats[0][:3], mats[1][:3], mats[2][:3]).transpose()
+        self.U =  mat3(mats[0][3:], mats[1][3:], mats[2][3:]).transpose()
 
         if len(xhead[4].split()) == 4: line1, line2 = xhead[4], xhead[5][:40]
         else: line1, line2 = xhead[4][:48], xhead[4][48:88]
-	
         self.phi0, self.phi1, self.xtod, self.wavel = str2floats(line1)
-	self.rotz, self.roty, self.rotx, self.mosaic = str2floats(line2)
+        self.rotz, self.roty, self.rotx, self.mosaic = str2floats(line2)
         self.crystal_setting = self.rotz, self.roty, self.rotx
-	
-	# Extract reciprocal unit cell vectors
-	self.Ar = vec3(self.UB.getColumn(0))
-	self.Br = vec3(self.UB.getColumn(1))
-	self.Cr = vec3(self.UB.getColumn(2))
 
-	# Extract reciprocal cell parameters
+        # Extract reciprocal unit cell vectors
+        self.Ar = vec3(self.UB.getColumn(0))
+        self.Br = vec3(self.UB.getColumn(1))
+        self.Cr = vec3(self.UB.getColumn(2))
+
+        # Extract reciprocal cell parameters
         self.cell_r = UB_to_cellParam(self.UB)
-	self.cell = reciprocal(self.cell_r)
-        
+        self.cell = reciprocal(self.cell_r)
+
         # Calculate direct unit cell vectors
-	self.volum_r = self.Ar.cross(self.Br)*self.Cr
-	self.volum = 1/self.volum_r
-	
-	self.A = self.Br.cross(self.Cr)*self.volum
-	self.B = self.Cr.cross(self.Ar)*self.volum
-	self.C = self.Ar.cross(self.Br)*self.volum
-        
+        self.volum_r = self.Ar.cross(self.Br)*self.Cr
+        self.volum = 1/self.volum_r
+
+        self.A = self.Br.cross(self.Cr)*self.volum
+        self.B = self.Cr.cross(self.Ar)*self.volum
+        self.C = self.Ar.cross(self.Br)*self.volum
+
         for line in xtail:
             lineSplit = line.split()
             if line.upper().count("SPACE GROUP"):
@@ -162,34 +160,33 @@ class DenzoParser:
                        abs(self.cell2[4] - self.cell[4]) < 2e-2 and \
                        abs(self.cell2[5] - self.cell[5]) < 2e-2 
 
-	# Verify that the calculation method for UB_to_Rotxyz works correctly
+        # Verify that the calculation method for UB_to_Rotxyz works correctly
         _rotx, _roty, _rotz = self.UB_to_Rotxyz()
         assert abs(_rotx - self.rotx) < 2e-2 and \
                abs(_roty - self.roty) < 2e-2 and \
                abs(_rotz - self.rotz) < 2e-2
-               
-	# Verify that the calculation method for Adnz_to_Udnz works correctly
+
+        # Verify that the calculation method for Adnz_to_Udnz works correctly
         _U = self.Adnz_to_Udnz()
-	print diffMAT(_U, self.U)
+        print diffMAT(_U, self.U)
         assert diffMAT(_U, self.U) < 5e-6
-    
+
     def get_U0(self, rcell=None, vertical=None, spindle=None, clean=False):
         "Calculate denzo U0 from spindle, verctical"
-        
         if not rcell: rcell = self.cell_r
         if not vertical: vertical = self.verticalAxis
         if not spindle: spindle = self.spindleAxis
-        
+
         Bmat = self.get_B(rcell)
         vertical = vec3(vertical)
         spindle = vec3(spindle)
-        
+
         U0y = (Bmat * spindle).normalize()
         U0xi = Bmat * vertical
         U0x = (U0xi - (U0xi * U0y) * U0y).normalize()
-        
+
         U0 = mat3(U0x, U0y, U0x.cross(U0y)).transpose()
-        
+
         # cleaning... Just cosmetic, not realy needed.
         if clean: U0 = cleanU0(U0)
         return U0
@@ -199,9 +196,8 @@ class DenzoParser:
           b* is aligned with spindle axis (2-nd coordinate)
           a* is in the plane perpendicular to the beam (1-st,2-nd coords)
         """
-        
-        if not rcell:  rcell = self.cell_r
-        
+        if not rcell:
+            rcell = self.cell_r
         sr = map(sind, rcell[3:6])
         cr = map(cosd, rcell[3:6])
         B  = mat3()
@@ -315,10 +311,9 @@ class XDSParser:
 
     def parse_correct(self, infname="CORRECT.LP", infilelocation="."):
         "Extract information from XDS output CORRECT.LP and INIT.LP"
-	        
         # Extract things from CORRECT.LP
         corr = openReadClose(os.path.join(infilelocation, infname))
-	ip = corr.index("PARAMETERS USING ALL IMAGES")+100
+        ip = corr.index("PARAMETERS USING ALL IMAGES")+100
         corrp = corr[ip:ip+1400]
         corri = corr[:1500]
         self.dict["rot"] = self.get_par(corrp,"ROTATION AXIS")
@@ -394,7 +389,7 @@ class XDSParser:
         self.dict["num_init"], self.dict["phi_init"], self.dict["delta_phi"] = \
                    map(float,xparm[0].split()[:3])
         self.dict["detector_X"] = map(float,xparm[4].split())
-        self.dict["detector_Y"] = map(float,xparm[5].split())    
+        self.dict["detector_Y"] = map(float,xparm[5].split())
 
     def debut(self):
         "Do simple cristallographic calculations from XDS initial parameters"
@@ -425,19 +420,18 @@ class XDSParser:
         slow (Y) axis of detector files are  orientated toward the camera frame.
         The calculation of this omega value is supposed to reflect the Mosflm
         definition...
-        
+
         But it seems that I get different values from the mosflm defaults... This
         may be due to: A) My missanderstanding of the mosflm documentation, B)
         Some tricks in the image reading routines.
-        
+
         Nonetheless, this calculated value works for translating
         correctly the beam coordinates from XDS to mosflm [at least in the tested
         cases of MARCCD, MAR345 and ADSC detector images].
-        
+
         Reference:
         http://www.ccp4.ac.uk/dist/x-windows/Mosflm/doc/mosflm_user_guide.html#a3
         """
-        
         # Xd = CAMERA_y = beam
         # Yd = CAMERA_z = rot
         Xd =  vec3(self.dict["beam"]).normalize()
@@ -475,15 +469,14 @@ class XDSParser:
         geometricaly defined in mosflm ?
         I need to look in the mosflm code where it is taken into account.
         """
-        
         BEAM = vec3(self.dict["beam"])
         ROT  = vec3(self.dict["rot"]).normalize()
         camY = ROT.cross(BEAM)
-        
+
         XDSdetector_X = vec3(self.dict["detector_X"]).normalize()
         XDSdetector_Y = vec3(self.dict["detector_Y"]).normalize()
         #XDSdetector_Z = XDSdetector_X.cross(XDSdetector_Y)
-        
+
         #print beam.angle(XDSdetector_Z)*r2d
         if abs(ROT * XDSdetector_X) - 1 <= 0.05:
             detecorVector = -XDSdetector_Y
@@ -493,27 +486,25 @@ class XDSParser:
             #print 2
         else:
             raise Exception, "Can't calculate TwoTheta angle"    
-        
         return camY.angle(detecorVector)    
-    
+
     def getBeamOrigin(self):
-        """Calculate the direct beam coordinates on the detector."""
-        
+        """Calculate the direct beam coordinates on the detector from beamOrigin."""
+
         distance = self.dict["distance"]
         beam = vec3(self.dict["beam"])
-        
+
         XDSdetector_X = vec3(self.dict["detector_X"])
         XDSdetector_Y = vec3(self.dict["detector_Y"])
         XDSdetector_Z = XDSdetector_X.cross(XDSdetector_Y)
-    
+
         # Calculate the direct beam coordinates on the detector
         beamOx = self.dict["originXDS"][0]*self.dict["pixel_size"][0]
         beamOy = self.dict["originXDS"][1]*self.dict["pixel_size"][1]
-        beam0z = beam*XDSdetector_Z
-        
-        beamX = beamOx + beam*XDSdetector_X*distance/beam0z
-        beamY = beamOy + beam*XDSdetector_Y*distance/beam0z
-        
+        beamOz = beam*XDSdetector_Z
+
+        beamX = beamOx + beam*XDSdetector_X*distance/beamOz
+        beamY = beamOy + beam*XDSdetector_Y*distance/beamOz
         beamXp = beamX/self.dict["pixel_size"][0]
         beamYp = beamY/self.dict["pixel_size"][1]
         
@@ -526,8 +517,72 @@ class XDSParser:
                 assert (self.dict["origin"][1] - beamYp) < 0.05
             print "DEBUG: BEAM center calculated in pixel:\t%9.2f %9.2f" % (beamXp,beamYp)
             print "DEBUG: BEAM center calculated in mm:\t\t%9.2f %9.2f\n" % (beamX,beamY)
-        
         return beamX, beamY
+
+    def get_beam_coordinate(self):
+        """Calculate the direct beam coordinates on the detector
+           from beam origin."""
+
+        distance = self.dict["distance"]
+        beam = vec3(self.dict["beam"])
+
+        XDSdetector_X = vec3(self.dict["detector_X"])
+        XDSdetector_Y = vec3(self.dict["detector_Y"])
+        XDSdetector_Z = XDSdetector_X.cross(XDSdetector_Y)
+
+        # Calculate the direct beam coordinates on the detector
+        beamOx = self.dict["originXDS"][0]*self.dict["pixel_size"][0]
+        beamOy = self.dict["originXDS"][1]*self.dict["pixel_size"][1]
+        beamOz = beam*XDSdetector_Z
+
+        beamX = beamOx + beam*XDSdetector_X*distance/beamOz
+        beamY = beamOy + beam*XDSdetector_Y*distance/beamOz
+        beamXp = beamX/self.dict["pixel_size"][0]
+        beamYp = beamY/self.dict["pixel_size"][1]
+
+        if _debug:
+            if "origin" in self.dict.keys():
+                print "\nDEBUG: BEAM center read from XDS in pixel:",
+                print  "%9.2f %9.2f" % tuple(self.dict["origin"])
+                # When given by XDS, verifies that my calculation is correct
+                assert (self.dict["origin"][0] - beamXp) < 0.05
+                assert (self.dict["origin"][1] - beamYp) < 0.05
+            print "DEBUG: BEAM center calculated in pixel:\t%9.2f %9.2f" % (beamXp,beamYp)
+            print "DEBUG: BEAM center calculated in mm:\t\t%9.2f %9.2f\n" % (beamX,beamY)
+        return beamX, beamY
+
+    def get_beam_origin(self):
+        """Calculate the direct beam origin from the
+           detector beam coordinate."""
+
+        distance = self.dict["distance"]
+        beam = vec3(self.dict["beam"])
+
+        XDSdetector_X = vec3(self.dict["detector_X"])
+        XDSdetector_Y = vec3(self.dict["detector_Y"])
+        XDSdetector_Z = XDSdetector_X.cross(XDSdetector_Y)
+
+        # Calculate the direct beam coordinates on the detector
+        beamCx = self.dict["origin"][0]*self.dict["pixel_size"][0]
+        beamCy = self.dict["origin"][1]*self.dict["pixel_size"][1]
+        beamCz = beam*XDSdetector_Z
+
+        beamX = beamCx - beam*XDSdetector_X*distance/beamCz
+        beamY = beamCy - beam*XDSdetector_Y*distance/beamCz
+        beamXp = beamX/self.dict["pixel_size"][0]
+        beamYp = beamY/self.dict["pixel_size"][1]
+
+        if _debug:
+            if "origin" in self.dict.keys():
+                print "\nDEBUG: BEAM center read from XDS in pixel:",
+                print  "%9.2f %9.2f" % tuple(self.dict["origin"])
+                # When given by XDS, verifies that my calculation is correct
+                assert (self.dict["origin"][0] - beamXp) < 0.05
+                assert (self.dict["origin"][1] - beamYp) < 0.05
+            print "DEBUG: BEAM center calculated in pixel:\t%9.2f %9.2f" % (beamXp,beamYp)
+            print "DEBUG: BEAM center calculated in mm:\t\t%9.2f %9.2f\n" % (beamX,beamY)
+        return beamXp, beamYp
+
 
     def UBxds_to_mos(self):
         """ Convert the XDS direct space Orientation Matrix to a mosflm OM
