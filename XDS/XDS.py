@@ -40,11 +40,10 @@ else:
     from subprocess import Popen, PIPE
 
 from pycgtypes import vec3
-from pycgtypes import mat3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
-		 get_BravaisToSpgs
+                 get_BravaisToSpgs
 import XIO
 
 _progname = os.path.split(sys.argv[0])[1]
@@ -188,14 +187,13 @@ _fmt_anomal = """
       Anomalous Correlation      %(anoCorr)10.1f%%   (%(anoCorrL).1f%%)
 """
 
-"""
+test_str = """
     s.anoNum, s.anoNumL  =  TG[-1][-1], TG[-2][-1]
     s.anoSig, s.anoSigL  =  TG[-1][-2], TG[-2][-2]
     s.anoCorr,s.anoCorrL =  TG[-1][-3], TG[-2][-3]
     if friedels_law == "FALSE":
         print_o3("Anomalous contrib.","%.1f " % s.anom, "")
     print_o3("Estimated Res_max","%.2f" % s.dmin,"")
-
 """
 
 STEPMARK = re.compile(r"^( [*]{5} (\w{4,}) [*]{5}  )")
@@ -208,12 +206,12 @@ sc = re.compile(scalegr)
 
 XDSHOME = os.getenv('XDS')
 
-def unpack_latticefit2(_str):
-    ss = _str[2:].split()
-    #print ss
-    latt = Lattice((map(float,ss[3:9])),ss[1])
-    latt.fit = float(ss[2])
-    latt.character = int(ss[0])
+def unpack_latticefit2(lattice_string):
+    "From lattice_string to Lattice object."
+    lats = lattice_string[2:].split()
+    latt = Lattice((map(float, lats[3:9])), lats[1])
+    latt.fit = float(lats[2])
+    latt.character = int(lats[0])
     #latt.reindexing = tuple(map(int,ss[9:]))
     return latt
 
@@ -236,8 +234,8 @@ def _mkdir(newdir):
         if tail:
             os.mkdir(newdir)
 
-def makeXDSImageLinks(imagename_list,linkDir="img_links",
-                    prefix="image", start_num=1, verbose=False):
+def makeXDSImageLinks(imagename_list, linkDir="img_links",
+                       prefix="image", start_num=1):
     """All image names in the imagename_list are supposed to be part
     of one continous sequence of collected images.
     Todo:
@@ -256,10 +254,13 @@ def makeXDSImageLinks(imagename_list,linkDir="img_links",
     _osc_range = []
     for _image in imagename_list:
         _I = XIO.Image(_image)
-        if verbose: print _image
+        if VERBOSE:
+            print _image
         # How to safely modulate PhiStart outside the [-180,180] range?
-        if verbose: print "\tPhiStart %8.2f" % _I.header['PhiStart']
-        if verbose: print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
+        if VERBOSE:
+            print "\tPhiStart %8.2f" % _I.header['PhiStart']
+        if VERBOSE:
+            print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
         _collect[_I.header['PhiStart']] = _image
         _osc_range.append(_I.header['PhiWidth'])
 
@@ -276,7 +277,7 @@ def makeXDSImageLinks(imagename_list,linkDir="img_links",
         link_name = os.path.join(linkDir, prefix+"_%04.0f.img" % _num)
         #print _osc,_osc1,_oscR,1+(_osc-_osc1)/_oscR, _num,link_name
         if os.path.lexists(link_name) and os.path.islink(link_name):
-            if verbose:
+            if VERBOSE:
                 print "==> Removing existing link: %s" % link_name
             os.remove(link_name)
         os.symlink(os.path.abspath(_collect[_osc]), link_name)
@@ -290,7 +291,7 @@ class XDSExecError(Exception):
     ""
 
 class XDSLogParser:
-    """
+    """ Parser for the xds *.LP files.
     """
     def __init__(self, filename, run_dir="", verbose=False, raiseErrors=True):
         self.results = {}
@@ -316,8 +317,9 @@ class XDSLogParser:
         _err_level = None
         if _err != -1:
             _err_msg = self.lp[_err:]
-            if _err_msg.count("INSUFFICIENT PERCENTAGE (< 70%) OF INDEXED REFL"):
-                _err_type = "IDXREF. Percentage of indexed reflections bellow 70%.\n"
+            if _err_msg.count("INSUFFICIENT PERCENTAGE (< 70%) OF INDEXED REF"):
+                _err_type = "IDXREF. Percentage of indexed"
+                _err_type += " reflections bellow 70%.\n"
                 _err_level = "WARNING"
             if _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
                 _err_type = "IDXREF. Insufficient number of accepted spots."
@@ -328,21 +330,21 @@ class XDSLogParser:
         if self.verbose and _err != -1:
             print "\n %s in %s" % (_err_level, _err_type)
         #
-        if full_filename.count("INIT.LP"): self._parse_INIT()
-        elif full_filename.count("COLSPOT.LP"): self._parse_COLSPOT()
-        elif full_filename.count("IDXREF.LP"): self._parse_IDXREF()
-        elif full_filename.count("XPLAN.LP"): self._parse_XPLAN()
-        elif full_filename.count("INTEGRATE.LP"): self._parse_INTEGRATE()
-        elif full_filename.count("CORRECT.LP"): self._parse_CORRECT()
+        if full_filename.count("INIT.LP"): self.parse_init()
+        elif full_filename.count("COLSPOT.LP"): self.parse_colspot()
+        elif full_filename.count("IDXREF.LP"): self.parse_idxref()
+        elif full_filename.count("XPLAN.LP"): self.parse_xplan()
+        elif full_filename.count("INTEGRATE.LP"): self.parse_integrate()
+        elif full_filename.count("CORRECT.LP"): self.parse_correct()
         else:
             raise IOError, "Don't know how to parse file: %s" % full_filename
 
     def get_par(self, match, limit=75, func=None,
                       multiLine=False, start=0, before=False):
-        #
+        "Extract parameters from XDS .LP lines."
         try:
             if before:
-                limit=start
+                limit = start
                 start = self.lp.index(match)-start
             else:
                 start = self.lp.index(match, start) + len(match)
@@ -377,9 +379,11 @@ class XDSLogParser:
     def _get_index_origins_table(self):
         st0 = self.lp.index(" DL\n  ORIGIN\n")+14
         st1 = self.lp.index(" SELECTED:     INDEX_ORIGIN=")-2
-        return map(lambda s: map(float,s.split()), self.lp[st0:st1].splitlines())
+        return map(lambda s: \
+                  map(float, s.split()), self.lp[st0:st1].splitlines())
 
-    def _parse_INIT(self):
+    def parse_init(self):
+        "Parse INIT.LP"
         R_d, R_f = self.results, self.get_par
         #
         R_d["background_range"] = R_f("BACKGROUND_RANGE=")
@@ -388,31 +392,35 @@ class XDSLogParser:
         R_d["max_gain"] = R_f("MAXIMUM GAIN VALUE IN TABLE")
         R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A DATA IMAGE PIXEL")
         #
-        pp =  "  Looking at images %(background_range)s\n"
-        pp += "  Mean Gain:        %(mean_gain).1f\n"
-        pp += "  Min table gain:   %(min_gain).2f\n"
-        pp += "  Max table gain:   %(max_gain).2f\n"
-        pp += "  Mean Backgroud:   %(mean_background).1f\n"
-        if self.verbose: print pp % R_d
-        return R_d, pp
+        prp =  "  Looking at images %(background_range)s\n"
+        prp += "  Mean Gain:        %(mean_gain).1f\n"
+        prp += "  Min table gain:   %(min_gain).2f\n"
+        prp += "  Max table gain:   %(max_gain).2f\n"
+        prp += "  Mean Backgroud:   %(mean_background).1f\n"
+        if self.verbose:
+            print prp % R_d
+        return R_d, prp
 
-    def _parse_COLSPOT(self):
+    def parse_colspot(self):
+        "Parse COLSPOT.LP"
         R_d, R_f = self.results, self.get_par
         #
         R_d["strong_pixels"] = R_f("EXTRACTED FROM IMAGES")
         R_d["weak_spots_ignored"] = R_f("WEAK SPOTS OMITTED")
         R_d["out_of_center_spots"] = R_f("SPOT MAXIMUM OUT OF CENTER")
-        R_d["spot_number"] = self.get_spot_number() #R_f("DIFFRACTION SPOTS LOCATED")
+        R_d["spot_number"] = self.get_spot_number()
         R_d["time"] = R_f("elapsed wall-clock time", 11)
 
-        pp =  "  Number of spots found:    %(spot_number)10d\n"
-        pp += "  Out of center rejected:   %(out_of_center_spots)10d\n"
-        pp += "  Weak spots rejected:      %(weak_spots_ignored)10d\n"
-        pp += "  Number of spots accepted: %(spot_number)10d\n"
-        if self.verbose: print pp % R_d
-        return R_d, pp
+        prp =  "  Number of spots found:    %(spot_number)10d\n"
+        prp += "  Out of center rejected:   %(out_of_center_spots)10d\n"
+        prp += "  Weak spots rejected:      %(weak_spots_ignored)10d\n"
+        prp += "  Number of spots accepted: %(spot_number)10d\n"
+        if self.verbose:
+            print prp % R_d
+        return R_d, prp
 
-    def _parse_IDXREF(self):
+    def parse_idxref(self):
+        "Parse IDXREF.LP"
         R_d, R_f = self.results, self.get_par
         #
         rexp1 = r".* (\d+) OUT OF\ +(\d+) SPOTS INDEXED\..*"
@@ -442,49 +450,51 @@ class XDSLogParser:
         R_d["refined_cell_str"] = 6*"%.2f " % \
                                            tuple(R_d["refined_cell"])
         R_d["space_group_number"] = R_f(st4, start=st0)
-        R_d["direct_beam_pixels"] = bpx, bpy =  R_f(st5, start=st0)
-        R_d["direct_beam_mm"] = bmx, bmy = R_d["direct_beam_pixels"][0]*qx,\
+        R_d["direct_beam_pixels"] = R_f(st5, start=st0)
+        R_d["direct_beam_mm"] = R_d["direct_beam_pixels"][0]*qx, \
                                            R_d["direct_beam_pixels"][1]*qy
-        #
-        pp =  "  Unit cell parameters:   %(refined_cell_str)s\n"
-        pp += "  Space group number:     %(space_group_number)s\n"
-        pp += "  Indexed spots:          %(indexed_percentage).1f%%"
-        pp += "    (%(indexed_spots)d/%(total_spots)d)\n"
-        pp += "  Spot prediction ESD:       %(xy_spot_position_ESD).2f "
-        pp += "pixels and  %(z_spot_position_ESD).2f degrees\n"
-        #
+        R_d["bmx"], R_d["bmy"] = R_d["direct_beam_mm"]
+        R_d["bpx"], R_d["bpy"] = R_d["direct_beam_pixels"]
+
         origin_t = R_d["index_origin_table"]
         origin_n = len(origin_t)
         quality_t = [x[3] for x in origin_t if x[3] < 2.]
-        #print quality_t
         #R_d["index_score"] = reduce(lambda a,b: a+b, quality_t)/len(quality_t)
         max_ot = min(origin_n, 5)
-        p1 = "(%(bmx)9.3f, %(bmy)9.3f)\n" % vars()
-        p2 = "(%(bpx)9.2f, %(bpy)9.2f)\n" % vars()
-        p3 = "%9.2f mm  (%.1f pixels)\n" % (origin_t[0][4]*meanPixel,origin_t[0][4])
-        pp += "  Refined beam position (in mm):      " + p1
-        pp += "  Refined beam position (in pixels):  " + p2
-        pp += "  Shift in beam position: " + p3 + "\n"
-        pp2 = "  Size of the origine index table: %(origin_n)7d\n" % vars()
-        p4, p5, p6 = "\n\tQuality:       ", "\n\tShift (mm):    ", "\n\tShift (pixels):"
-        p7, p8, p9 = "\n\tBeam X (mm):   ", "\n\tBeam Y (mm):   ", "\n\tIndex Origin:  "
+        R_d["shift_pixel"] = origin_t[0][4]*meanPixel
+        R_d["shift_mm"] = origin_t[0][4]
+        
+        prp = """  Unit cell parameters:   %(refined_cell_str)s
+  Space group number:     %(space_group_number)s
+  Indexed spots:          %(indexed_percentage).1f%% (%(indexed_spots)d/%(total_spots)d)
+  Spot prediction ESD:       %(xy_spot_position_ESD).2f   pixels and  %(z_spot_position_ESD).2f degrees
+  Refined beam position (in mm):      (%(bmx)9.3f, %(bmy)9.3f)
+  Refined beam position (in pixels):  (%(bpx)9.2f, %(bpy)9.2f)
+  Shift in beam position: %(shift_mm)9.2f mm  (%(shift_pixel).1f pixels)
+"""
+        prp2 = "  Size of the origine index table: %(origin_n)7d\n" % vars()
+        ppa, ppb = "\n\tQuality:       ", "\n\tShift (mm):    "
+        ppc, ppd = "\n\tShift (pixels):", "\n\tBeam X (mm):   "
+        ppe, ppf = "\n\tBeam Y (mm):   ", "\n\tIndex Origin:  "
         for i in range(max_ot):
-            p4 += "%9.2f," % (origin_t[i][3])
-            p5 += "%9.2f," % (origin_t[i][4]*meanPixel)
-            p6 += "%9.1f," % (origin_t[i][4])
-            p7 += "%9.1f," % (origin_t[i][5]*qx)
-            p8 += "%9.1f," % (origin_t[i][6]*qy)
-            p9 += "%3d%3d%3d," % tuple(origin_t[i][0:3])
-        pp2 += "  Origin ranking for the best %d solutions: " % max_ot
-        pp2 += p4[:-1] + p5[:-1] + p6[:-1] + p7[:-1] + p8[:-1] +  p9[:-1] + "\n"
-        #pp += " Index origin score: %.2f\n" % (R_d["index_score"])
+            ppa += "%9.2f," % (origin_t[i][3])
+            ppb += "%9.2f," % (origin_t[i][4]*meanPixel)
+            ppc += "%9.1f," % (origin_t[i][4])
+            ppd += "%9.1f," % (origin_t[i][5]*qx)
+            ppe += "%9.1f," % (origin_t[i][6]*qy)
+            ppf += "%3d%3d%3d," % tuple(origin_t[i][0:3])
+        prp2 += "  Origin ranking for the best %d solutions: " % max_ot
+        prp2 += ppa[:-1] + ppb[:-1] + ppc[:-1]
+        prp2 += ppd[:-1] + ppe[:-1] + ppf[:-1] + "\n"
+        #prp += " Index origin score: %.2f\n" % (R_d["index_score"])
         if self.verbose == 1:
-            print (pp + pp2) % R_d
+            print (prp + prp2) % R_d
         elif self.verbose == 2:
-            print pp % R_d
-        return R_d, pp
+            print prp % R_d
+        return R_d, prp
 
-    def _parse_INTEGRATE(self):
+    def parse_integrate(self):
+        "Parse INTEGRATE.LP"
         R_d, R_f = self.results, self.get_par
         #
         R_d["reflections"] = R_f("REFLECTIONS SAVED ON FILE",
@@ -492,13 +502,15 @@ class XDSLogParser:
         R_d["divergence"] = R_f("BEAM_DIVERGENCE_E.S.D.= ")
         R_d["mosaicity"] = R_f("REFLECTING_RANGE_E.S.D.= ")
         #R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A PIXEL")
-        pp =  "\n  Number of reflection integrated:      %(reflections)d\n"
-        pp += "  Estimated divergence:                 %(divergence).3f\n"
-        pp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
-        if self.verbose: print pp % R_d
-        return R_d, pp
+        prp =  "\n  Number of reflection integrated:      %(reflections)d\n"
+        prp += "  Estimated divergence:                 %(divergence).3f\n"
+        prp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
+        if self.verbose:
+            print prp % R_d
+        return R_d, prp
 
-    def _parse_XPLAN(self):
+    def parse_xplan(self):
+        "Parse XPLAN.LP"
         R_d, R_f = self.results, self.get_par
         #
         R_d["spacegroup"] = R_f("SPACE_GROUP_NUMBER=")
@@ -509,16 +521,17 @@ class XDSLogParser:
         st2 = self.lp.index(72*"*", st1+72)
         #
         #R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A PIXEL")
-        pp =  "  Friedel's law:   %(friedels_law)s\n"
-        pp += "  Spacegroup:      %(spacegroup)d\n"
-        pp += "  Unitcell:        %(unitcell)s\n"
+        prp =  "  Friedel's law:   %(friedels_law)s\n"
+        prp += "  Spacegroup:      %(spacegroup)d\n"
+        prp += "  Unitcell:        %(unitcell)s\n"
         if self.verbose:
-            print pp % R_d
+            print prp % R_d
             print
             print self.lp[st0:st2]
-        return R_d, pp
+        return R_d, prp
 
-    def _parse_CORRECT(self):
+    def parse_correct(self):
+        "Parse CORRECT.LP"
         R_d, R_f = self.results, self.get_par
 
         R_d["RMSd_spotPosition"] = R_f("SPOT    POSITION (PIXELS)")
@@ -529,26 +542,27 @@ class XDSLogParser:
         R_d["Compared"], R_d["Total"] = r[6], r[7]
         ### Select Diffraction range.
         sp1 = self.lp.index("RESOLUTION RANGE  I/Sigma")
-        sp2 = self.lp.index(10*"-",sp1)
+        sp2 = self.lp.index(10*"-", sp1)
         _table = self.lp[sp1:sp2].splitlines()[3:-1]
         _table = [ map(float, l.split()[1:3]) for l in _table ]
         R_d["HighResCutoff"] = self.get_proper_resolition_range(_table)
-        pp = ""
+        prp = ""
         if R_d["Mosaicity"]:
-            pp += "  RMSd spot position in pixel:      %(RMSd_spotPosition)9.2f\n"
-            pp += "  RMSd spot position in degree:     %(RMSd_spindlePosition)9.2f\n"
-            pp += "  Refined Mosaicity:                %(Mosaicity)9.2f\n\n"
-        pp += "  Rsym:                             %(Rsym)9.1f\n"
-        pp += "  I/sigma:                          %(I_sigma)9.1f\n"
+            prp += "  RMSd spot position in pixel:      %(RMSd_spotPosition)9.2f\n"
+            prp += "  RMSd spot position in degree:     %(RMSd_spindlePosition)9.2f\n"
+            prp += "  Refined Mosaicity:                %(Mosaicity)9.2f\n\n"
+        prp += "  Rsym:                             %(Rsym)9.1f\n"
+        prp += "  I/sigma:                          %(I_sigma)9.1f\n"
         if R_d["HighResCutoff"]:
-            pp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
-        pp += "  Compared reflections:                 %(Compared)d\n"
-        pp += "  Total number of measures:             %(Total)d\n"
-        if self.verbose: print pp % R_d
-        return R_d, pp
+            prp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
+        prp += "  Compared reflections:                 %(Compared)d\n"
+        prp += "  Total number of measures:             %(Total)d\n"
+        if self.verbose:
+            print prp % R_d
+        return R_d, prp
 
     def get_proper_resolition_range(self, res_table):
-        # High res is selected when at least 3 values of I/sigma are below 1.
+        "High res is selected when at least 3 values of I/sigma are below 1."
         _highT, _high = [], None
         for res, IoS in res_table:
             if IoS < 1.:
@@ -564,8 +578,9 @@ class XDSLogParser:
         return _high
 
     def get_spot_number(self):
+        "Read the number of spot directly from SPOT.XDS"
         _execstr = "wc -l %s/SPOT.XDS" % self.run_dir
-        if sys.version_info <= (2,4,0):
+        if sys.version_info <= (2, 4, 0):
             s = os.popen(_execstr)
             wc = s.read(); s.close()
         else:
@@ -575,10 +590,12 @@ class XDSLogParser:
 MIN_SPOT_NUMBER = 200
 LATTICE_GEOMETRIC_FIT_CUTOFF = 50
 FRAMES_PER_COLSPOT_SEQUENCE = 16 # number of frames per sequence in COLSPOT.
-STEPS = "INIT","COLSPOT","IDXREF","INTEGRATE","CORRECT"
+STEPS = "INIT", "COLSPOT", "IDXREF", "INTEGRATE", "CORRECT"
+SPOTFILENAME = "SPOT.XDS"
 
 class XDS:
-
+    "Main class for runing xds step by step."
+    
     def __init__(self, obj=None, linkToImages=True):
         """Constructor for the Param classes from file or string."""
         #
@@ -590,6 +607,9 @@ class XDS:
         else:
             self.__execfile = "xds_par"
         self.running = 0
+        self.outp = []
+        self.run_dir = "."
+        self.status = None
         self.inpParam = XParam()
         self.collectDir = "./"
         self.link_name_to_image = "img"
@@ -600,14 +620,16 @@ class XDS:
         if type(obj) == str:
             exec obj in self.inpParam.__dict__
 
-    def setCollectDir(self, dirname):
+    def set_collect_dir(self, dirname):
+        "Set the collect directory"
         if os.path.isdir(dirname):
             self.collectDir = dirname
         else:
             raise XIO.XIOError, "Can't find %s directory" % dirname
 
     def _creat_process(self, _execstr):
-        if sys.version_info <= (2,4,0):
+        "Return a process with pipe redirected IO."
+        if sys.version_info <= (2, 4, 0):
             self.wait_value = -1
             return Popen3(_execstr)
         else:
@@ -617,6 +639,7 @@ class XDS:
                               universal_newlines=True)
 
     def cancel (self):
+        ""
         self.__cancelled = 1
 
     def getOutp(self):
@@ -628,13 +651,15 @@ class XDS:
                 return "".join(self.outp[-diff:])[:-1]
             else: return ""
 
-    def copyInitFilesTo(self, newDir):
-        initFileToCopy = ""
+    #def copyInitFilesTo(self, newDir):
+    #    initFileToCopy = ""
 
     def saveLastLP(self, file_names, suffix=""):
+        "Use xupy function to copy all LP files that have changed."
         saveLastVersion(file_names, suffix="")
 
     def run(self, run_dir=None, rsave=None, verbose=True):
+        "Control the runing of the xds process and parse the output."
         self.__cancelled = 0
         self.running = 1
         self.step = 0
@@ -665,15 +690,15 @@ class XDS:
                         #os.system("ln -sf .. %s" % (self.link_name_to_image))
                     #else:
                     #    raise XIO.XIOError, \
-                    #          "STOP! Can't creat link %s in working directory: %s" \
-                    #           % (self.link_name_to_image, self.run_dir)
+                    #     "STOP! Can't creat link %s in working directory: %s" \
+                    #     % (self.link_name_to_image, self.run_dir)
         #
         #
         opWriteCl("XDS.INP", "%s" % self.inpParam)
         #
         xdsProcess = self._creat_process(self.__execfile)
         _init_parse = True
-        overLoad = 0
+        overloaded_spots = 0
         while self.running:
             self.status = xdsProcess.poll() 
             if self.status != self.wait_value:
@@ -690,8 +715,10 @@ class XDS:
             # inline parsing of stdout
             if self.step_name == "INTEGRATE":
                 if _init_parse:
-                    print "    Processing    Mean #Strong   Estimated   Overloaded"
-                    print "    Image Range   refl./image    Mosaicity   reflections\n"
+                    print "    Processing    Mean #Strong  ",
+                    print "Estimated   Overloaded"
+                    print "    Image Range   refl./image   ",
+                    print "Mosaicity   reflections\n"
                     _talbInt = []
                     _init_parse = False
                 if integrate_step.search(nl):
@@ -701,30 +728,31 @@ class XDS:
                     print "%11.0f" % (float(nl.split()[0])/nimages),
                 elif integrate_mosaicity.search(nl):
                     print " %11.3f" % float(nl.split()[3]),
-                    print " %11d" %  overLoad
-                    overLoad = 0
+                    print " %11d" %  overloaded_spots
+                    overloaded_spots = 0
                 hit = sc.search(nl)
                 if hit:
                     _talbInt = hit.groups()
-                    overLoad += int(hit.groups()[3])
+                    overloaded_spots += int(hit.groups()[3])
             sm = STEPMARK.match(nl)
             if sm:
                 self.step += 1
                 self.step_name = sm.group(2)
-                #if _verbose:
+                #if VERBOSE:
                 if verbose:
                     print "\n --->  Running job: %20s\n" % self.step_name
             if nl: self.outp.append(nl)
         self.step += 1
         self.step_name = "FINISHED"
         if self.__cancelled: result = -1
-        if rsave: saveLastVersion(LP_names)
-        if _verbose: print "End of XDS run"
+        if rsave:
+            saveLastVersion(LP_names)
+        if VERBOSE:
+            print "End of XDS run"
         os.chdir(self.init_dir)
         return 1
 
-    def spots_resolution_cutoff(self, resCutOff, newSpotsFileName="SPOT.XDS",
-                                      _verbose=False):
+    def spots_resolution_cutoff(self, res_cutoff, verbose=False):
         "Read the SPOT.XDS file and filter spots using a resolution cutoff."
         from math import atan2, sin
         import shutil
@@ -733,22 +761,24 @@ class XDS:
         # Save the SPOT file and open a new one
         shutil.copy(spotsFileName, spotsFileName+".bck")
         spots = open(spotsFileName+".bck").readlines()
-        newspots = open(os.path.join(self.run_dir, newSpotsFileName),"w")
+        newspots = open(os.path.join(self.run_dir, SPOTFILENAME),"w")
         # Get parameters for the resol calculation
         xo, yo = self.inpParam["ORGX"], self.inpParam["ORGY"]
         rx, ry = self.inpParam["QX"], self.inpParam["QY"]
         D = self.inpParam["DETECTOR_DISTANCE"]
         # the resolution calculation function
-        resolCal = lambda s,D,xo,yo,rx,ry: \
+        resolCal = lambda s, D, xo, yo, rx, ry: \
                    0.5/sin(atan2(((rx*(float(s[: 10])  -xo))**2 +
                                   (ry*(float(s[10:20])-yo))**2)**0.5,D)/2.)
-        filtredSpots = [s for s in spots if resolCal(s,D,xo,yo,rx,ry) >= resCutOff]
+        filtredSpots = [s for s in spots \
+	                  if resolCal(s,D,xo,yo,rx,ry) >= res_cutoff]
         #
         newspots.writelines(filtredSpots)
         ni, nf = len(spots), len(filtredSpots)
-        if _verbose:
-            print ">> Selected spots with %.2f resolution cutoff:" % (resCutOff),
-            print "%d / %d (%.1f%%)" % (nf,ni,nf*100./ni)
+        if verbose:
+            print ">> Selected spots with %.2f resolution cutoff:" % \
+	                                                     (res_cutoff),
+            print "%d / %d (%.1f%%)" % (nf, ni, nf*100./ni)
         newspots.close()
 
     def run_init(self):
@@ -818,11 +848,11 @@ class XDS:
                                                          MIN_SPOT_NUMBER
             print "Recollecting spots. Trial number %d" % _trial
             self.run(rsave=True)
-            res = XDSLogParser("COLSPOT.LP",run_dir=self.run_dir,verbose=1)
+            res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
 
-    def run_idxref(self, optimize=False):
-        "Runs the IDXREF step."
+    def run_idxref(self, beam_center_search=False, ranking_mode="ZSCORE"):
+        "Runs the IDXREF step. Can try to search for better beam_center."
         #
         self.inpParam["JOB"] = "IDXREF",
         self.inpParam["TRUSTED_REGION"] = [0, 0.98]
@@ -837,28 +867,31 @@ class XDS:
         dist = self.inpParam["DETECTOR_DISTANCE"]
         det_X = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
         det_Y = vec3(self.inpParam["DIRECTION_OF_DETECTOR_Y-AXIS"])
+        det_Z = det_X.cross(det_Y)
+        det_params = dist, det_X, det_Y, det_Z, qx, qy
+        
         #RD["indexed_percentage"] < 70. or \
-        #if optimize or RD["xy_spot_position_ESD"] > 2. or \
+        #if beam_center_search or RD["xy_spot_position_ESD"] > 2. or \
         #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
-        if optimize:
+        if beam_center_search:
             TestResults = [RD]
             print " Number of possible beam coordinates: %d" % \
                               len(RD["index_origin_table"])
-            maxTestOrigin = min(20,len(RD["index_origin_table"]))
+            maxTestOrigin = min(60, len(RD["index_origin_table"]))
             origins = RD["index_origin_table"][:maxTestOrigin]
             for origin in origins:
                 # We first need to calculate the beam_origin from the
                 # beam_coordinate and beam_vector given in the table
                 beam = vec3(origin[7:10])
-                beam_origin = get_beam_origin(origin[5:7], dist, beam,
-                                                    det_X, det_Y, qx, qy)
+                beam_origin = get_beam_origin(origin[5:7], beam, det_params)
                 self.inpParam["ORGX"] = beam_origin[0]
                 self.inpParam["ORGY"] = beam_origin[1]
+                self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(beam)
                 #print "DEBUG:  %7.1f %7.1f  - %7.1f %7.1f" % \
                 #  (coorx, coory, self.inpParam["ORGX"], self.inpParam["ORGY"])
                 print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
                                            (origin[5]*qx, origin[6]*qy), 
-                print "  (%.1f, %.1f)" % (origin[5], origin[6])
+                print "  %.1f, %.1f" % (origin[5], origin[6])
                 self.run(rsave=True, verbose=False)
                 try:
                     TestResults.append(XDSLogParser("IDXREF.LP", 
@@ -868,22 +901,34 @@ class XDS:
                     print "\t\tError in", err
             print "\n"
             # Need to lookup in the results for the beam-center giving 
-            # the best indexation
-            best_beam_coor = rank_indexation(TestResults, optimize)
-            best_beam_orig = get_beam_origin(best_beam_coor, dist, beam,
-                                                    det_X, det_Y, qx, qy)
+            best_index_rank = rank_indexation(TestResults, ranking_mode)
+            #for o in origins:
+            #    print origins.index(o), o[:-3]
+            best_origin = origins[best_index_rank[ranking_mode]-1]
+            if DEBUG:
+                print best_index_rank
+                print "best_index_rank", best_index_rank[ranking_mode]
+                print "best_origin", best_origin
+            best_beam = vec3(best_origin[7:10])
+            best_beam_coor = best_origin[5:7]
+            best_beam_orig = get_beam_origin(best_beam_coor,
+                                             best_beam, det_params)
             self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_orig
+            print best_beam_orig, best_beam_coor
+            self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(best_beam)
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
         return res.results
 
     def check_fileout(self, fileout):
-        if not os.path.exists(os.path.join(self.run_dir,fileout)):
+        "Checking normal terminaison."
+        if not os.path.exists(os.path.join(self.run_dir, fileout)):
             err = "Abnormal terminaison. Can't locate file: '%s'" % fileout
             print err
             raise Exception(err)
 
-    def run_xplan(self, imageRanges, ridx=None):
+    def run_xplan(self, image_ranges, ridx=None):
+        "Running the strategy."
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
 
@@ -899,7 +944,8 @@ class XDS:
         res = XDSLogParser("XPLAN.LP", run_dir=self.run_dir, verbose=1)      
         sys.exit(0)
 
-    def run_integrate(self, imageRanges, ridx=None):
+    def run_integrate(self, image_ranges, ridx=None):
+        "Running INTEGRATE."
         self.inpParam["TRUSTED_REGION"] = [0, 1.0]
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
@@ -908,14 +954,14 @@ class XDS:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
         "Runs the 2 first steps: DEFPIX and INTEGRATE"
-        if len(imageRanges) == 1:
+        if len(image_ranges) == 1:
             self.inpParam["JOB"] = "DEFPIX", "INTEGRATE"
             self.run(rsave=True)
             res = XDSLogParser("INTEGRATE.LP", run_dir=self.run_dir, verbose=1)
             self.check_fileout("INTEGRATE.HKL")
         else:
             #print "\n Error in the INTEGRATE step:"
-            print "\n Image range:", imageRanges
+            print "\n Image range:", image_ranges
             print " Multi-sweep integration not yet implemanted. Sorry.\n"
             sys.exit(0)
         return res.results
@@ -956,29 +1002,26 @@ class XDS:
         """
         return 1 #res.resutls
 
-def rank_indexation(indexations, optim):
+def rank_indexation(indexations, ranking_mode="ISCORE"):
     "Rank indexations obtained using different beam-center coordinates."
-    #
-    if not optim: optim="ISCORE"
-    best_quality_contrast = 0
+    
     best_beam_center = None
-    #
     rank_items = ["indexed_percentage", "xy_spot_position_ESD",
                   "z_spot_position_ESD", "quality_contrast","i_score"]
     rank_table = {}
-    for items in rank_items: rank_table[items] = []
+    for items in rank_items:
+        rank_table[items] = []
     #
-    pp = " Indexed spots:          %(indexed_percentage).1f%%"
-    pp += "    (%(indexed_spots)d/%(total_spots)d)\n"
-    pp += " Spot prediction ESD:       %(xy_spot_position_ESD).2f "
-    pp += "pixels and  %(z_spot_position_ESD).2f degrees"        
-    #
+    prp = " Indexed spots:          %(indexed_percentage).1f%%"
+    prp += "    (%(indexed_spots)d/%(total_spots)d)\n"
+    prp += " Spot prediction ESD:       %(xy_spot_position_ESD).2f "
+    prp += "pixels and  %(z_spot_position_ESD).2f degrees"        
     n = 0
     i_score = []
     for indexation in indexations:
-        n+=1
+        n += 1
         print " Test indexation number: %d" % n
-        print pp % indexation
+        print prp % indexation
         #
         origin_t = indexation["index_origin_table"]
         quality_contrast = origin_t[1][3] - origin_t[0][3]
@@ -1006,13 +1049,13 @@ def rank_indexation(indexations, optim):
         print p4[:-1] + p6[:-1] + p7[:-1] + p8[:-1] +  p9[:-1] + "\n"
     #
     z_table = {}
-    print "%22s: " % "Test number", " %3d"*n % tuple(range(1,n+1))
+    print "%22s: " % "Test number", " %3d"*n % tuple(range(1, n+1))
     for item in rank_table:
         isorted = rank_table[item][:]
-        if item in ["indexed_percentage","quality_contrast","i_score"]:
-            reverse=True
+        if item in ["indexed_percentage", "quality_contrast", "i_score"]:
+            reverse = True
         else:
-            reverse=False
+            reverse = False
         isorted.sort(reverse=reverse)
         #
         rank = [isorted.index(i) + 1 for i in rank_table[item]]
@@ -1021,70 +1064,71 @@ def rank_indexation(indexations, optim):
         z_table[item] = rank
     #
     z_score = []
-    for id in range(len(z_table["quality_contrast"])):
-        z_score.append(z_table["quality_contrast"][id] +
-                       z_table["xy_spot_position_ESD"][id] +
-                       z_table["z_spot_position_ESD"][id])
-    #
+    for idq in range(len(z_table["quality_contrast"])):
+        z_score.append(z_table["quality_contrast"][idq] +
+                       z_table["xy_spot_position_ESD"][idq] +
+                       z_table["z_spot_position_ESD"][idq])
     print "%22s: " % "z_score",
     print " %3d"*len(z_score) % tuple(z_score)
     z_best_index = z_score.index(min(z_score))
-    i_best_index = i_score.index(min(i_score))-1
+    i_best_index = i_score.index(max(i_score))
     best_beam_center = {}
     best_beam_center["ISCORE"] = \
         indexations[i_best_index]["index_origin_table"][0][5:7]
     best_beam_center["ZSCORE"] = \
         indexations[z_best_index]["index_origin_table"][0][5:7]
-    if optim == "ISCORE":
-        _z, _i = "   ", "***"
+    if ranking_mode == "ISCORE":
+        zflag, iflag = "   ", "***"
     else:
-        _i, _z = "   ", "***"
-    _best =  best_beam_center[optim]
-    fmt =  "%s Best  %s_score rank: %3d  for Solution #%-3d"
-    print "\n" + fmt % (_z, "Z", min(z_score), z_best_index+1),
-    print " ORGX=%7.1f,ORGY=%7.1f" % tuple(best_beam_center["ZSCORE"])
-    print fmt % (_i, "I", 1, i_best_index+1),
-    print " ORGX=%7.1f ORGY=%7.1f" % tuple(best_beam_center["ISCORE"])
-    return _best
+        iflag, zflag = "   ", "***"
+    _best =  best_beam_center[ranking_mode]
+    fmt1 =  "%s Best  %s_score rank: %3d  for Solution #%-3d"
+    fmt2 = " beamx=%7.1f beamy=%7.1f"
+    print 
+    print fmt1 % (iflag, "I", 1, i_best_index+1),
+    print fmt2 % tuple(best_beam_center["ISCORE"])
+    print fmt1 % (zflag, "Z", min(z_score), z_best_index+1),
+    print fmt2 % tuple(best_beam_center["ZSCORE"])
+    return {"ISCORE":i_best_index, "ZSCORE": z_best_index}
 
-def get_beam_origin(beam_coor, dist, beam_vec, det_x, det_y, qx, qy):
+def get_beam_origin(beam_coor, beam_vec, det_parameters):
     "Calculate beam_origin from beam_coordinate."
-    det_z = det_x.cross(det_y)
+    dist, det_x, det_y, det_z, qx, qy = det_parameters
     beamOx, beamOy, beamOz = beam_coor[0]*qx, beam_coor[1]*qy, beam_vec*det_z
     return (beamOx - beam_vec*det_x*dist/beamOz)/qx, \
            (beamOy - beam_vec*det_y*dist/beamOz)/qy
 
 
-def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
+#def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
     # cut unwanted spots at low or high resolution.
     # different mode can be used. Internal, external or midle.
     # Internal: set the smallest RMAX radius,
     # External: set the biggest RMAX radius and Midle...
-    pass
 
-def write_autoPar(adpPar):
-    link_name_to_image = "img"
-    newdir = adpPar["prefix"] + "adp_process"
-    #
-    if not os.path.exists(newdir):
-        try: os.mkdir(newdir)
-        except:
-            raise XIO.XIOError, \
-                 "STOP! Can't creat adp working directory:", newdir
-    if os.path.isdir(newdir):
-        img_dir = os.path.abspath(adpPar["img_dir"])
-        os.chdir(newdir)
-        if not os.path.exists(link_name_to_image) or \
-                           os.path.islink(link_name_to_image):
-            os.system("ln -sf %s %s" % (img_dir, link_name_to_image))
-            adpPar["img_dir"] = link_name_to_image
-        #
-        keys = adpPar.keys()
-        keys.sort()
-        paramStr = "".join(["%s = %s\n" % (k, adpPar[k]) for k in keys])
-        opWriteCl("auto.par", paramStr)
-    os.chdir("..")
+#def write_autoPar(adpPar):
+#    ""
+#    link_name_to_image = "img"
+#    newdir = adpPar["prefix"] + "adp_process"
+#    #
+#    if not os.path.exists(newdir):
+#        try: os.mkdir(newdir)
+#        except:
+#            raise XIO.XIOError, \
+#                 "STOP! Can't creat adp working directory:", newdir
+#    if os.path.isdir(newdir):
+#        img_dir = os.path.abspath(adpPar["img_dir"])
+#        os.chdir(newdir)
+#        if not os.path.exists(link_name_to_image) or \
+#                           os.path.islink(link_name_to_image):
+#            os.system("ln -sf %s %s" % (img_dir, link_name_to_image))
+#            adpPar["img_dir"] = link_name_to_image
+#        #
+#        keys = adpPar.keys()
+#        keys.sort()
+#        paramStr = "".join(["%s = %s\n" % (k, adpPar[k]) for k in keys])
+#        opWriteCl("auto.par", paramStr)
+#    os.chdir("..")
 
 def parse_spaceGroup(spg):
     try:
@@ -1104,23 +1148,24 @@ def parse_spaceGroup(spg):
         raise Exception, "\nERROR: Unrecognised space group: %s\n" % spg
     return _spg, _spg_info, _spg_str
 
-def select_strategy(idxref_results, xdsPar):
-    selSpgN = xdsPar["SPACE_GROUP_NUMBER"]
-    selAno =  xdsPar["FRIEDEL'S_LAW"]
-    #print xdsPar["UNIT_CELL_CONSTANTS"] 
+def select_strategy(idxref_results, xds_par):
+    "Interactive session to select strategy parameters."
+    sel_spgn = xds_par["SPACE_GROUP_NUMBER"]
+    sel_ano =  xds_par["FRIEDEL'S_LAW"]
+    #print xds_par["UNIT_CELL_CONSTANTS"] 
     R = idxref_results
-    validInp = False
+    valid_inp = False
     Bravais_to_SPGs = get_BravaisToSpgs()
     # Select LATTICE
-    while not validInp:
+    while not valid_inp:
         defSel = 1
-        if selSpgN != 0:
+        if sel_spgn != 0:
             # choose the lattice solution according to the selected spg.
             i = 0
             for LAT in R["lattices_table"]:
                 if LAT.fit <= LATTICE_GEOMETRIC_FIT_CUTOFF:
                     i += 1
-                    if selSpgN in Bravais_to_SPGs[LAT.Bravais_type]:
+                    if sel_spgn in Bravais_to_SPGs[LAT.Bravais_type]:
                         defSel = i
         selection = raw_input("\n Select a solution number [%d]: " % defSel)
         # If the selection is not compatible with the spg, set not valid
@@ -1129,37 +1174,37 @@ def select_strategy(idxref_results, xdsPar):
         try:
             if len(_sel) == 1:
                 selnum = int(_sel[0])
-                validInp = True
+                valid_inp = True
             elif len(_sel) == 0:
                 selnum = defSel
-                validInp = True
+                valid_inp = True
             else:
                 raise Exception, "Invalid selection input."
         except Exception, err:
             print "\n ERROR. ", err
     selLat = R["lattices_table"][selnum-1]
-    if selSpgN == 0:
-        selSpgN = selLat.symmetry_num
-    validInp = False
+    if sel_spgn == 0:
+        sel_spgn = selLat.symmetry_num
+    valid_inp = False
     # Select SPACEGROUP
     print " Possible spacegroup for this lattice are:\n"
     for _sSpg in Bravais_to_SPGs[selLat.Bravais_type]:
         print "  %15s, number: %3d" % (SPGlib[_sSpg][1], _sSpg)
-    while not validInp:
+    while not valid_inp:
         selection = raw_input("\n Select the spacegroup [%s, %d]: "
-                             % (SPGlib[selSpgN][1], selSpgN))
+                             % (SPGlib[sel_spgn][1], sel_spgn))
         _sel = selection.split()
         try:
             if len(_sel) == 1:
-                selSpgN, _spg_info, _spg_str = parse_spaceGroup(_sel[0])
-                selSpgS = _spg_info[1]
-                validInp = True
+                sel_spgn, _spg_info, _spg_str = parse_spaceGroup(_sel[0])
+                # selSpgS = _spg_info[1]
+                valid_inp = True
             elif len(_sel) == 0:
-                validInp = True
+                valid_inp = True
             else:
                 raise Exception, "Invalid selection input."
-            if selSpgN not in Bravais_to_SPGs[selLat.Bravais_type]:
-                validInp = False
+            if sel_spgn not in Bravais_to_SPGs[selLat.Bravais_type]:
+                valid_inp = False
                 msg = "Inconsistant combinaison of Bravais lattice"
                 msg += " and spacegroup.\n For this Bravais Lattice"
                 msg += " (%s), spacegroup should be one of these:\n\n" % \
@@ -1169,10 +1214,10 @@ def select_strategy(idxref_results, xdsPar):
                 raise Exception, msg
         except Exception, err:
             print "\n ERROR. ", err
-    validInp = False
+    valid_inp = False
     # Select ANOMALOUS
-    while not validInp:
-        if selAno == "TRUE":
+    while not valid_inp:
+        if sel_ano == "TRUE":
             txt3 = "N/y"
         else:
             txt3 = "Y/n"
@@ -1180,28 +1225,28 @@ def select_strategy(idxref_results, xdsPar):
         try:
             _ans =  selection.strip()
             if _ans == "":
-                validInp = True    
+                valid_inp = True    
             elif _ans[0] in "Yy":
-                xdsPar["FRIEDEL'S_LAW"] = "FALSE"
-                validInp = True
+                xds_par["FRIEDEL'S_LAW"] = "FALSE"
+                valid_inp = True
             elif _ans[0] in "Nn":
-                xdsPar["FRIEDEL'S_LAW"] = "TRUE"
-                validInp = True
+                xds_par["FRIEDEL'S_LAW"] = "TRUE"
+                valid_inp = True
             else:
                 raise Exception, "Invalid answer [Y/N]."
         except Exception, err:
             print "\n ERROR. ", err
     print "\n Selected  cell paramters:  ", selLat
-    if selSpgN > 2:
+    if sel_spgn > 2:
         selLat.idealize()
         print " Idealized cell parameters: ", selLat.prt()
-        xdsPar["UNIT_CELL_CONSTANTS"] = selLat.prt()
-    xdsPar["SPACE_GROUP_NUMBER"] = selSpgN
-    return xdsPar
-    validInp = False
+        xds_par["UNIT_CELL_CONSTANTS"] = selLat.prt()
+    xds_par["SPACE_GROUP_NUMBER"] = sel_spgn
+    return xds_par
+    valid_inp = False
     # Select ANOMALOUS
-    while not validInp:
-        if selAno == "TRUE":
+    while not valid_inp:
+        if sel_ano == "TRUE":
             txt3 = "N/y"
         else:
             txt3 = "Y/n"
@@ -1209,26 +1254,26 @@ def select_strategy(idxref_results, xdsPar):
         try:
             _ans =  selection.strip()
             if _ans == "":
-                validInp = True    
+                valid_inp = True    
             elif _ans[0] in "Yy":
-                xdsPar["FRIEDEL'S_LAW"] = False
-                validInp = True
+                xds_par["FRIEDEL'S_LAW"] = False
+                valid_inp = True
             elif _ans[0] in "Nn":
-                xdsPar["FRIEDEL'S_LAW"] = True
-                validInp = True
+                xds_par["FRIEDEL'S_LAW"] = True
+                valid_inp = True
             else:
                 raise Exception, "Invalid answer [Y/N]."
         except Exception, err:
             print "\n ERROR. ", err
     print "\n Selected  cell paramters:  ", selLat
-    if selSpgN > 2:
+    if sel_spgn > 2:
         selLat.idealize()
         print " Idealized cell parameters: ", selLat.prt()
-    xdsPar["UNIT_CELL_CONSTANTS"] = selLat.prt()
-    xdsPar["SPACE_GROUP_NUMBER"] = selSpgN
+    xds_par["UNIT_CELL_CONSTANTS"] = selLat.prt()
+    xds_par["SPACE_GROUP_NUMBER"] = sel_spgn
     # Select just the internal circle of the detector.
-    xdsPar["TRUSTED_REGION"] = 0.0, 1.0
-    return xdsPar
+    xds_par["TRUSTED_REGION"] = 0.0, 1.0
+    return xds_par
 
 
 if __name__ == "__main__":
@@ -1266,8 +1311,9 @@ if __name__ == "__main__":
         print _usage
         sys.exit(2)
 
-    _warning = ""
-    _verbose = False
+    WARNING = ""
+    VERBOSE = False
+    DEBUG = True
     _anomal = False
     _strict_corr = False
     _beam_x = 0
@@ -1282,16 +1328,17 @@ if __name__ == "__main__":
     _res_low = 45
     _reference = False
     _beam_center_optimize = False
+    _beam_center_ranking = "ZSCORE"
     _cell = ""
     _xds_input = ""
     _beam_in_mm = False
     _slow = False
     _fast = False
     _step = 1
-
+    
     for o, a in opts:
         if o == "-v":
-            _verbose = True
+            VERBOSE = True
         if o in ("-a", "--anomal"):
             _anomal = True
         if o in ("-A", "--Anomal"):
@@ -1300,7 +1347,7 @@ if __name__ == "__main__":
         if o[1] in "123456":
             _step = int(o[1])
         if o in ("-s", "--spg"):
-	    _spg, _spg_info, _spg_str = parse_spaceGroup(a)
+            _spg, _spg_info, _spg_str = parse_spaceGroup(a)
         if o in ("-i", "--xds-input"):
             _xds_input = a
         if o in ("-c", "--cell"):
@@ -1312,7 +1359,8 @@ if __name__ == "__main__":
                 _reference = str(a)
             else:
                 print "\n  ERROR: %s is not a regular file." % a
-                print "  STOP!\n"; sys.exit()
+                print "  STOP!\n"
+                sys.exit()
         if o in ("-O", "--oscillation"):
             _oscillation = float(a)
         if o in ("-p", "--project"):
@@ -1336,9 +1384,11 @@ if __name__ == "__main__":
                 a = a.replace("mm","")
             _beam_y = float(a)
         if o in ("-b", "--beam-center-optimize-i"):
-            _beam_center_optimize = "ISCORE"
+            _beam_center_optimize = True
+            _beam_center_ranking = "ISCORE"
         if o in ("-B", "--beam-center-optimize-z"):
-            _beam_center_optimize = "ZSCORE"
+            _beam_center_optimize = True
+            _beam_center_ranking = "ZSCORE"
         if o in ("-S", "--Slow"):
             _slow = True
         if o in ("-h", "--help"):
@@ -1379,8 +1429,10 @@ if __name__ == "__main__":
     newPar = collect.export("xds")
 
    # In case no beam origin is defined, take the detector center.
-    if newPar["ORGX"] == 0: newPar["ORGX"] = newPar["NX"]/2.
-    if newPar["ORGY"] == 0: newPar["ORGY"] = newPar["NY"]/2.
+    if newPar["ORGX"] == 0:
+        newPar["ORGX"] = newPar["NX"]/2.
+    if newPar["ORGY"] == 0:
+        newPar["ORGY"] = newPar["NY"]/2.
 
     #write_autoPar(collect.export("adp"))
 
@@ -1400,23 +1452,31 @@ if __name__ == "__main__":
         newPar["FRIEDEL'S_LAW"] = "TRUE"
     if _strict_corr:
         newPar["STRICT_ABSORPTION_CORRECTION"] = "TRUE"
-    if _beam_x: newPar["ORGX"] = _beam_x
-    if _beam_y: newPar["ORGY"] = _beam_y
+    if _beam_x:
+        newPar["ORGX"] = _beam_x
+    if _beam_y:
+        newPar["ORGY"] = _beam_y
     if _spg and _cell:
         newPar["SPACE_GROUP_NUMBER"] = _spg
         newPar["UNIT_CELL_CONSTANTS"] = _cell
     elif _spg and not _cell:
-        _warning = "  WARNING: Spacegroup is defined but not cell."
-        _warning += " Waiting for indexation for setting cell."
+        WARNING = "  WARNING: Spacegroup is defined but not cell."
+        WARNING += " Waiting for indexation for setting cell."
     elif _cell and not _spg:
-        _warning = "  WARNING: Cell is defined but not spacegroup, setting spacegroup to P1."
+        WARNING = "  WARNING: Cell is defined but not spacegroup,"
+        WARNING += " setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
         newPar["UNIT_CELL_CONSTANTS"] = _cell
-    if _distance: newPar["DETECTOR_DISTANCE"] = _distance
-    if _reference: newPar["REFERENCE_DATA_SET"] = "../"+_reference
-    if _oscillation: newPar["OSCILLATION_RANGE"] = _oscillation
-    if _wavelength: newPar["X_RAY_WAVELENGTH"] = _wavelength
-    if _xds_input: newPar.update(xdsInp2Param(inp_str=_xds_input))
+    if _distance:
+        newPar["DETECTOR_DISTANCE"] = _distance
+    if _reference:
+        newPar["REFERENCE_DATA_SET"] = "../"+_reference
+    if _oscillation:
+        newPar["OSCILLATION_RANGE"] = _oscillation
+    if _wavelength:
+        newPar["X_RAY_WAVELENGTH"] = _wavelength
+    if _xds_input:
+        newPar.update(xdsInp2Param(inp_str=_xds_input))
     if _res_high or _res_low != 35:
         newPar["INCLUDE_RESOLUTION_RANGE"] = _res_low, _res_high
 
@@ -1430,7 +1490,7 @@ if __name__ == "__main__":
     newPar["DELPHI"] = 8 * newPar["OSCILLATION_RANGE"]
     newrun.inpParam.mix(xdsInp2Param(inp_str=xdsinp_base))
     newrun.inpParam.mix(newPar)
-    newrun.setCollectDir(os.path.abspath(imgDir))
+    newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
     
     if _slow:
@@ -1441,7 +1501,8 @@ if __name__ == "__main__":
         newrun.mode = None
 
     print _fmt_hello % vars(newrun.inpParam)
-    if _warning: print _warning
+    if WARNING:
+        print WARNING
     if _spg:
         print _spg_str
 
@@ -1449,13 +1510,15 @@ if __name__ == "__main__":
     R1 = R2 = R3 = R4 = R5 = None
     if _step > 1:
         print "\n Starting at step: %d (%s)\n" % (_step, STEPS[_step-1])
-    if _step <= 1: R1 = newrun.run_init()
-    if _step <= 2: R2 = newrun.run_colspot()
+    if _step <= 1:
+        R1 = newrun.run_init()
+    if _step <= 2:
+        R2 = newrun.run_colspot()
     if _step <= 3:
         if newrun.mode == "slow" and _res_high:
             print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % _res_high
             #newrun.spots_resolution_cutoff(_res_high)
-        R3 = newrun.run_idxref(optimize=_beam_center_optimize)
+        R3 = newrun.run_idxref(_beam_center_optimize, _beam_center_ranking)
     if R3:
         i = 0
         _selected_cell = []
