@@ -1130,42 +1130,42 @@ def get_beam_origin(beam_coor, beam_vec, det_parameters):
 #        opWriteCl("auto.par", paramStr)
 #    os.chdir("..")
 
-def parse_spaceGroup(spg):
+def parse_spacegroup(spginp):
+    "Try to interpret spg input string from command line."
     try:
-        _spg = int(spg)
+        spg_int = int(spginp)
     except ValueError:
-        _spg = 0
-        _spg_name = spg.upper()
+        spg_int = 0
+        spginp_up = spginp.upper()
         for spgn in SPGlib:
-            if _spg_name in SPGlib[spgn]:
-                _spg = spgn
+            if spginp_up in SPGlib[spgn]:
+                spg_int = spgn
                 break
-    if _spg:
-        _spg_info = SPGlib[_spg]
-        _spg_str = "  Imposed Space group:  %s,  number %d" % \
-               (_spg_info[1], _spg)
+    if spg_int:
+        spg_info = SPGlib[spg_int]
+        spg_str = "  Imposed Space group:  %s,  number %d" % \
+               (spg_info[1], spg_int)
     else:
-        raise Exception, "\nERROR: Unrecognised space group: %s\n" % spg
-    return _spg, _spg_info, _spg_str
+        raise Exception, "\nERROR: Unrecognised space group: %s\n" % spginp
+    return spg_int, spg_info, spg_str
 
 def select_strategy(idxref_results, xds_par):
     "Interactive session to select strategy parameters."
     sel_spgn = xds_par["SPACE_GROUP_NUMBER"]
     sel_ano =  xds_par["FRIEDEL'S_LAW"]
     #print xds_par["UNIT_CELL_CONSTANTS"] 
-    R = idxref_results
     valid_inp = False
-    Bravais_to_SPGs = get_BravaisToSpgs()
+    bravais_to_spgs = get_BravaisToSpgs()
     # Select LATTICE
     while not valid_inp:
         defSel = 1
         if sel_spgn != 0:
             # choose the lattice solution according to the selected spg.
             i = 0
-            for LAT in R["lattices_table"]:
+            for LAT in idxref_results["lattices_table"]:
                 if LAT.fit <= LATTICE_GEOMETRIC_FIT_CUTOFF:
                     i += 1
-                    if sel_spgn in Bravais_to_SPGs[LAT.Bravais_type]:
+                    if sel_spgn in bravais_to_spgs[LAT.Bravais_type]:
                         defSel = i
         selection = raw_input("\n Select a solution number [%d]: " % defSel)
         # If the selection is not compatible with the spg, set not valid
@@ -1182,35 +1182,36 @@ def select_strategy(idxref_results, xds_par):
                 raise Exception, "Invalid selection input."
         except Exception, err:
             print "\n ERROR. ", err
-    selLat = R["lattices_table"][selnum-1]
+    selLat = idxref_results["lattices_table"][selnum-1]
     if sel_spgn == 0:
         sel_spgn = selLat.symmetry_num
     valid_inp = False
     # Select SPACEGROUP
     print " Possible spacegroup for this lattice are:\n"
-    for _sSpg in Bravais_to_SPGs[selLat.Bravais_type]:
-        print "  %15s, number: %3d" % (SPGlib[_sSpg][1], _sSpg)
+    for spgsymb in bravais_to_spgs[selLat.Bravais_type]:
+        print "  %15s, number: %3d" % (SPGlib[spgsymb][1], spgsymb)
     while not valid_inp:
         selection = raw_input("\n Select the spacegroup [%s, %d]: "
                              % (SPGlib[sel_spgn][1], sel_spgn))
         _sel = selection.split()
         try:
             if len(_sel) == 1:
-                sel_spgn, _spg_info, _spg_str = parse_spaceGroup(_sel[0])
+                sel_spgn, _spg_info, _spg_str = parse_spacegroup(_sel[0])
                 # selSpgS = _spg_info[1]
                 valid_inp = True
             elif len(_sel) == 0:
                 valid_inp = True
             else:
                 raise Exception, "Invalid selection input."
-            if sel_spgn not in Bravais_to_SPGs[selLat.Bravais_type]:
+            if sel_spgn not in bravais_to_spgs[selLat.Bravais_type]:
                 valid_inp = False
                 msg = "Inconsistant combinaison of Bravais lattice"
                 msg += " and spacegroup.\n For this Bravais Lattice"
                 msg += " (%s), spacegroup should be one of these:\n\n" % \
                         (selLat.Bravais_type)
-                for _sSpg in Bravais_to_SPGs[selLat.Bravais_type]:
-                    msg += "  %15s, number: %3d\n" % (SPGlib[_sSpg][1], _sSpg)
+                for spgsymb in bravais_to_spgs[selLat.Bravais_type]:
+                    msg += "  %15s, number: %3d\n" % \
+                                 (SPGlib[spgsymb][1], spgsymb)
                 raise Exception, msg
         except Exception, err:
             print "\n ERROR. ", err
@@ -1347,7 +1348,7 @@ if __name__ == "__main__":
         if o[1] in "123456":
             _step = int(o[1])
         if o in ("-s", "--spg"):
-            _spg, _spg_info, _spg_str = parse_spaceGroup(a)
+            _spg, _spg_info, _spg_str = parse_spacegroup(a)
         if o in ("-i", "--xds-input"):
             _xds_input = a
         if o in ("-c", "--cell"):
