@@ -1,20 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# 
 
-import sys, os
-from xupy import *
+""" Little utility that help automate tests and optimization with XDS.
+"""
 
-__version__ = "0.4.3"
-__date__ = "21-10-2004"
+__version__ = "0.4.4"
+__date__ = "18-11-2009"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __copyright__ = "Copyright (c) 2004 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
             
+import sys
+import shutil
+
+from xupy import saveLastVersion, xdsInp2Param, \
+                 getProfilRefPar, run_xds, LP_names
+
+
 if __name__ == '__main__':
 
-    xp = XParam()
+    xp = {}
     #xp = xdsInp2Param()
+    #xp = XParam()
     #xp.SPOT_RANGE = [2, 12],[44, 54]
     #print xp.SPOT_RANGE
     #xp.SPOT_RANGE = "2 12", "44 54"
@@ -24,24 +31,23 @@ if __name__ == '__main__':
     #xp.NBY = 3
     if "-a" in sys.argv:
         sys.argv.remove('-a')
-        xp.mix(getProfilRefPar())
-        xp.JOB = "DEFPIX", "INTEGRATE", "CORRECT"
-        xp.REFINE_INTEGRATE= "ORIENTATION", "BEAM",  "CELL" #"DISTANCE",
+        xp.update(getProfilRefPar())
+        xp["JOB"] = "DEFPIX", "INTEGRATE", "CORRECT"
+        xp["REFINE_INTEGRATE"] = "ORIENTATION", "BEAM", "CELL" #"DISTANCE",
         shutil.copyfile("GXPARM.XDS","XPARM.XDS")
     if "-i" in sys.argv:
-        sys.argv.remove('-i')
-        _xds_input = sys.argv[-1]
+        optid = sys.argv.index("-i")
+        _xds_input = sys.argv[optid+1]
         xp.update(xdsInp2Param(inp_str=_xds_input))
+        sys.argv.remove('-i')
+        sys.argv.remove(_xds_input)
     if "-norun" in sys.argv:
         saveLastVersion(LP_names)
         sys.exit()
-#    if "-adp" in sys.argv:
-#        
     else:
-        par_str = ""
-        _argv = sys.argv[1:]
-        while _argv:
-            par_str += "%s\n" % _argv.pop()
-        xp.mix(par_str)
+        ARGV = sys.argv[1:]
+        while ARGV:
+            ARG = ARGV.pop()
+            xp.update(xdsInp2Param(inp_str=ARG))
         run_xds(xp, inp_f="XDS.INP")
         saveLastVersion(LP_names)
