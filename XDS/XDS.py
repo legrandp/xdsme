@@ -747,8 +747,8 @@ class XDS:
         if self.__cancelled: result = -1
         if rsave:
             saveLastVersion(LP_names)
-        if VERBOSE:
-            print "End of XDS run"
+        #if VERBOSE:
+        #    print "End of XDS run"
         os.chdir(self.init_dir)
         return 1
 
@@ -905,16 +905,18 @@ class XDS:
             #for o in origins:
             #    print origins.index(o), o[:-3]
             best_origin = origins[best_index_rank[ranking_mode]-1]
-            if DEBUG:
+            if VERBOSE:
                 print best_index_rank
+                fmt = "%4i%4i%4i%7.2f%7.2f%8.1f%8.1f%9.5f%9.5f%9.5f"
                 print "best_index_rank", best_index_rank[ranking_mode]
-                print "best_origin", best_origin
+                print "best_origin", fmt % tuple(best_origin[:10])
             best_beam = vec3(best_origin[7:10])
             best_beam_coor = best_origin[5:7]
             best_beam_orig = get_beam_origin(best_beam_coor,
                                              best_beam, det_params)
             self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_orig
-            print best_beam_orig, best_beam_coor
+            if VERBOSE:
+                print best_beam_orig, best_beam_coor
             self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(best_beam)
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
@@ -1314,7 +1316,7 @@ if __name__ == "__main__":
 
     WARNING = ""
     VERBOSE = False
-    DEBUG = True
+    DEBUG = False
     _anomal = False
     _strict_corr = False
     _beam_x = 0

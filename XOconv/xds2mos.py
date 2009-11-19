@@ -65,6 +65,8 @@ detector2scanner = {
    "MAC":               "DIP2020",
    "SMARTCCD":          "SMART",
    "CCDD2AM":           "ESRF",
+   "SATURN":            "RIGAKU SATURN",
+   "PILATUS":           "PILATUS",
    "CCDBRANDEIS":       "B4"}
                     
 
