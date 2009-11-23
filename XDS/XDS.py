@@ -24,9 +24,9 @@
  TODO-2: Start multiple COLSPOT with different thresholds+ multiple IDXREF...
 """
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "6-11-2009"
+__date__ = "23-11-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -135,8 +135,11 @@ _usage = """
     -w, --wavelength
          Set the x-ray wavelength.
 
-    --Slow, --Fast
-         Set options to process either more accurately of faster.
+    --slow,
+         Set parameters to process either more accurately.
+
+    --weak,
+         Set parameters to index in case of weak spots.
 
 """ % _progname
 
@@ -595,13 +598,14 @@ SPOTFILENAME = "SPOT.XDS"
 
 class XDS:
     "Main class for runing xds step by step."
-    
+
     def __init__(self, obj=None, linkToImages=True):
         """Constructor for the Param classes from file or string."""
         #
         self.linkToImages = linkToImages
         self.__cancelled = 0
         self.__lastOutp = 0
+        self.mode = []
         if XDSHOME:
             self.__execfile = os.path.join(XDSHOME,"xds_par")
         else:
@@ -801,12 +805,15 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 8
         _trial = 0
 
-        if self.mode == "slow":
+        if "slow" in self.mode:
             FRAMES_PER_COLSPOT_SEQUENCE = 32
-        elif self.mode == "fast":
+        elif "fast" in self.mode:
             FRAMES_PER_COLSPOT_SEQUENCE = 4
         else:
             FRAMES_PER_COLSPOT_SEQUENCE = 16
+        if "weak" in self.mode:
+            self.inpParam["STRONG_PIXEL"] = 4.5
+            FRAMES_PER_COLSPOT_SEQUENCE = 32
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
         # xds export function XIO
@@ -869,7 +876,7 @@ class XDS:
         det_Y = vec3(self.inpParam["DIRECTION_OF_DETECTOR_Y-AXIS"])
         det_Z = det_X.cross(det_Y)
         det_params = dist, det_X, det_Y, det_Z, qx, qy
-        
+
         #RD["indexed_percentage"] < 70. or \
         #if beam_center_search or RD["xy_spot_position_ESD"] > 2. or \
         #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
@@ -1302,7 +1309,7 @@ if __name__ == "__main__":
                 "xds-input=",
                 "verbose",
                 "wavelength=",
-                "Slow", "Fast"]
+                "slow", "weak"]
 
     if len(sys.argv) == 1:
         print _usage
@@ -1317,6 +1324,7 @@ if __name__ == "__main__":
     WARNING = ""
     VERBOSE = False
     DEBUG = False
+    WEAK = False
     _anomal = False
     _strict_corr = False
     _beam_x = 0
@@ -1335,10 +1343,10 @@ if __name__ == "__main__":
     _cell = ""
     _xds_input = ""
     _beam_in_mm = False
-    _slow = False
+    SLOW = False
     _fast = False
     _step = 1
-    
+
     for o, a in opts:
         if o == "-v":
             VERBOSE = True
@@ -1392,8 +1400,10 @@ if __name__ == "__main__":
         if o in ("-B", "--beam-center-optimize-z"):
             _beam_center_optimize = True
             _beam_center_ranking = "ZSCORE"
-        if o in ("-S", "--Slow"):
-            _slow = True
+        if o in ("--slow"):
+            SLOW = True
+        if o in ("--weak"):
+            WEAK = True
         if o in ("-h", "--help"):
             print _usage
             sys.exit()
@@ -1495,13 +1505,12 @@ if __name__ == "__main__":
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
-    
-    if _slow:
+
+    if SLOW:
         newrun.inpParam["DELPHI"] = 12 * newPar["OSCILLATION_RANGE"]
-        newrun.inpParam["STRONG_PIXEL"] = 7
-        newrun.mode = "slow"
-    else:
-        newrun.mode = None
+        newrun.mode.append("slow")
+    if WEAK:
+        newrun.mode.append("weak")
 
     print _fmt_hello % vars(newrun.inpParam)
     if WARNING:
