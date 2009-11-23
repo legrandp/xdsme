@@ -28,10 +28,10 @@
 """
 
 __author__ = "Pierre Legrand (pierre legrand \at synchrotron-soleil fr)"
-__date__ = "21-03-2007"
-__copyright__ = "Copyright (c) 2007  Pierre Legrand"
-__license__ = "LGPL"
-__version__ = "0.3.3"
+__date__ = "21-11-2009"
+__copyright__ = "Copyright (c) 2007-2009  Pierre Legrand"
+__license__ = "New BSD"
+__version__ = "0.3.4"
 
 
 import sys
