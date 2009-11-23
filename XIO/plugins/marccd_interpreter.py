@@ -3,9 +3,9 @@
 """ XIO plugin for the MarCCD image format.
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.1b"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "12-11-2009"
+__date__ = "23-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -189,6 +189,7 @@ class Interpreter:
     '5':('ESRF','ID23-2','MarCCD 225'),
     '10':('EMBL_HAMBURG','???','MarCCD 225'),
     '12':('SLS','X06SA','MarCCD 225'),
+    '38':('SLS','X06SA','MarCCD 165'),
     '21':('EMBL_HAMBURG','???','MarCCD 225'),
     '20':('SSRL4','BL11-1','MarCCD 325'),
     }

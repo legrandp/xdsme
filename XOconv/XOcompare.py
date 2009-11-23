@@ -93,7 +93,7 @@ if __name__=='__main__':
 
     _debug = False
     _write_out_angles = False
-    _do_PG_permutations = False
+    DO_PG_PERMUTATIONS = True
     _start_mosflm = False
     _verbose = False
     _template = "xds2mos"
@@ -179,33 +179,26 @@ if __name__=='__main__':
         printmat( Bmos,'\n   B',  "%12.6f")
         printmat( UBmos,'\n  UB', "%12.6f")
         XOmat.append(Umos)
+    
     ############################
     Udiff = XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
     axis, angle = axis_and_angle(Udiff)
-    print "Axis_i:  %9.6f%9.6f%9.6f" % tuple(axis),
+    print "\n>>> DIFFERENCE_1:\n"
+    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
     print "Angle_i: %10.5f degree" % (angle*R2D)
-
-    sys.exit()
-    XDS1.debut()
-    XDS2.debut()
-    print XDS1.UBxds_to_mos()
-    print XDS2.UBxds_to_mos()
     
-    sys.exit()
-    matf_name = _template + ".xds2mos.umat"
-    mosi_name = _template + ".xds2mos.inp"
+    ############################
+    Udiff = XOmat[0] * mat3(-1) * XOmat[1].inverse()
+    printmat(Udiff, '\n   U*U-1',  "%12.6f")
+    axis, angle = axis_and_angle(Udiff)
+    print "\n>>> DIFFERENCE_2:\n"
+    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
+    print "Angle_i: %10.5f degree" % (angle*R2D)
     
-    if _write_out_angles:
-        print "   Writing Crystal setting angles instead of the U matrix."
-        
-    XDSi.debut()
-    MOSi.UB = XDSi.UBxds_to_mos()
-    MOSi.cell = XDSi.dict["cell"]
-
     
-    if _do_PG_permutations:
-        spgn = XDSi.dict["symmetry"]
+    if DO_PG_PERMUTATIONS:
+        spgn = XOparser.dict["symmetry"]
         pointGroup = SPGlib[spgn][3]
         PGequivOperators = PGequiv[pointGroup]
         print
@@ -214,13 +207,20 @@ if __name__=='__main__':
         print  ">>> Point group: %s" % (pointGroup)
         print  ">>> Number of equivalent crystal ortientations: %d\n" % \
                                          (len(PGequivOperators)+1)
-        allPermutedUB = getPermutUB(PGequivOperators, MOSi.UB)
+        allPermutedUB = getPermutUB(PGequivOperators, XOmat[0])
         n = 0
         for _ub in allPermutedUB:
             n+=1
             print "Operator number:", n
             print _ub
         
+    sys.exit()
+        
+    XDSi.debut()
+    MOSi.UB = XDSi.UBxds_to_mos()
+    MOSi.cell = XDSi.dict["cell"]
+
+    
     B = MOSi.get_B(reciprocal(MOSi.cell))
     MOSi.U = MOSi.UB * B.inverse() / XDSi.dict["wavelength"]
     
