@@ -499,12 +499,10 @@ class XDSLogParser:
     def parse_integrate(self):
         "Parse INTEGRATE.LP"
         R_d, R_f = self.results, self.get_par
-        #
         R_d["reflections"] = R_f("REFLECTIONS SAVED ON FILE",
                                   start=9, func=int, before=True)
         R_d["divergence"] = R_f("BEAM_DIVERGENCE_E.S.D.= ")
         R_d["mosaicity"] = R_f("REFLECTING_RANGE_E.S.D.= ")
-        #R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A PIXEL")
         prp =  "\n  Number of reflection integrated:      %(reflections)d\n"
         prp += "  Estimated divergence:                 %(divergence).3f\n"
         prp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
@@ -515,7 +513,6 @@ class XDSLogParser:
     def parse_xplan(self):
         "Parse XPLAN.LP"
         R_d, R_f = self.results, self.get_par
-        #
         R_d["spacegroup"] = R_f("SPACE_GROUP_NUMBER=")
         R_d["unitcell"] = 6*" %8.2f" % tuple(R_f("UNIT_CELL_CONSTANTS="))
         R_d["friedels_law"] = R_f("FRIEDEL'S_LAW=")[0]
@@ -523,7 +520,6 @@ class XDSLogParser:
         st1 = self.lp.index(72*"*", st0+72)
         st2 = self.lp.index(72*"*", st1+72)
         #
-        #R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A PIXEL")
         prp =  "  Friedel's law:   %(friedels_law)s\n"
         prp += "  Spacegroup:      %(spacegroup)d\n"
         prp += "  Unitcell:        %(unitcell)s\n"
@@ -790,7 +786,7 @@ class XDS:
         self.inpParam["TRUSTED_REGION"] = [0, 1.20]
         self.inpParam["JOB"] = "XYCORR", "INIT"
         i1, i2 = self.inpParam["DATA_RANGE"]
-        if self.mode == "slow":
+        if "slow" in self.mode:
             self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+11)
         else:
             self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+3)
@@ -1253,37 +1249,6 @@ def select_strategy(idxref_results, xds_par):
         xds_par["UNIT_CELL_CONSTANTS"] = selLat.prt()
     xds_par["SPACE_GROUP_NUMBER"] = sel_spgn
     return xds_par
-    valid_inp = False
-    # Select ANOMALOUS
-    while not valid_inp:
-        if sel_ano == "TRUE":
-            txt3 = "N/y"
-        else:
-            txt3 = "Y/n"
-        selection = raw_input(" Anomalous [%s]: " % txt3)
-        try:
-            _ans =  selection.strip()
-            if _ans == "":
-                valid_inp = True    
-            elif _ans[0] in "Yy":
-                xds_par["FRIEDEL'S_LAW"] = False
-                valid_inp = True
-            elif _ans[0] in "Nn":
-                xds_par["FRIEDEL'S_LAW"] = True
-                valid_inp = True
-            else:
-                raise Exception, "Invalid answer [Y/N]."
-        except Exception, err:
-            print "\n ERROR. ", err
-    print "\n Selected  cell paramters:  ", selLat
-    if sel_spgn > 2:
-        selLat.idealize()
-        print " Idealized cell parameters: ", selLat.prt()
-    xds_par["UNIT_CELL_CONSTANTS"] = selLat.prt()
-    xds_par["SPACE_GROUP_NUMBER"] = sel_spgn
-    # Select just the internal circle of the detector.
-    xds_par["TRUSTED_REGION"] = 0.0, 1.0
-    return xds_par
 
 
 if __name__ == "__main__":
@@ -1325,7 +1290,7 @@ if __name__ == "__main__":
     VERBOSE = False
     DEBUG = False
     WEAK = False
-    _anomal = False
+    ANOMAL = False
     _strict_corr = False
     _beam_x = 0
     _beam_y = 0
@@ -1351,9 +1316,9 @@ if __name__ == "__main__":
         if o == "-v":
             VERBOSE = True
         if o in ("-a", "--anomal"):
-            _anomal = True
+            ANOMAL = True
         if o in ("-A", "--Anomal"):
-            _anomal = True
+            ANOMAL = True
             _strict_corr = True
         if o[1] in "123456":
             _step = int(o[1])
@@ -1459,7 +1424,7 @@ if __name__ == "__main__":
     if _beam_in_mm:
         _beam_x = _beam_x / newPar["QX"]
         _beam_y = _beam_y / newPar["QY"]
-    if _anomal:
+    if ANOMAL:
         newPar["FRIEDEL'S_LAW"] = "FALSE"
     else:
         newPar["FRIEDEL'S_LAW"] = "TRUE"
