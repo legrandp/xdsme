@@ -46,8 +46,8 @@ from xupy import XParam, xdsInp2Param, opWriteCl, \
                  get_BravaisToSpgs
 import XIO
 
-_progname = os.path.split(sys.argv[0])[1]
-_usage = """
+PROGNAME = os.path.split(sys.argv[0])[1]
+USAGE = """
    Running XDS automaticaly...
 
    USAGE:   %s  [OPTION]... FILES
@@ -141,9 +141,9 @@ _usage = """
     --weak,
          Set parameters to index in case of weak spots.
 
-""" % _progname
+""" % PROGNAME
 
-_fmt_hello = """
+FMT_HELLO = """
     Simplified XDS Processing\n
     Diffraction Setup Parameters:\n
   Detector distance:             %(DETECTOR_DISTANCE)8.2f mm
@@ -156,7 +156,7 @@ _fmt_hello = """
 """
 #         RMSd spot position    %%() pixels   %%() degree
 
-_fmt_final_stat = """
+FMT_FINAL_STAT = """
       Refined Parameters and Scaling Statistics
       =========================================\n
       Image Range   %(image_start)5d  to  %(image_last)5d
@@ -181,33 +181,23 @@ _fmt_final_stat = """
       Wilson scaling (B/Corr)    %(wilson_b)10.1f    (%(wilson_corr).2f)
 """
 
-_fmt_AbsIav = "      Systematic absente reflection measured %(AbsNum)6d \
+FMT_ABSENCES = "      Systematic absente reflection measured %(AbsNum)6d \
  with <Iabs>/<I> =  %(AbsIav).1f%%\n"
 
-_fmt_anomal = """
+FMT_ANOMAL = """
       Anomalous pairs measured   %(anoNum)10d
       SigAno                     %(anoSig)10.3f    (%(anoSigL).3f)
       Anomalous Correlation      %(anoCorr)10.1f%%   (%(anoCorrL).1f%%)
 """
 
-test_str = """
-    s.anoNum, s.anoNumL  =  TG[-1][-1], TG[-2][-1]
-    s.anoSig, s.anoSigL  =  TG[-1][-2], TG[-2][-2]
-    s.anoCorr,s.anoCorrL =  TG[-1][-3], TG[-2][-3]
-    if friedels_law == "FALSE":
-        print_o3("Anomalous contrib.","%.1f " % s.anom, "")
-    print_o3("Estimated Res_max","%.2f" % s.dmin,"")
-"""
-
 STEPMARK = re.compile(r"^( [*]{5} (\w{4,}) [*]{5}  )")
-integrate_step = re.compile(r" PROCESSING OF IMAGES ")
-integrate_mosaicity = re.compile(r"CRYSTAL MOSAICITY \(DEGREES\)")
-integrate_strong = re.compile(r"REFLECTIONS ACCEPTED FOR REFINEMENT")
-_rF, _rI = r"[\ ]+([0-9\.]+)", r"[\ ]+([\d]+) "
-scalegr =   r" "+_rI+r"  (\d)"+_rF+r"  ....... "+4*_rI+2*_rF
-sc = re.compile(scalegr)
+INTEGRATE_STEP_RE = re.compile(r" PROCESSING OF IMAGES ")
+INTEGRATE_MOSAICITY_RE = re.compile(r"CRYSTAL MOSAICITY \(DEGREES\)")
+INTEGRATE_STRONG_RE = re.compile(r"REFLECTIONS ACCEPTED FOR REFINEMENT")
+rrf, rri = r"[\ ]+([0-9\.]+)", r"[\ ]+([\d]+) "
+SCALE_RE = re.compile(r" "+rri+r"  (\d)"+rrf+r"  ....... "+4*rri+2*rrf)
 
-XDSHOME = os.getenv('XDS')
+XDS_HOME = os.getenv('XDS')
 
 def unpack_latticefit2(lattice_string):
     "From lattice_string to Lattice object."
@@ -237,7 +227,7 @@ def _mkdir(newdir):
         if tail:
             os.mkdir(newdir)
 
-def makeXDSImageLinks(imagename_list, linkDir="img_links",
+def make_xds_image_links(imagename_list, linkDir="img_links",
                        prefix="image", start_num=1):
     """All image names in the imagename_list are supposed to be part
     of one continous sequence of collected images.
@@ -253,8 +243,8 @@ def makeXDSImageLinks(imagename_list, linkDir="img_links",
             sys.exit(0)
     #
     linkDir = os.path.abspath(linkDir)
-    _collect = {}
-    _osc_range = []
+    collect_im = {}
+    osc_ranges = []
     for _image in imagename_list:
         _I = XIO.Image(_image)
         if VERBOSE:
@@ -264,26 +254,23 @@ def makeXDSImageLinks(imagename_list, linkDir="img_links",
             print "\tPhiStart %8.2f" % _I.header['PhiStart']
         if VERBOSE:
             print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
-        _collect[_I.header['PhiStart']] = _image
-        _osc_range.append(_I.header['PhiWidth'])
+        collect_im[_I.header['PhiStart']] = _image
+        osc_ranges.append(_I.header['PhiWidth'])
 
-    if max(_osc_range) != min(_osc_range):
+    if max(osc_ranges) != min(osc_ranges):
         print "Error. Image list contains different oscillation range!"
         sys.exit(0)
     #
-    _osc_starts = _collect.keys()
-    _osc_starts.sort()
-    _osc1 = _osc_starts[0]
-    _oscR = _osc_range[0]
-    for _osc in _osc_starts:
-        _num =  start_num+ (_osc-_osc1)/_oscR
+    osc_starts = collect_im.keys()
+    osc_starts.sort()
+    for _osc in osc_starts:
+        _num =  start_num+ (_osc-osc_starts[0])/osc_ranges[0]
         link_name = os.path.join(linkDir, prefix+"_%04.0f.img" % _num)
-        #print _osc,_osc1,_oscR,1+(_osc-_osc1)/_oscR, _num,link_name
         if os.path.lexists(link_name) and os.path.islink(link_name):
             if VERBOSE:
                 print "==> Removing existing link: %s" % link_name
             os.remove(link_name)
-        os.symlink(os.path.abspath(_collect[_osc]), link_name)
+        os.symlink(os.path.abspath(collect_im[_osc]), link_name)
         link_list.append(link_name)
     return link_list
 
@@ -329,16 +316,22 @@ class XDSLogParser:
                 _err_level = "FATAL"
         if _err_level in ("FATAL", "ERROR") and raiseErrors:
             raise XDSExecError, _err_type
-        #
+
         if self.verbose and _err != -1:
             print "\n %s in %s" % (_err_level, _err_type)
-        #
-        if full_filename.count("INIT.LP"): self.parse_init()
-        elif full_filename.count("COLSPOT.LP"): self.parse_colspot()
-        elif full_filename.count("IDXREF.LP"): self.parse_idxref()
-        elif full_filename.count("XPLAN.LP"): self.parse_xplan()
-        elif full_filename.count("INTEGRATE.LP"): self.parse_integrate()
-        elif full_filename.count("CORRECT.LP"): self.parse_correct()
+
+        if full_filename.count("INIT.LP"):
+            self.parse_init()
+        elif full_filename.count("COLSPOT.LP"):
+            self.parse_colspot()
+        elif full_filename.count("IDXREF.LP"):
+            self.parse_idxref()
+        elif full_filename.count("XPLAN.LP"):
+            self.parse_xplan()
+        elif full_filename.count("INTEGRATE.LP"):
+            self.parse_integrate()
+        elif full_filename.count("CORRECT.LP"):
+            self.parse_correct()
         else:
             raise IOError, "Don't know how to parse file: %s" % full_filename
 
@@ -365,11 +358,13 @@ class XDSLogParser:
                     func = vType
                 except ValueError:
                     pass
-                if func: break
+                if func:
+                    break
         if not func:
             raise ValueError, "get_par function can't process value '%s'" % _raw
         pars = map(func, _raw)
-        if len(pars) == 1: return pars[0]
+        if len(pars) == 1:
+            return pars[0]
         else: return pars
 
     def _get_lattices_table(self):
@@ -466,7 +461,6 @@ class XDSLogParser:
         max_ot = min(origin_n, 5)
         R_d["shift_pixel"] = origin_t[0][4]*meanPixel
         R_d["shift_mm"] = origin_t[0][4]
-        
         prp = """  Unit cell parameters:   %(refined_cell_str)s
   Space group number:     %(space_group_number)s
   Indexed spots:          %(indexed_percentage).1f%% (%(indexed_spots)d/%(total_spots)d)
@@ -581,7 +575,8 @@ class XDSLogParser:
         _execstr = "wc -l %s/SPOT.XDS" % self.run_dir
         if sys.version_info <= (2, 4, 0):
             s = os.popen(_execstr)
-            wc = s.read(); s.close()
+            wc = s.read()
+            s.close()
         else:
             wc = Popen([_execstr], stdout=PIPE, shell=True).communicate()[0]
         return int(wc.split()[0])
@@ -589,7 +584,7 @@ class XDSLogParser:
 MIN_SPOT_NUMBER = 200
 LATTICE_GEOMETRIC_FIT_CUTOFF = 50
 FRAMES_PER_COLSPOT_SEQUENCE = 16 # number of frames per sequence in COLSPOT.
-STEPS = "INIT", "COLSPOT", "IDXREF", "INTEGRATE", "CORRECT"
+JOB_STEPS = "INIT", "COLSPOT", "IDXREF", "INTEGRATE", "CORRECT"
 SPOTFILENAME = "SPOT.XDS"
 
 class XDS:
@@ -602,8 +597,8 @@ class XDS:
         self.__cancelled = 0
         self.__lastOutp = 0
         self.mode = []
-        if XDSHOME:
-            self.__execfile = os.path.join(XDSHOME,"xds_par")
+        if XDS_HOME:
+            self.__execfile = os.path.join(XDS_HOME,"xds_par")
         else:
             self.__execfile = "xds_par"
         self.running = 0
@@ -638,25 +633,20 @@ class XDS:
                               stderr=PIPE, bufsize=1, close_fds=True,
                               universal_newlines=True)
 
-    def cancel (self):
-        ""
+    def cancel(self):
+        "Cancel the job."
         self.__cancelled = 1
 
-    def getOutp(self):
+    def get_outp(self):
+        "Collect the latest output."
         if not self.__cancelled:
             nLine = len(self.outp)
             diff = nLine - self.__lastOutp
             self.__lastOutp = nLine
             if diff:
                 return "".join(self.outp[-diff:])[:-1]
-            else: return ""
-
-    #def copyInitFilesTo(self, newDir):
-    #    initFileToCopy = ""
-
-    def saveLastLP(self, file_names, suffix=""):
-        "Use xupy function to copy all LP files that have changed."
-        saveLastVersion(file_names, suffix="")
+            else:
+                return ""
 
     def run(self, run_dir=None, rsave=None, verbose=True):
         "Control the runing of the xds process and parse the output."
@@ -721,16 +711,16 @@ class XDS:
                     print "Mosaicity   reflections\n"
                     _talbInt = []
                     _init_parse = False
-                if integrate_step.search(nl):
+                if INTEGRATE_STEP_RE.search(nl):
                     print nl[44:50]+" - "+nl[56:-1],
                     nimages = int(nl[56:-1]) - int(nl[44:50]) + 1
-                elif integrate_strong.search(nl):
+                elif INTEGRATE_STRONG_RE.search(nl):
                     print "%11.0f" % (float(nl.split()[0])/nimages),
-                elif integrate_mosaicity.search(nl):
+                elif INTEGRATE_MOSAICITY_RE.search(nl):
                     print " %11.3f" % float(nl.split()[3]),
                     print " %11d" %  overloaded_spots
                     overloaded_spots = 0
-                hit = sc.search(nl)
+                hit = SCALE_RE.search(nl)
                 if hit:
                     _talbInt = hit.groups()
                     overloaded_spots += int(hit.groups()[3])
@@ -741,10 +731,12 @@ class XDS:
                 #if VERBOSE:
                 if verbose:
                     print "\n --->  Running job: %20s\n" % self.step_name
-            if nl: self.outp.append(nl)
+            if nl:
+                self.outp.append(nl)
         self.step += 1
         self.step_name = "FINISHED"
-        if self.__cancelled: result = -1
+        if self.__cancelled:
+            result = -1
         if rsave:
             saveLastVersion(LP_names)
         #if VERBOSE:
@@ -768,7 +760,7 @@ class XDS:
         D = self.inpParam["DETECTOR_DISTANCE"]
         # the resolution calculation function
         resolCal = lambda s, D, xo, yo, rx, ry: \
-                   0.5/sin(atan2(((rx*(float(s[: 10])  -xo))**2 +
+                   0.5/sin(atan2(((rx*(float(s[:10])  -xo))**2 +
                                   (ry*(float(s[10:20])-yo))**2)**0.5,D)/2.)
         filtredSpots = [s for s in spots \
 	                  if resolCal(s,D,xo,yo,rx,ry) >= res_cutoff]
@@ -987,11 +979,11 @@ class XDS:
         if not s:
             print "\nERROR while running CORRECT"
             sys.exit()
-        print _fmt_final_stat % vars(s)
+        print FMT_FINAL_STAT % vars(s)
         if s.absent:
-            print _fmt_AbsIav % vars(s)
+            print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
-            print _fmt_anomal % vars(s)
+            print FMT_ANOMAL % vars(s)
         return res.results
 
     def run_scaleLaueGroup(self):
@@ -1009,23 +1001,23 @@ class XDS:
 
 def rank_indexation(indexations, ranking_mode="ISCORE"):
     "Rank indexations obtained using different beam-center coordinates."
-    
+
     best_beam_center = None
     rank_items = ["indexed_percentage", "xy_spot_position_ESD",
                   "z_spot_position_ESD", "quality_contrast","i_score"]
     rank_table = {}
     for items in rank_items:
         rank_table[items] = []
-    #
+
     prp = " Indexed spots:          %(indexed_percentage).1f%%"
     prp += "    (%(indexed_spots)d/%(total_spots)d)\n"
     prp += " Spot prediction ESD:       %(xy_spot_position_ESD).2f "
     prp += "pixels and  %(z_spot_position_ESD).2f degrees"        
-    n = 0
+    nind = 0
     i_score = []
     for indexation in indexations:
-        n += 1
-        print " Test indexation number: %d" % n
+        nind += 1
+        print " Test indexation number: %d" % nind
         print prp % indexation
         #
         origin_t = indexation["index_origin_table"]
@@ -1041,20 +1033,20 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
             rank_table[items].append(indexation[items])
         #
         print " Contrast in the quality of indexation: ", quality_contrast
-        p4, p6 = "\n\tQuality:       ", "\n\tShift (pixels):"
-        p7, p8 = "\n\tBeam X (pixel):", "\n\tBeam Y (pixel):"
-        p9 = "\n\tIndex Origin:  "
+        pp4, pp6 = "\n\tQuality:       ", "\n\tShift (pixels):"
+        pp7, pp8 = "\n\tBeam X (pixel):", "\n\tBeam Y (pixel):"
+        pp9 = "\n\tIndex Origin:  "
         for i in range(min(len(origin_t), 5)):
-            p4 += "%9.2f," % (origin_t[i][3])
-            p6 += "%9.1f," % (origin_t[i][4])
-            p7 += "%9.1f," % (origin_t[i][5])
-            p8 += "%9.1f," % (origin_t[i][6])
-            p9 += "%3d%3d%3d," % tuple(origin_t[i][0:3])
+            pp4 += "%9.2f," % (origin_t[i][3])
+            pp6 += "%9.1f," % (origin_t[i][4])
+            pp7 += "%9.1f," % (origin_t[i][5])
+            pp8 += "%9.1f," % (origin_t[i][6])
+            pp9 += "%3d%3d%3d," % tuple(origin_t[i][0:3])
         #
-        print p4[:-1] + p6[:-1] + p7[:-1] + p8[:-1] +  p9[:-1] + "\n"
+        print pp4[:-1] + pp6[:-1] + pp7[:-1] + pp8[:-1] +  pp9[:-1] + "\n"
     #
     z_table = {}
-    print "%22s: " % "Test number", " %3d"*n % tuple(range(1, n+1))
+    print "%22s: " % "Test number", " %3d"*nind % tuple(range(1, nind+1))
     for item in rank_table:
         isorted = rank_table[item][:]
         if item in ["indexed_percentage", "quality_contrast", "i_score"]:
@@ -1277,13 +1269,13 @@ if __name__ == "__main__":
                 "slow", "weak"]
 
     if len(sys.argv) == 1:
-        print _usage
+        print USAGE
         sys.exit(2)
     try:
         opts, inputf = getopt.getopt(sys.argv[1:], short_opt, long_opt)
     except getopt.GetoptError:
         # print help information and exit:
-        print _usage
+        print USAGE
         sys.exit(2)
 
     WARNING = ""
@@ -1291,9 +1283,9 @@ if __name__ == "__main__":
     DEBUG = False
     WEAK = False
     ANOMAL = False
-    _strict_corr = False
-    _beam_x = 0
-    _beam_y = 0
+    STRICT_CORR = False
+    BEAM_X = 0
+    BEAM_Y = 0
     _spg = 0
     _strategy = False
     _res_high = 0
@@ -1310,7 +1302,7 @@ if __name__ == "__main__":
     _beam_in_mm = False
     SLOW = False
     _fast = False
-    _step = 1
+    STEP = 1
 
     for o, a in opts:
         if o == "-v":
@@ -1319,9 +1311,9 @@ if __name__ == "__main__":
             ANOMAL = True
         if o in ("-A", "--Anomal"):
             ANOMAL = True
-            _strict_corr = True
+            STRICT_CORR = True
         if o[1] in "123456":
-            _step = int(o[1])
+            STEP = int(o[1])
         if o in ("-s", "--spg"):
             _spg, _spg_info, _spg_str = parse_spacegroup(a)
         if o in ("-i", "--xds-input"):
@@ -1353,12 +1345,12 @@ if __name__ == "__main__":
             if "mm" in a:
                 _beam_in_mm = True
                 a = a.replace("mm","")
-            _beam_x = float(a)
+            BEAM_X = float(a)
         if o in ("-y", "--beam_y"):
             if "mm" in a:
                 _beam_in_mm = True
                 a = a.replace("mm","")
-            _beam_y = float(a)
+            BEAM_Y = float(a)
         if o in ("-b", "--beam-center-optimize-i"):
             _beam_center_optimize = True
             _beam_center_ranking = "ISCORE"
@@ -1370,7 +1362,7 @@ if __name__ == "__main__":
         if o in ("--weak"):
             WEAK = True
         if o in ("-h", "--help"):
-            print _usage
+            print USAGE
             sys.exit()
 
     if not os.path.isfile(inputf[0]):
@@ -1386,7 +1378,7 @@ if __name__ == "__main__":
     if not _coll.isContinuous(inputf):
         _linkimages = True
         link_dir = "img_links"
-        inputf = makeXDSImageLinks(inputf,
+        inputf = make_xds_image_links(inputf,
                                     os.path.join(newDir,link_dir),
                                     "image")
         #collect.setDirectory(link_dir)
@@ -1406,34 +1398,33 @@ if __name__ == "__main__":
     imgDir = collect.directory
     newPar = collect.export("xds")
 
-   # In case no beam origin is defined, take the detector center.
+    # Update some default values defined by XIO.export_xds:
+    # In case no beam origin is defined, take the detector center.
     if newPar["ORGX"] == 0:
         newPar["ORGX"] = newPar["NX"]/2.
     if newPar["ORGY"] == 0:
         newPar["ORGY"] = newPar["NY"]/2.
 
-    #write_autoPar(collect.export("adp"))
-
-    # Update some default values.
-    # Defined by XDS.export xds:
-    #    newPar["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = 9
+    # This is to correct the starting angle in case first image is not 1.
+    newPar["STARTING_ANGLE"] = newPar["STARTING_ANGLE"] - \
+              newPar["OSCILLATION_RANGE"]*(newPar["DATA_RANGE"][0] - 1)
     newPar["STRONG_PIXEL"] = 7
 
     newrun = XDS()
 
     if _beam_in_mm:
-        _beam_x = _beam_x / newPar["QX"]
-        _beam_y = _beam_y / newPar["QY"]
+        BEAM_X = BEAM_X / newPar["QX"]
+        BEAM_Y = BEAM_Y / newPar["QY"]
     if ANOMAL:
         newPar["FRIEDEL'S_LAW"] = "FALSE"
     else:
         newPar["FRIEDEL'S_LAW"] = "TRUE"
-    if _strict_corr:
+    if STRICT_CORR:
         newPar["STRICT_ABSORPTION_CORRECTION"] = "TRUE"
-    if _beam_x:
-        newPar["ORGX"] = _beam_x
-    if _beam_y:
-        newPar["ORGY"] = _beam_y
+    if BEAM_X:
+        newPar["ORGX"] = BEAM_X
+    if BEAM_Y:
+        newPar["ORGY"] = BEAM_Y
     if _spg and _cell:
         newPar["SPACE_GROUP_NUMBER"] = _spg
         newPar["UNIT_CELL_CONSTANTS"] = _cell
@@ -1477,7 +1468,7 @@ if __name__ == "__main__":
     if WEAK:
         newrun.mode.append("weak")
 
-    print _fmt_hello % vars(newrun.inpParam)
+    print FMT_HELLO % vars(newrun.inpParam)
     if WARNING:
         print WARNING
     if _spg:
@@ -1485,13 +1476,13 @@ if __name__ == "__main__":
 
     #newrun.run()
     R1 = R2 = R3 = R4 = R5 = None
-    if _step > 1:
-        print "\n Starting at step: %d (%s)\n" % (_step, STEPS[_step-1])
-    if _step <= 1:
+    if STEP > 1:
+        print "\n Starting at step: %d (%s)\n" % (STEP, JOB_STEPS[STEP-1])
+    if STEP <= 1:
         R1 = newrun.run_init()
-    if _step <= 2:
+    if STEP <= 2:
         R2 = newrun.run_colspot()
-    if _step <= 3:
+    if STEP <= 3:
         if newrun.mode == "slow" and _res_high:
             print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % _res_high
             #newrun.spots_resolution_cutoff(_res_high)
@@ -1514,15 +1505,9 @@ if __name__ == "__main__":
         #if _spg and not _cell:
         if (len(collect.imageRanges) > 1) or _strategy:
             newrun.run_xplan(collect.imageRanges, ridx=R3)
-    if _step <= 4:
+    if STEP <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
-    if _step <= 5:
+    if STEP <= 5:
         R5 = newrun.run_correct()
-
-    #import time 
-    #t0 = time.time()
-    #newrun.spots_resolution_cutoff(3.,"S1.XDS")
-    #t1 = time.time()
-    #print "New: time = %10.3f" % (t1-t0)
 
 

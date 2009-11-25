@@ -696,14 +696,12 @@ class MosflmParser:
             return (w3[0]+w3[1]+w3[2])/3.
         else:
             raise Exception, 'Error in extracting wavelength from UB and cell!'
-            
+
     def get_B(self, rcell=None):
         " Mosflm Orthogonalisation matrix (Busing & Levy)"
-        
         if not rcell:  rcell = self.cell_r
         return BusingLevy(rcell)
-    
-    
+
 def openReadClose(filename):
     f = open(filename)
     r = f.read()
@@ -714,7 +712,7 @@ def openWriteClose(filename,text):
     f = open(filename,'w')
     f.write(text)
     f.close()
-    
+
 def diffMAT(m1,m2):
     diffsq = 0
     for a in (m1-m2):
@@ -726,7 +724,7 @@ def rootSquareSum(mdiff):
         return reduce(lambda x, y: x+y, map(lambda x: x**2, mdiff.mlist))**0.5
     else:
         return reduce(lambda x, y: x+y, map(lambda x: x**2, mdiff))**0.5
-        
+
 def printmat(mat, name="", format="%12.8f"):
     if name: print "%s" % (name)
     if isinstance(mat, mat3):
@@ -738,25 +736,27 @@ def str_mat(mat, name="", format="%12.6f"):
     "Return a string representation of a 3x3 matrix"
     Pformat = name + 3*(3*format+"\n")
     return Pformat % tuple(mat.toList(1))
-    
+
 def volum(cell):
     """
-    
+    Calculate the cell volum from either:
+     - the 6 standard cell parameters (a, b, c, alpha, beta, gamma)
+     - or the 3 vectors A, B, C
     """
-    if len(cell) == 6 and type(cell[0]) == type(0.):
+    if (len(cell) == 6) and (type(cell[0]) == float):
         # expect a, b, c, alpha, beta, gamma (angles in degree).
         ca, cb, cg = map(cosd, cell[3:6])
         return cell[0]*cell[1]*cell[2]*(1-ca**2-cb**2-cg**2+2*ca*cb*cg)**0.5
-         
-    elif len(cell) == 3 and isinstance(cell[0], vec3):
+    elif (len(cell) == 3) and isinstance(cell[0], vec3):
         # expect vectors of the 3 cell parameters
         A, B, C = cell
         return A*B.cross(C)
     else:
         print "error in volum()"
-        return ""  
+        return "Can't parse input arguments."  
 
 def reciprocal(cell):
+    "Calculate the 6 reciprocal cell parameters: a*, b*, c*, alpha*, beta*..."
     sa, sb, sg = map(sind, cell[3:6])
     ca, cb, cg = map(cosd, cell[3:6])
     v = volum(cell)
@@ -774,7 +774,6 @@ def UB_to_cellParam(UB):
                   0.0014703215926493108, 0.0037937417049515054, 0.0057564982133741704,
                  7.3231240428790203e-05, -0.002607820316488004, 0.007361827462991322)
     >>> print UB_to_cellParam(ub)
-    ... 
     """
     Ar = vec3(UB.getColumn(0))
     Br = vec3(UB.getColumn(1))
@@ -782,13 +781,17 @@ def UB_to_cellParam(UB):
     return (Ar.length(), Br.length(), Cr.length(),
             Br.angle(Cr)*r2d, Cr.angle(Ar)*r2d, Ar.angle(Br)*r2d)
 
-def is_orthogonal(R, epsilon=5e-6):
-    # Check if a tensor orthogonal: R.transpose() = R.inverse()
-    # Usefull to check proper caclculation of U orientation matrices.
+def is_orthogonal(R, epsilon=5e-6, debug=True):
+    """Check if a tensor is orthogonal:R.transpose() = R.inverse()
+       Usefull to check proper caclculation of U orientation matrices."""
     Mdiff = diffMAT(R.transpose(), R.inverse())
+    print "==debug:  Mdiff= %.2e    abs(1-det)= %.2e" % \
+                                      (Mdiff, abs(1-R.determinant()))
     #print "\n Rotation error =====>> %7.1e\n" % Mdiff
-    if Mdiff < epsilon: return True
-    else: return Mdiff
+    if Mdiff < epsilon:
+        return True
+    else:
+        return Mdiff
 
 
 def BusingLevy(rcell):
@@ -805,12 +808,12 @@ def BusingLevy(rcell):
     return mat3(BX,BY,BZ)
 
 def cleanU0(Umat,resid=3e-6):
-    # cleaning... Just cosmetic, not realy needed.
+    "cleaning... Just cosmetic, not realy needed."
     sin120 = math.sin(2*pi/3)
     for i in range(3):
         for j in range(3):
             v = Umat[i,j]
-            vsign = cmp(v,1e-30)
+            vsign = cmp(v, 1e-30)
             if abs(v) < resid: Umat[i,j] = 0.
             elif abs(v - 0.5) < resid: Umat[i,j] = 0.5*vsign
             elif abs(v - sin120) < resid: Umat[i,j] = sin120*vsign
@@ -818,33 +821,48 @@ def cleanU0(Umat,resid=3e-6):
 
 def getPermutUB(PGoperators, UB, _epsilonCell=1e-2):
     "Apply Point group permutations to UB, return a list of permutated UB"
-    
+
     cell = reciprocal(UB_to_cellParam(UB))
     permutedList = []
-    
+
     for equiv in PGoperators:
         # Note that equiv_mat is the transpose of the normal equiv matrix!
         # because of the way mat3 matrices are contructed.
         equiv_mat = mat3(equiv[0],equiv[1],equiv[2])
         new_UB = UB * equiv_mat
-        new_cell = reciprocal(UB_to_cellParam(new_UB))
-       
+
         # One simple way to verify that the permutation is correct is
         # to extract the cell parameters from the permuted UB matrix
         if _debug:
+            new_cell = reciprocal(UB_to_cellParam(new_UB))
             assert abs(new_cell[0] - cell[0]) < _epsilonCell and \
                    abs(new_cell[1] - cell[1]) < _epsilonCell and \
                    abs(new_cell[2] - cell[2]) < _epsilonCell and \
                    abs(new_cell[3] - cell[3]) < _epsilonCell and \
                    abs(new_cell[4] - cell[4]) < _epsilonCell and \
                    abs(new_cell[5] - cell[5]) < _epsilonCell 
-        
+
         permutedList.append(new_UB)
     return permutedList
- 
+
+def getPermutU(PGoperators, U, _epsilonCell=1e-4, debug=True):
+    "Apply Point group permutations to U, return a list of permutated U"
+
+    permutedList = []
+    for equiv in PGoperators:
+        # Note that equiv_mat is the transpose of the normal equiv matrix!
+        # because of the way mat3 matrices are contructed.
+        equiv_mat = mat3(equiv[0],equiv[1],equiv[2])
+        new_U = equiv_mat.transpose() * U
+        if is_orthogonal(new_U):
+            permutedList.append(new_U)
+        else:
+            print "Internal Error: permuted U matrix is not orthogonal !"
+            print new_U
+    return permutedList
 
 def _test():
-   
+
     ub = mat3(0.00195366,  0.01690921, -0.00112061,
               0.00676745, -0.00440955, -0.00560790,
              -0.00585598,  0.00054534, -0.01059838)
@@ -852,9 +870,9 @@ def _test():
     u = mat3(0.2132794,   0.9671680,  -0.1381950,
              0.7387952,  -0.2522162,  -0.6249549,
             -0.6392915,   0.0311922,  -0.7683315)
-    
+
     cell = (103.7050, 53.2511, 78.8808, 90.0000, 101.4632, 90.0000)
-    
+
     print diffMAT(ub.decompose()[0], u)
     print ub.decompose()[0] - u
     print cell

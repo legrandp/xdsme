@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    
     Compare orientation matrices
-    
+
     Uses the mat3 and vec3 classes from Python Computer Graphics Kit v1.2.0
     module by Matthias Baas (see http://cgkit.sourceforge.net).
-    
+
     License: http://www.opensource.org/licenses/bsd-license.php
 """
 
@@ -32,18 +31,18 @@ _usage = """
    from XDS output files and write a mosflm input file:
 
    USAGE:   %s  [OPTION]... FILE
-    
+
       FILE can be one of these XDS output files:
-      
+
          XPARM.XDS, GXPARM.XDS, IDXREF.LP, CORRECT.LP
-    
+
    OPTIONS:
-    
+
    -a
    --angles
          Writes out the crystal orientation in xds2mos.umat as
          setings angles (default is as a U matrix)
-         
+
    -h
    --help
          Print this help message.
@@ -61,16 +60,16 @@ def PARS_xds2mos(xdsPar):
     mosPar["symmetry"] = spg_num2symb[xdsPar["symmetry"]]
     mosPar["omega"] = xdsPar["omega"]*r2d
     mosPar["twotheta"] = xdsPar["twotheta"]*r2d
-        
+
     xc = xdsPar["origin"][0]
     yc = xdsPar["origin"][1]
-    
+
     cosOmega = math.cos(xdsPar["omega"])
     sinOmega = math.sin(xdsPar["omega"])
-    
+
     mosPar["beam_x"] = xc*cosOmega + yc*sinOmega
     mosPar["beam_y"] = xc*sinOmega + yc*cosOmega
-    
+
     if "detector_type" in xdsPar.keys():
         mosPar["detector"] = detector2scanner[xdsPar["detector_type"]]
 
@@ -81,10 +80,10 @@ def PARS_xds2mos(xdsPar):
     mosPar["image_numb"] = xdsPar["num_init"]
     mosPar["phi_i"] = xdsPar["phi_init"]
     mosPar["phi_f"] = xdsPar["phi_init"] + xdsPar["delta_phi"]
-    
+
     if  "mosaicity" in xdsPar:
         mosPar["mosaicity"] = mosaicity_conversion_factor*xdsPar["mosaicity"]
-        
+
     return mosPar
 
 if __name__=='__main__':
@@ -96,18 +95,17 @@ if __name__=='__main__':
     DO_PG_PERMUTATIONS = True
     _start_mosflm = False
     _verbose = False
-    _template = "xds2mos"
-    
+
     short_opt =  "ahpsv"
     long_opt = ["angles", "help", "pg-permutations", "start-mosflm", "verbose"]
-    
+
     try:
         opts, inputf = getopt.getopt(sys.argv[1:], short_opt, long_opt)
     except getopt.GetoptError:
         # print help information and exit:
         print _usage
         sys.exit(2)
-        
+
     for o, a in opts:
         if o in ("-v", "--verbose"):
             _verbose = True
@@ -138,7 +136,8 @@ if __name__=='__main__':
             if gotcha:
                 break
         if not gotcha:
-            raise Exception, "Can't parse inputted orientation matrix file: %s" % inputf[0]
+            raise Exception, "Can't parse inputted orientation matrix file: %s"\
+                              % inputf[0]
 
         print "\n %s used to read input file: %s" % (XOparser.info, inputf[0])
         XOfileType = XOparser.fileType
@@ -179,7 +178,7 @@ if __name__=='__main__':
         printmat( Bmos,'\n   B',  "%12.6f")
         printmat( UBmos,'\n  UB', "%12.6f")
         XOmat.append(Umos)
-    
+
     ############################
     Udiff = XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
@@ -187,16 +186,15 @@ if __name__=='__main__':
     print "\n>>> DIFFERENCE_1:\n"
     print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
     print "Angle_i: %10.5f degree" % (angle*R2D)
-    
+
     ############################
-    Udiff = XOmat[0] * mat3(-1) * XOmat[1].inverse()
+    Udiff = mat3(-1) * XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
     axis, angle = axis_and_angle(Udiff)
     print "\n>>> DIFFERENCE_2:\n"
     print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
     print "Angle_i: %10.5f degree" % (angle*R2D)
-    
-    
+
     if DO_PG_PERMUTATIONS:
         spgn = XOparser.dict["symmetry"]
         pointGroup = SPGlib[spgn][3]
@@ -207,34 +205,38 @@ if __name__=='__main__':
         print  ">>> Point group: %s" % (pointGroup)
         print  ">>> Number of equivalent crystal ortientations: %d\n" % \
                                          (len(PGequivOperators)+1)
-        allPermutedUB = getPermutUB(PGequivOperators, XOmat[0])
+        allPermutedU = getPermutU(PGequivOperators, XOmat[0])
         n = 0
-        for _ub in allPermutedUB:
+        for Up in allPermutedU:
             n+=1
             print "Operator number:", n
-            print _ub
-        
+            print Up
+            Udiff = Up * XOmat[1].inverse()
+            axis, angle = axis_and_angle(Udiff)
+            print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
+            print "Angle_i: %10.5f degree" % (angle*R2D)
+
+
     sys.exit()
-        
+
     XDSi.debut()
     MOSi.UB = XDSi.UBxds_to_mos()
     MOSi.cell = XDSi.dict["cell"]
 
-    
     B = MOSi.get_B(reciprocal(MOSi.cell))
     MOSi.U = MOSi.UB * B.inverse() / XDSi.dict["wavelength"]
-    
+
     verif = is_orthogonal(MOSi.U)
     if not verif:
         print "???  Warning: The U matrix is not orthogonal."
         print "???  Epsilon error: %.1e" % verif
-    
+
     XDSi.dict["origin"] = XDSi.getBeamOrigin()
     XDSi.dict["omega"] = XDSi.getOmega()
     XDSi.dict["twotheta"] = XDSi.getTwoTheta()
     print "\n   Calculated Omega:    %9.2f degree" % (XDSi.dict["omega"]*r2d)
     print "   Calculated 2theta:   %9.2f degree\n" % (XDSi.dict["twotheta"]*r2d)
-    
+
     if _write_out_angles:
         MOSi.missetingAngles = map_r2d(ThreeAxisRotation2(MOSi.U.toList(1),
                                           inversAxesOrder=1).getAngles()[0])
@@ -257,7 +259,7 @@ if __name__=='__main__':
         mosDict['detector_instruction'] = ""
             
     openWriteClose(mosi_name, mosflmInpTemplate % mosDict)
-    
+
     if _verbose:
         Ud = MOSi.UB.decompose()[0]
         Bd = Ud.inverse() * MOSi.UB / XDSi.dict["wavelength"]

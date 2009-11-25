@@ -739,11 +739,10 @@ class Collect:
         return self.imageNumbers[diff.index(min(diff))]
 
     def export(self, exportType='xds'):
-        """Try to interpret the collect, and return an interpreted dictionary
-        """
+        "Try to interpret the collect, and return an interpreted dictionary"
         try:
             #print "Collect. TRY import exporter:", exportType.lower()
-            exporter = __import__(exportType.lower()+'_export')        
+            exporter = __import__(exportType.lower()+'_export')
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
 
