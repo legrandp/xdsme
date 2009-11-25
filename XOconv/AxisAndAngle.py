@@ -73,6 +73,11 @@ if __name__ == '__main__':
     from Scientific.Geometry.Transformation import Rotation
     from random import random
     #
+    Q = mat3(0.36, 0.48, -0.8, -0.8, 0.6, 0, 0.48, 0.64, 0.60)
+    axis_q, angle_q = axis_and_angle(Q)
+    print "Axis_q:  %9.6f%9.6f%9.6f" % tuple(axis_q),
+    print "Angle_q: %10.5f" % (angle_q*R2D)
+    #
     for iii in range(1e6):
         axis_i = list(vec3([random(), random(), random()]).normalize())
         angle_i = 3*random()
