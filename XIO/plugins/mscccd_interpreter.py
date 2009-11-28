@@ -35,7 +35,7 @@ class Interpreter:
     # = The orientation of SIZE1 and SIZE2 is unknown
     #     Not a problem as long as SIZE1 = SIZE2..
 
-    #'ExposureTime':(['TIME'],float),
+    'ExposureTime':(['SCAN_DET_RELZERO'], lambda x: float(x.split()[1])),
     'BeamX':(['CCD_SPATIAL_BEAM_POSITION'], lambda x: float(x.split()[0])),
     'BeamY':(['CCD_SPATIAL_BEAM_POSITION'], lambda x: float(x.split()[1])),
     'Distance':(['CCD_GONIO_VALUES'], lambda x: float(x.split()[-1])),

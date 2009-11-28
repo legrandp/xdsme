@@ -227,7 +227,7 @@ def _mkdir(newdir):
         if tail:
             os.mkdir(newdir)
 
-def make_xds_image_links(imagename_list, linkDir="img_links",
+def make_xds_image_links(imagename_list, dir_name="img_links",
                        prefix="image", start_num=1):
     """All image names in the imagename_list are supposed to be part
     of one continous sequence of collected images.
@@ -235,27 +235,27 @@ def make_xds_image_links(imagename_list, linkDir="img_links",
         - How to safely modulate PhiStart outside the [-180,180] range ?
     """
     link_list = []
-    if linkDir not in os.listdir("."):
+    if dir_name not in os.listdir("."):
         try:
-            _mkdir(linkDir)
-        except Exception, e:
-            print "Error\n", e
+            _mkdir(dir_name)
+        except Exception, err:
+            print "Error\n", err
             sys.exit(0)
     #
-    linkDir = os.path.abspath(linkDir)
+    dir_name = os.path.abspath(dir_name)
     collect_im = {}
     osc_ranges = []
     for _image in imagename_list:
-        _I = XIO.Image(_image)
+        image = XIO.Image(_image)
         if VERBOSE:
             print _image
         # How to safely modulate PhiStart outside the [-180,180] range?
         if VERBOSE:
-            print "\tPhiStart %8.2f" % _I.header['PhiStart']
+            print "\tPhiStart %8.2f" % image.header['PhiStart']
         if VERBOSE:
-            print "\tPhiWidth %8.2f" % _I.header['PhiWidth']
-        collect_im[_I.header['PhiStart']] = _image
-        osc_ranges.append(_I.header['PhiWidth'])
+            print "\tPhiWidth %8.2f" % image.header['PhiWidth']
+        collect_im[image.header['PhiStart']] = _image
+        osc_ranges.append(image.header['PhiWidth'])
 
     if max(osc_ranges) != min(osc_ranges):
         print "Error. Image list contains different oscillation range!"
@@ -265,7 +265,7 @@ def make_xds_image_links(imagename_list, linkDir="img_links",
     osc_starts.sort()
     for _osc in osc_starts:
         _num =  start_num+ (_osc-osc_starts[0])/osc_ranges[0]
-        link_name = os.path.join(linkDir, prefix+"_%04.0f.img" % _num)
+        link_name = os.path.join(dir_name, prefix+"_%04.0f.img" % _num)
         if os.path.lexists(link_name) and os.path.islink(link_name):
             if VERBOSE:
                 print "==> Removing existing link: %s" % link_name
@@ -336,7 +336,7 @@ class XDSLogParser:
             raise IOError, "Don't know how to parse file: %s" % full_filename
 
     def get_par(self, match, limit=75, func=None,
-                      multiLine=False, start=0, before=False):
+                      multi_line=False, start=0, before=False):
         "Extract parameters from XDS .LP lines."
         try:
             if before:
@@ -344,18 +344,18 @@ class XDSLogParser:
                 start = self.lp.index(match)-start
             else:
                 start = self.lp.index(match, start) + len(match)
-        except Exception, e:
-            raise e
+        except Exception, err:
+            raise err
             #return 0
-        if multiLine:
+        if multi_line:
             _raw = self.lp[start:start+limit].split()
         else:
             _raw = self.lp[start:start+limit].splitlines()[0].split()
         if not func:
-            for vType in (int, float, str):
+            for var_type in (int, float, str):
                 try:
-                    vType(_raw[0])
-                    func = vType
+                    var_type(_raw[0])
+                    func = var_type
                 except ValueError:
                     pass
                 if func:
@@ -368,13 +368,13 @@ class XDSLogParser:
         else: return pars
 
     def _get_lattices_table(self):
-        list_latticesFit = []
+        "Extract lattice table"
         st1 = self.lp.index("LATTICE-  BRAVAIS-   QUALITY")
         _table = self.lp[st1:st1+6000].splitlines()[3:47]
-        #for sol in _table: print sol
         return map(unpack_latticefit2, _table)
 
     def _get_index_origins_table(self):
+        "Extract origin table"
         st0 = self.lp.index(" DL\n  ORIGIN\n")+14
         st1 = self.lp.index(" SELECTED:     INDEX_ORIGIN=")-2
         return map(lambda s: \
@@ -425,12 +425,12 @@ class XDSLogParser:
         rexp2 = r".* QX=\ +([\d|\.]+)\ +QY=\ +([\d|\.]+)"
         #if "! ERROR !" in self.lp:
         #    raise XDSLogParserException, "Error while parsing XDS logfile"
-        nIS, nTS = map(int, re.match(rexp1, self.lp, re.DOTALL).groups())
+        nis, nts = map(int, re.match(rexp1, self.lp, re.DOTALL).groups())
         qx, qy = map(float, re.match(rexp2, self.lp, re.DOTALL).groups())
         meanPixel = (qx+qy)/2
-        R_d["indexed_spots"] = nIS
-        R_d["total_spots"] = nTS
-        R_d["indexed_percentage"] = 100.*nIS/nTS
+        R_d["indexed_spots"] = nis
+        R_d["total_spots"] = nts
+        R_d["indexed_percentage"] = 100.*nis/nts
         #
         st0 = self.lp.index("START OF INTEGRATION *****")
         st1 = "STANDARD DEVIATION OF SPOT    POSITION (PIXELS)"
@@ -556,30 +556,30 @@ class XDSLogParser:
 
     def get_proper_resolition_range(self, res_table):
         "High res is selected when at least 3 values of I/sigma are below 1."
-        _highT, _high = [], None
+        high_n, high_hit = [], None
         for res, IoS in res_table:
             if IoS < 1.:
-                _highT.append(res)
-                if not _high and len(_highT) == 3:
-                    _high = _highT[0]
+                high_n.append(res)
+                if not high_hit and len(high_n) == 3:
+                    high_hit = high_n[0]
             else:
-                _highT = []
+                high_n = []
             #print "%8.3f  %8.3f  %s" % (res, IoS, IoS >= 1.)
-        if not _high and len(_highT) >= 1:
-            _high = _highT[0]
-        #print "Suggested high resolution cut-off: %.2f" % _high
-        return _high
+        if not high_hit and len(high_n) >= 1:
+            high_hit = high_n[0]
+        #print "Suggested high resolution cut-off: %.2f" % high_hit
+        return high_hit
 
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
         _execstr = "wc -l %s/SPOT.XDS" % self.run_dir
         if sys.version_info <= (2, 4, 0):
-            s = os.popen(_execstr)
-            wc = s.read()
-            s.close()
+            spot_file = os.popen(_execstr)
+            wc_out = spot_file.read()
+            spot_file.close()
         else:
-            wc = Popen([_execstr], stdout=PIPE, shell=True).communicate()[0]
-        return int(wc.split()[0])
+            wc_out = Popen([_execstr], stdout=PIPE, shell=True).communicate()[0]
+        return int(wc_out.split()[0])
 
 MIN_SPOT_NUMBER = 200
 LATTICE_GEOMETRIC_FIT_CUTOFF = 50
@@ -590,10 +590,10 @@ SPOTFILENAME = "SPOT.XDS"
 class XDS:
     "Main class for runing xds step by step."
 
-    def __init__(self, obj=None, linkToImages=True):
+    def __init__(self, obj=None, link_to_images=True):
         """Constructor for the Param classes from file or string."""
         #
-        self.linkToImages = linkToImages
+        self.link_to_images = link_to_images
         self.__cancelled = 0
         self.__lastOutp = 0
         self.mode = []
@@ -606,7 +606,7 @@ class XDS:
         self.run_dir = "."
         self.status = None
         self.inpParam = XParam()
-        self.collectDir = "./"
+        self.collect_dir = "./"
         self.link_name_to_image = "img"
         #
         if type(obj) == file:
@@ -618,7 +618,7 @@ class XDS:
     def set_collect_dir(self, dirname):
         "Set the collect directory"
         if os.path.isdir(dirname):
-            self.collectDir = dirname
+            self.collect_dir = dirname
         else:
             raise XIO.XIOError, "Can't find %s directory" % dirname
 
@@ -673,9 +673,9 @@ class XDS:
             #
             if os.path.isdir(self.run_dir):
                 os.chdir(self.run_dir)
-                if self.linkToImages:  
+                if self.link_to_images:  
                     if not os.path.exists(self.link_name_to_image):
-                        os.system("ln -sf %s %s" % (self.collectDir, \
+                        os.system("ln -sf %s %s" % (self.collect_dir, \
                                                     self.link_name_to_image))
                         #os.system("ln -sf .. %s" % (self.link_name_to_image))
                     #else:
@@ -698,41 +698,41 @@ class XDS:
                 os.kill(xdsProcess.pid, 9)
                 break
             if self.wait_value == -1:
-                nl = xdsProcess.fromchild.readline()
+                lines = xdsProcess.fromchild.readline()
             else:
-                nl = xdsProcess.stdout.readline()
-                #nl = xdsProcess.communicate()
-            # inline parsing of stdout
+                lines = xdsProcess.stdout.readline()
+                #lines = xdsProcess.communicate()
+            # ilines parsing of stdout
             if self.step_name == "INTEGRATE":
                 if _init_parse:
                     print "    Processing    Mean #Strong  ",
                     print "Estimated   Overloaded"
                     print "    Image Range   refl./image   ",
                     print "Mosaicity   reflections\n"
-                    _talbInt = []
+                    table_int = []
                     _init_parse = False
-                if INTEGRATE_STEP_RE.search(nl):
-                    print nl[44:50]+" - "+nl[56:-1],
-                    nimages = int(nl[56:-1]) - int(nl[44:50]) + 1
-                elif INTEGRATE_STRONG_RE.search(nl):
-                    print "%11.0f" % (float(nl.split()[0])/nimages),
-                elif INTEGRATE_MOSAICITY_RE.search(nl):
-                    print " %11.3f" % float(nl.split()[3]),
+                if INTEGRATE_STEP_RE.search(lines):
+                    print lines[44:50]+" - "+lines[56:-1],
+                    nimages = int(lines[56:-1]) - int(lines[44:50]) + 1
+                elif INTEGRATE_STRONG_RE.search(lines):
+                    print "%11.0f" % (float(lines.split()[0])/nimages),
+                elif INTEGRATE_MOSAICITY_RE.search(lines):
+                    print " %11.3f" % float(lines.split()[3]),
                     print " %11d" %  overloaded_spots
                     overloaded_spots = 0
-                hit = SCALE_RE.search(nl)
+                hit = SCALE_RE.search(lines)
                 if hit:
-                    _talbInt = hit.groups()
+                    table_int = hit.groups()
                     overloaded_spots += int(hit.groups()[3])
-            sm = STEPMARK.match(nl)
+            sm = STEPMARK.match(lines)
             if sm:
                 self.step += 1
                 self.step_name = sm.group(2)
                 #if VERBOSE:
                 if verbose:
                     print "\n --->  Running job: %20s\n" % self.step_name
-            if nl:
-                self.outp.append(nl)
+            if lines:
+                self.outp.append(lines)
         self.step += 1
         self.step_name = "FINISHED"
         if self.__cancelled:
@@ -792,27 +792,28 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 8
         _trial = 0
-
+        
+        frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
         if "slow" in self.mode:
-            FRAMES_PER_COLSPOT_SEQUENCE = 32
+            frames_per_colspot_sequence = 32
         elif "fast" in self.mode:
-            FRAMES_PER_COLSPOT_SEQUENCE = 4
+            frames_per_colspot_sequence = 4
         else:
-            FRAMES_PER_COLSPOT_SEQUENCE = 16
+            frames_per_colspot_sequence = 16
         if "weak" in self.mode:
             self.inpParam["STRONG_PIXEL"] = 4.5
-            FRAMES_PER_COLSPOT_SEQUENCE = 32
+            frames_per_colspot_sequence = 32
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
         # xds export function XIO
         # 
-        _dc = XIO.Collect("foo_001.bar")
-        _dc.imageNumbers = _dc._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
+        cfo = XIO.Collect("foo_001.bar")
+        cfo.imageNumbers = cfo._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
         #
         min_fn, max_fn = self.inpParam["DATA_RANGE"] 
         dPhi = self.inpParam["OSCILLATION_RANGE"]
-        _fpcs = FRAMES_PER_COLSPOT_SEQUENCE
-        _2fpcs = 1 + 2 * FRAMES_PER_COLSPOT_SEQUENCE
+        _fpcs = frames_per_colspot_sequence
+        _2fpcs = 1 + 2 * frames_per_colspot_sequence
 
         if (max_fn - min_fn + 1) >= _2fpcs:
             # use two range ex: i-i+2, f-2,f
@@ -824,13 +825,13 @@ class XDS:
             spot_ranges = (min_fn, min(min_fn + _2fpcs - 1, max_fn)),
         # Restrict to matching collected images...
         #print "T1", spot_ranges
-        self.inpParam["SPOT_RANGE"] = _dc.lookup_imageRanges(False, \
+        self.inpParam["SPOT_RANGE"] = cfo.lookup_imageRanges(False, \
                                               mask_range=spot_ranges)
         #
         self.run(rsave=True)
         _rs = "  Image range(s) for spot collection: "
-        for _r in self.inpParam["SPOT_RANGE"]:
-            _rs += ("  [%d - %d]," % tuple(_r))
+        for sub_range in self.inpParam["SPOT_RANGE"]:
+            _rs += ("  [%d - %d]," % tuple(sub_range))
         print _rs[:-1] + "\n"
 
         res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
@@ -860,10 +861,10 @@ class XDS:
         RD = res.results
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         dist = self.inpParam["DETECTOR_DISTANCE"]
-        det_X = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
-        det_Y = vec3(self.inpParam["DIRECTION_OF_DETECTOR_Y-AXIS"])
-        det_Z = det_X.cross(det_Y)
-        det_params = dist, det_X, det_Y, det_Z, qx, qy
+        det_x = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
+        det_y = vec3(self.inpParam["DIRECTION_OF_DETECTOR_Y-AXIS"])
+        det_z = det_x.cross(det_y)
+        det_params = dist, det_x, det_y, det_z, qx, qy
 
         #RD["indexed_percentage"] < 70. or \
         #if beam_center_search or RD["xy_spot_position_ESD"] > 2. or \
@@ -924,7 +925,7 @@ class XDS:
             print err
             raise Exception(err)
 
-    def run_xplan(self, image_ranges, ridx=None):
+    def run_xplan(self, ridx=None):
         "Running the strategy."
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
@@ -938,10 +939,10 @@ class XDS:
         self.inpParam["TRUSTED_REGION"] = 0.0, 1.0
         self.inpParam["JOB"] = "DEFPIX", "XPLAN"
         self.run(rsave=True)
-        res = XDSLogParser("XPLAN.LP", run_dir=self.run_dir, verbose=1)      
-        sys.exit(0)
+        res =  XDSLogParser("XPLAN.LP", run_dir=self.run_dir, verbose=1)      
+        return res.results
 
-    def run_integrate(self, image_ranges, ridx=None):
+    def run_integrate(self, image_ranges):
         "Running INTEGRATE."
         self.inpParam["TRUSTED_REGION"] = [0, 1.0]
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
@@ -1377,11 +1378,11 @@ if __name__ == "__main__":
     _linkimages = False
     if not _coll.isContinuous(inputf):
         _linkimages = True
-        link_dir = "img_links"
+        link_dir_name = "img_links"
         inputf = make_xds_image_links(inputf,
-                                    os.path.join(newDir,link_dir),
+                                    os.path.join(newDir,link_dir_name),
                                     "image")
-        #collect.setDirectory(link_dir)
+        #collect.setDirectory(link_dir_name)
         #collect.prefix = prefix
 
     try:
@@ -1404,7 +1405,6 @@ if __name__ == "__main__":
         newPar["ORGX"] = newPar["NX"]/2.
     if newPar["ORGY"] == 0:
         newPar["ORGY"] = newPar["NY"]/2.
-
     # This is to correct the starting angle in case first image is not 1.
     newPar["STARTING_ANGLE"] = newPar["STARTING_ANGLE"] - \
               newPar["OSCILLATION_RANGE"]*(newPar["DATA_RANGE"][0] - 1)
@@ -1450,7 +1450,7 @@ if __name__ == "__main__":
         newPar["INCLUDE_RESOLUTION_RANGE"] = _res_low, _res_high
 
     if _linkimages:
-        collect.setDirectory(link_dir)
+        collect.setDirectory(link_dir_name)
     else:
         collect.setDirectory(newrun.link_name_to_image)
 
@@ -1504,7 +1504,7 @@ if __name__ == "__main__":
         # unitcell from spacegroup.
         #if _spg and not _cell:
         if (len(collect.imageRanges) > 1) or _strategy:
-            newrun.run_xplan(collect.imageRanges, ridx=R3)
+            newrun.run_xplan(ridx=R3)
     if STEP <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
     if STEP <= 5:

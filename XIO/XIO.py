@@ -5,6 +5,7 @@
  28th March 2005
 
  TODO:
+ - Add oscillation axis and goniometer angles.
  - What needs to be unicode compatible (type(val) == str or unicode)???
 
 New BSD License http://www.opensource.org/licenses/bsd-license.php
@@ -379,6 +380,7 @@ class Image:
         exportDict = {}
         for k in exporter.HTD.keys():
             args, func = exporter.HTD[k]
+            
             exportDict[k] = func(*map(self.header.get, args))
         return exportDict
 
@@ -747,12 +749,14 @@ class Collect:
             raise XIOError, "Can't load %s exporter" % (exportType)
 
         if not self.image.header:
+            print "Not sefl.image.header"
             self.interpretImage()
 
         self.lookup_imageRanges()
-        try:
+        try:    
             exportDict = self.image.export(exportType)
-        except:
+        #except ValueError:
+        except NameError:
             exportDict = {}
         for k in exporter.CTD.keys():
             args, func = exporter.CTD[k]
@@ -765,6 +769,8 @@ class Collect:
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
         exportDict = self.export(exportType)
+        #import pprint
+        #pprint.pprint(exportDict)
         return exporter.TEMPLATE % exportDict
 
     def get_export_template(self, exportType='xds'):

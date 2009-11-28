@@ -104,7 +104,7 @@ XDS_DETECTOR_DICT = {
   "orient":{ # X_det, Y_det, distanceSign, spindle_axis, twoThetaAxis, beamdef
     "mar":      ( EX, EY,  1,  EX,  EY, "XY"),
     "mar555":   ( EX, EY,  1,  EX,  EX, "XY"),
-    "marccd":   ( EX, EY,  1,  EX,  EX, "YX"),
+    "marccd":   ( EX, EY,  1,  EX, -EX, "YX"),
     "adsc":     ( EX, EY,  1,  EX,  EX, "YX"),
     "raxis":    ( EX, EY, -1,  EY,  EY, "XY"),
     "minicbf":  ( EX, EY,  1,  EX,  EX, "XY"),

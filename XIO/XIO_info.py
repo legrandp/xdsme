@@ -55,6 +55,10 @@ if __name__ == "__main__":
             sys.argv.remove("-mos")
             filename = sys.argv[1]
             _export(filename, "mosflm")
+        elif "-diffdump" in sys.argv:
+            sys.argv.remove("-diffdump")
+            filename = sys.argv[1]
+            _export(filename, "diffdump")
         elif "-adp" in sys.argv:
             sys.argv.remove("-adp")
             filename = sys.argv[1]
