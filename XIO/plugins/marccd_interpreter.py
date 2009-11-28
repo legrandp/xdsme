@@ -185,12 +185,13 @@ class Interpreter:
     # ESRF info found at
     # http://www.esrf.eu/UsersAndScience/Experiments/MX/Software/PXSOFT/Denzo
     # Based on Serial Number. Contains (Synchrotron,BLname,DetectorType)
+    '38':('SLS','X06SA','MarCCD 165'),
     '4':('ESRF','BM14','MarCCD 225'),
     '5':('ESRF','ID23-2','MarCCD 225'),
     '10':('EMBL_HAMBURG','???','MarCCD 225'),
     '12':('SLS','X06SA','MarCCD 225'),
-    '38':('SLS','X06SA','MarCCD 165'),
     '21':('EMBL_HAMBURG','???','MarCCD 225'),
+    '28':('BESSY','BL14.1','MarCCD 225'),
     '20':('SSRL4','BL11-1','MarCCD 325'),
     }
 

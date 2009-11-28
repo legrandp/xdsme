@@ -177,8 +177,13 @@ if __name__=='__main__':
         printmat( Umos,'\n   U',  "%12.6f")
         printmat( Bmos,'\n   B',  "%12.6f")
         printmat( UBmos,'\n  UB', "%12.6f")
+<<<<<<< local
+        XOmat.append(UBmos)
+    
+=======
         XOmat.append(Umos)
 
+>>>>>>> other
     ############################
     Udiff = XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
