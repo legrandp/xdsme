@@ -77,6 +77,7 @@ class Interpreter:
     'TwoTheta':(['Detector_2theta'], FLOAT1),   # No example yet...
     'SerialNumber':(['Detector:'], str),
     'HeaderSize':(['HEADER_SIZE'], int),
+    'OscAxis':(['Oscillation_axis'], lambda x: x.split(",")[0].lower().strip()),
     'DateStr':(['DATE'], str),
     'DateSeconds':(['DATE'], date_seconds),
     }

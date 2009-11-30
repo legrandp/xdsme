@@ -3,9 +3,9 @@
 """ XIO plugin for the ADSC image format.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "12-11-2009"
+__date__ = "30-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -74,6 +74,7 @@ class Interpreter:
     'SerialNumber':(['DETECTOR_SN'], str),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),
+    'OscAxis':(['OSC_AXIS'], lambda x: x.lower()),
     # Date and time
     #'DateTime':(['DATE'], date_time),
     'DateStr':(['DATE'], str),

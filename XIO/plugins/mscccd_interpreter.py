@@ -1,7 +1,7 @@
 
-__version__ = "0.3"
+__version__ = "0.3.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "08-11-2009"
+__date__ = "30-11-2009"
 __copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
 __license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
@@ -55,6 +55,7 @@ class Interpreter:
     'SerialNumber':(['CCD_SERIAL_NUMBER'], str),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),
+    'OscAxis':(['SCAN_ROTATION_AXIS_NAME'], lambda x: x.lower()),
     # Date and time
     #'DateTime':(['DATE'], _datetime),
     'DateStr':(['DTREK_DATE_TIME'], str),
