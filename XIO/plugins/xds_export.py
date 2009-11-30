@@ -4,9 +4,9 @@
     See http://xds.mpimf-heidelberg.mpg.de/html_doc/xds_prepare.html
 """
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "12-11-2009"
+__date__ = "30-11-2009"
 __copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -102,10 +102,10 @@ XDS_DETECTOR_DICT = {
     "mscccd":   8,
   },
   "orient":{ # X_det, Y_det, distanceSign, spindle_axis, twoThetaAxis, beamdef
-    "mar":      ( EX, EY,  1,  EX,  EY, "XY"),
-    "mar555":   ( EX, EY,  1,  EX,  EX, "XY"),
+    "mar":      ( EX, EY,  1,  EX, -EX, "XY"),
+    "mar555":   ( EX, EY,  1,  EX, -EX, "XY"),
     "marccd":   ( EX, EY,  1,  EX, -EX, "YX"),
-    "adsc":     ( EX, EY,  1,  EX,  EX, "YX"),
+    "adsc":     ( EX, EY,  1,  EX, -EX, "YX"),
     "raxis":    ( EX, EY, -1,  EY,  EY, "XY"),
     "minicbf":  ( EX, EY,  1,  EX,  EX, "XY"),
     "mscccd":   (-EX, EY, -1, -EY,  EY, "XY"),

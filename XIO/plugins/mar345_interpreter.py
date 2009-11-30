@@ -1,13 +1,13 @@
 
-__version__ = "0.2"
+__version__ = "0.3.0"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "12-04-2005"
-__copyright__ = "Copyright (c) 2005 Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "30-11-2009"
+__copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
 import struct
-
+import time
 
 divE3 = lambda x: float(x)/1e3
     
@@ -19,6 +19,31 @@ def getEdgeResolutionMAR345(PixelX, Width, Distance, Wavelength):
                 return Wavelength/sin(atan(r/Distance))
             else:
                 return 0.
+def get_osc_axis(omega_osc, phi_osc):
+    if omega_osc != 0.:
+        return "omega"
+    elif phi_osc != 0.:
+        return "phi"
+    else:
+        return "undefined"
+    
+def extr_time(time_str):
+    "from str return tupple"
+    try:
+        return time.strptime(time_str, "%m%d%H%M%Y.%S")
+    except ValueError, err:
+        print "Warning:", err
+        print "... Using time.localtime() instead."
+        return time.localtime()
+
+def date_seconds(time_str):
+    "from tupple return seconds"
+    try:
+        return time.mktime(time.strptime(time_str))
+    except ValueError, err:
+        print "Warning:", err
+        print "... Using time.time() instead."
+        return time.time()
 
 # Contains (parameterName,binaryEncodedType [,defaultsValue])
 # Default value is optional
@@ -157,8 +182,12 @@ class Interpreter:
     # Added keys from Graeme's convention.
     'TwoTheta':(['theta'], float),
     'SerialNumber':(['scanner'], str),
+    'OscAxis':(['omeosc','phiosc'], get_osc_axis),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['EndianType'], str),
+    #'DateTime':(['DATE'], date_time),
+    'DateStr':(['date'], str),
+    'DateSeconds':(['date'], date_seconds),
     }
 
 

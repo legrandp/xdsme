@@ -3,9 +3,9 @@
 """ XIO plugin for the MarCCD image format.
 """
 
-__version__ = "0.4.1b"
+__version__ = "0.4.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-11-2009"
+__date__ = "30-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -39,6 +39,7 @@ GETDIST = lambda x, y: (x or y)/1e3
 DIVE3 = lambda x: float(x)/1e3
 DIVE5 = lambda x: float(x)/1e5
 DIVE6 = lambda x: float(x)/1e6
+AXIS_CODE = {0: "twotheta", 1:"omega", 2:"chi", 3:"kappa", 4: "phi"}
 
 def get_serial(comment):
     "Try to find the serial string in comments."
@@ -176,6 +177,7 @@ class Interpreter:
     'SerialNumber':(['file_comment'], get_serial),
     'EndianType':(['EndianType'], str),
     'HeaderSize':(['HEADER_BYTES'], int),
+    'OscAxis':(['axis_code'], lambda x: AXIS_CODE[x]),
     # Date and time
     'DateStr':(['acquire_timestamp'], date_time),
     'DateSeconds':(['acquire_timestamp'], date_seconds),
@@ -202,7 +204,7 @@ class Interpreter:
     def __init__(self):
         self.raw_head_dict = None
 
-    def getRawHeadDict(self, raw_head, verbose=False):
+    def getRawHeadDict(self, raw_head, verbose=True):
         "Intepret the binary structure of the marccd header."
         # Get the header endian type
         if struct.unpack('<I', raw_head[1052:1056])[0] == 1234:

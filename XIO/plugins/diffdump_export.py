@@ -42,7 +42,7 @@ Beam center : (%(beamx).6f mm,%(beamy).6f mm)
 Distance to detector : %(distance).6f mm
 Image Size : (%(height)d px, %(width)d px)
 Pixel Size : (%(pixelx).6f mm, %(pixely).6f mm)
-Oscillation (phi) : %(osc_start).6f -> %(osc_end).6f deg
+Oscillation (%(osc_axis)s) : %(osc_start).6f -> %(osc_end).6f deg
 Two Theta value: %(twotheta).6f deg"""
 
 
@@ -59,6 +59,7 @@ HTD = {
 'twotheta':(['TwoTheta'], float),
 'osc_start':(['PhiStart'], float),
 'osc_end':(['PhiStart', 'PhiWidth'], lambda x,y: x + y),
+'osc_axis':(['OscAxis'], str),
 'width':(['Width'], int),
 'height':(['Height'], int),
 'pixelx':(['PixelX'], float),
