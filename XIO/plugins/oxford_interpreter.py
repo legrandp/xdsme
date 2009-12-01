@@ -2,31 +2,48 @@
 # FIXME: serial number...
 # reading the data: unpack the data using the ratio.
 
-__version__ = "0.1"
+__version__ = "0.2.0"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "18-04-2005"
-__copyright__ = "Copyright (c) 2005 Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "1-12-2009"
+__copyright__ = "Copyright (c) 2009 Pierre Legrand"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
 import struct
+import time
+import re
 
-    
-def getEdgeResolutionRAXIS(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
-            from math import sin, atan
-            if Distance > 0.0:
-                r = 0.5 * float(PixelX) * int(Width)
-                return float(Wavelength)/sin(atan(r/float(Distance)))
-            else:
-                return 0.
+PI = 3.1415926535897931
+R2D = 180./PI
 
-def getPhiEnd(phiEnd,phiStart,phiWidth):
-    if not int(phiEnd):
-        return (float(phiStart)+float(phiWidth))/1000.
+def date_seconds(time_str):
+    "from tupple return seconds"
+    try:
+        return time.mktime(time.strptime(time_str))
+    except ValueError, err:
+        print "Warning:", err
+        print "... Using time.time() instead."
+        return time.time()
+
+def pixel_size(detector_type, binning):
+    "Determine pixel size from detector_type str."
+    det, ver = detector_type.split()
+    if det == "SAPPHIRE" and ver[0] == '3':
+        return 0.03*binning[0]
+    elif det == "RUBY":
+        return 0.048*binning[0]
     else:
-        return float(phiEnd)/1000.
+        return 0.06*binning[0]
 
+# UINT16 unsigned short 
+# INT16 short        
+# UINT32 unsigned int  = I          = 4 bytes
+# INT32 int            = i          = 4 bytes 
+# INT16 short          = h          = 2 bytes
+# char                 = c          = 1 byte
+# string               = s or p     = 1 byte
+# float                = f          = 4 bytes
+# double               = d          = 8 bytes
 
 headerStructure = [
 ('Device name', '10s'),         # Type of instrument
@@ -40,15 +57,6 @@ headerStructure = [
 ('Cell Parameter beta', 'f'),
 ('Cell Parameter gamma', 'f'),
 ('Space group', '12s'),         # Space group symbol
-('Mosaic spread', 'f'),         # Mosaic spread 
-('Memo', '80s'),                # Memo, comments
-('res1', '84s'),                # Reserved space for future use
-
-('Date', '12s'),                # Date of measurement
-('Operator name', '20s'),       # Username of account collecting image
-('X-Ray target', '4s'),         # Type of X-ray target (Cu, Mo, etc.) 
-('Wavelength', 'f'),            # X-ray wavelength
-('Monochromator', '20s'),       # Type of monochromator
 ('Monochromator 2theta', 'f'),  # Monochromator 2theta (deg)
 ('Colliomator', '20s'),         # Collimator size and type
 ('Filter', '4s'),               # Filter type (Ni, etc.)
@@ -74,57 +82,7 @@ headerStructure = [
 ('Chi', 'f'),                   # Goniostat angle chi
 ('Theta', 'f'),                 # Goniostat angle 2theta
 ('Mu', 'f'),                    # Spindle inclination angle
-('res3', '204s'),               # Reserved space for future use
-                                # This space is now used for storing the scan
-                                # templates information - tlh, 01 Feb 1999
-
-('Number of pixel (X)', 'l'),   # number of pixels in X direction 
-('Number of pixel (Z)', 'l'),   # number of pixels in Z direction
-('Pixel size X (mm)', 'f'),     # size of pixel in X direction (mm) 
-('Pixel size Z (mm)', 'f'),     # size of pixel in Z direction (mm)
-('Record length (byte)', 'l'),  # Header record length (bytes)
-('Number of records', 'l'),     # number of records (lines) in inage
-('Start line (Z)', 'l'),        # starting line number
-('IP number', 'l'),             # IP number 
-('Ratio', 'f'),                 # photomultiplier output hi/lo ratio
-('Fading function No.1', 'f'),  # fading time, end of exposure to start of read
-('Fading function No.2', 'f'),  # fading time, end of exposure to end of read
-('Host Type', '10s'),           # type of computer (IRIS, VAX) => endian
-('IP Type', '10s'),             # type of IP 
-('Image Direction X', 'l'),     # horizontal scanning code: 0=left->right, 1=>right->left
-('Image Direction Z', 'l'),     # vertical scanning code: 0=down->up, 1=up->down
-('Image Direction XZ', 'l'),    # front/back scanning code: 0=front, 1=back
-
-('shft', 'f'),                  # Pixel shift, R-AXIS V 
-('ineo', 'f'),                  # Intensity ratio E/O R-AXIS V 
-('majc', 'l'),                  # Magic number to indicate next values are legit
-('naxs', 'l'),                  # Number of goniometer axes
-('gvec', '15f'),                # Goniometer axis vectors
-('gst', '5f'),                  # Start angles for each of 5 axes
-('gend', '5f'),                 # End angles for each of 5 axes 
-('goff', '5f'),                 # Offset values for each of 5 axes
-('saxs', 'l'),                  # Which axis is the scan axis?
-('gnom', '40s'),                # Names of the axes (space or comma separated?) 
-
-# Most of below is be program dependent.  Different programs use
-# this part of the header for different things.  So it is essentially 
-# a big "common block" area for dumping transient information.
-
-('file', '16s'),                # 
-('cmnt', '20s'),                # 
-('smpl', '20s'),                # 
-('iext', 'l'),                  # 
-('reso', 'l'),                  # 
-('save', 'l'),                  # 
-('dint', 'l'),                  # 
-('byte', 'l'),                  # 
-('init', 'l'),                  # 
-('ipus', 'l'),                  # 
-('dexp', 'l'),                  # 
-('expn', 'l'),                  # 
-('posx', '20l'),                # 
-('posy', '20l'),                # 
-('xray', 'i'),                  # 
+('res3', '204s'),               # Reserved space for future use# 
 ('res5', '768s'),               # Reserved space for future use
 ]
 
@@ -134,29 +92,36 @@ class Interpreter:
     # The marccd Header Translator Dictionary.
     # To add:
     # + SerialNumber (for the rules) or other unique identifier
-                
-    'ExposureTime':(['Exposure time (min)'],lambda x: 60.*float(x)),
-    'BeamX':(['Direct beam X (pixel)', 'Pixel size X (mm)', 'Number of pixel (X)'], lambda x, y, z: (z-x)*y),
-    'BeamY':(['Direct beam Z (pixel)', 'Pixel size Z (mm)', 'Number of pixel (Z)'], lambda x, y, z: (z-x)*y),
-    'Distance':(['Camera length (mm)'], float),
-    'Wavelength':(['Wavelength'], float),
-    'PixelX':(['Pixel size X (mm)'], float),
-    'PixelY':(['Pixel size Z (mm)'], float),
-    'Width':(['Number of pixel (X)'], int),
-    'Height':(['Number of pixel (X)'], int),
-    'Message':(['MESSAGE'], lambda x: x.split(';')),
-    'PhiStart':(['Phi start'], float),
-    'PhiEnd':(['Phi end'], float),
-    'PhiWidth':(['Phi end','Phi start'], lambda x, y: x-y),
-    'EdgeResolution':(['Pixel size X (mm)','Number of pixel (X)',
-                       'Camera length (mm)','Wavelength'],
-                        getEdgeResolutionRAXIS),
+           
+    'HeaderSize':(['NHEADER'], int),
+    'Width':(['NX'], int),
+    'Height':(['NY'], int),
+    'DateStr':(['TIME'], str),
+    'DateSeconds':(['TIME'], date_seconds),
+    'Manufacturer':(['MANUFACTURER'], str),
+    'DetectorType':(['DETECTOR_TYPE'], str),
+    'ImageFormat':(['IMAGE_FORMAT'], str),
+    'PixelX':(['DETECTOR_TYPE', 'BINNING'], pixel_size),
+    'PixelY':(['DETECTOR_TYPE', 'BINNING'], pixel_size),
+
+    'ExposureTime':(['EXPOSURE_TIME'],lambda x: 60.*float(x)),
+    'BeamX':(['BEAM_X'], float),
+    'BeamY':(['BEAM_Y'], float),
+    'Distance':(['DISTANCE'], float),
+    'Wavelength':(['WAVELENGTH'], float),
+#    'Message':(['MESSAGE'], lambda x: x.split(';')),
+    'PhiStart':(['OSC_START'], float),
+    'PhiEnd':(['OSC_END'], float),
+    'PhiWidth':(['OSC_WIDTH'], float),
+    'OscAxis':(['OSC_AXIS'], lambda x: x.lower()),
+    #'EdgeResolution':(['Pixel size X (mm)','Number of pixel (X)',
+    #                   'Camera length (mm)','Wavelength'],
+    #                    getEdgeResolutionRAXIS),
 
     # Added keys from Graeme's convention.
-    'TwoTheta':(['Theta'], float),
-    'SerialNumber':(['IP number'], str),  # _VERIFY_
-    'EndianType':(['EndianType'], str),
-    'HeaderSize':(['Record length (byte)'], int),
+    'TwoTheta':(['THETA'], float),
+    'SerialNumber':(['SERIAL'], str),  # _VERIFY_
+    'EndianType':(['ENDIANTYPE'], str),
     }
 
     SpecialRules = {
@@ -165,20 +130,72 @@ class Interpreter:
 
     def getRawHeadDict(self, rawHead):
         EndianType = ">"
-	
-        _lis = rawHead.split("\n")[1:-1]
-	_lis1 = [ par.split() for par in _lis ]
-        RawHeadDict = dict([par.split("=") for par in _lis])
-        RawHeadDict.update({'MESSAGE':'','TWO_THETA':'0'}) # _FIXME_ Not really here now...
+        detector_type = rawHead[3:16]
+        ascii_head = rawHead[18:205].replace("\r\n"," ")
+        re_xdsPar = r"([^ ]+[=])"
+        rec_xdsPar = re.compile(re_xdsPar)
+
+        lpar = []
+        l_s = rec_xdsPar.split(ascii_head)
+        len_s = len(l_s)
+        if len_s > 1 and len_s % 2:
+            for i in range(1,len_s,2):
+                lpar.append((l_s[i][:-1],l_s[i+1].strip()))
+        RawHeadDict = {}
+        for key, val in lpar:
+            if key not in RawHeadDict:
+                RawHeadDict[key] = val
+        RawHeadDict.update({'MESSAGE':'',
+                            'TWO_THETA':'0',
+                            'MANUFACTURER': 'OXFORD-DIFFRACTION',
+                            'DETECTOR_TYPE': detector_type,
+                            'IMAGE_FORMAT': 'CRYSALIS'})
+
+        sec1 = int(RawHeadDict['NG'])
+        sec2 = int(RawHeadDict['NS'])
+        sec3 = int(RawHeadDict['NK'])
+        total_r = sec1 + sec2 + sec3
+        sec12_d8, sec12_d4, sec1_d8 = (sec1+sec2)/8, (sec1+sec2)/4, sec1/8
+        
+        tmpstr = rawHead[256:256+total_r]
+        tmpint = struct.unpack(total_r/4*'i',tmpstr)
+        tmpshort = struct.unpack(total_r/2*'h',tmpstr)
+        tmpdble = struct.unpack(total_r/8*'d',tmpstr)
+
+        RawHeadDict['BEAM_X'] = tmpdble[sec12_d8+83]
+        RawHeadDict['BEAM_Y'] = tmpdble[sec12_d8+84]
+        RawHeadDict['DISTANCE'] = tmpdble[sec12_d8+89]
+        RawHeadDict['EXPOSURE_TIME'] = tmpdble[sec1_d8+60]
+        RawHeadDict['WAVELENGTH'] = tmpdble[sec1_d8+73]
+        # Binning factors (1,1), (2,2) or (4,4)
+        RawHeadDict['BINNING'] = tmpshort[:2]
+        
+        fact1 = tmpdble[sec12_d8+46]*R2D
+        angles_order = "omega", "theta", "kappa", "phi", "omega'", "theta'"
+        start_angles = tmpint[sec12_d4+71:sec12_d4+77]
+        end_angles = tmpint[sec12_d4+81:sec12_d4+87]
+        for iii in range(6):
+            angle_name = angles_order[iii].upper()
+            RawHeadDict[angle_name] = start_angles[iii]*fact1
+            if start_angles[iii] != end_angles[iii]:
+                RawHeadDict['OSC_AXIS'] = angle_name
+                RawHeadDict['OSC_START'] = start_angles[iii]*fact1
+                RawHeadDict['OSC_END'] = end_angles[iii]*fact1
+                RawHeadDict['OSC_WIDTH'] = RawHeadDict['OSC_END'] - \
+                                           RawHeadDict['OSC_START']
+        
+        RawHeadDict['ENDIANTYPE'] = '<'
+        RawHeadDict['SERIAL'] = 'N/A'
         import pprint
-        RawHeadDict.update({'MESSAGE':'', 'EndianType':EndianType})
-        pprint.pprint(RawHeadDict)
-        return RawHeadDict
+        #pprint.pprint(RawHeadDict)
+        return  RawHeadDict            
 
     def getData(self):
         """Read the image bytes. For now only support the 16bits unsigned, and
         uncompressed internaly. Can read compressed file directly (.gz or .Z)."""
-                    
+        print "OHHHHHHHHHHH"
+        self.intCompression = True
+        raise XIOError, "Sorry, this image is internaly compressed."
         if not self.intCompression:
             _dataSize = self.header['Width']*self.header['Width']
                         

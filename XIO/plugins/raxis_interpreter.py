@@ -6,7 +6,7 @@ __version__ = "0.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "18-04-2005"
 __copyright__ = "Copyright (c) 2005 Pierre Legrand"
-__license__ = "LGPL"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
 import struct

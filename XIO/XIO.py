@@ -280,7 +280,7 @@ class Image:
             return self.type
 
         # Test to identify Oxford Diffraction header
-        elif "OD SAPPHIRE" in self.rawHead[0:20]:
+        elif "OD " == self.rawHead[:3]:
             self.type = "oxford"
             return self.type
 
