@@ -1,5 +1,5 @@
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "30-11-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
@@ -26,15 +26,6 @@ def get_osc_axis(omega_osc, phi_osc):
         return "phi"
     else:
         return "undefined"
-    
-def extr_time(time_str):
-    "from str return tupple"
-    try:
-        return time.strptime(time_str, "%m%d%H%M%Y.%S")
-    except ValueError, err:
-        print "Warning:", err
-        print "... Using time.localtime() instead."
-        return time.localtime()
 
 def date_seconds(time_str):
     "from tupple return seconds"

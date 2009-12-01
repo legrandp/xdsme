@@ -4,9 +4,9 @@
 the DiffractionImage package.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "29-11-2009"
+__date__ = "1-12-2009"
 __copyright__ = "Copyright (c) 2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -20,6 +20,7 @@ DETECTOR_DICT = {
     "raxis":     "RAXIS",
     "minicbf":   "MINI-CBF",
     "mscccd":    "SMV",
+    "oxford":    "CRYSALIS"
   },
   "manufacturer":{
     "mar":       "MAR",
@@ -29,6 +30,7 @@ DETECTOR_DICT = {
     "raxis":     "RIGAKU",
     "minicbf":   "DECTRIS",
     "mscccd":    "RIGAKU",
+    "oxford":    "OXFORD-DIFFRACTION",
   },
 }
 
