@@ -329,6 +329,8 @@ class Image:
             self.intCompression = "pck"
         elif self.rawHead[0:7] == "###CBF:":
             self.intCompression = "cbf"
+        elif "COMPRESSION=" in self.rawHead[:50]:
+            self.intCompression = "CRYSALIS"
         return  self.intCompression
 
     def headerInterpreter(self):
@@ -427,7 +429,8 @@ class Image:
             mean_data = add_reduce(data)/len_data
             print ">> MaxI: %d, AvgI: %.1f" % (max(data), mean_data)
         except XIOError:
-            print ">> Don't know how to read PCK and CBF compressed raw data."
+            print ">> Don't know how (yet) to read %s compressed raw data." %\
+                         self.intCompression
 
     def getData(self):
         """Read the image bytes. For now only support the 16bits unsigned,
@@ -455,6 +458,22 @@ class Image:
             #print max(_data)
             #print min(_data)
             return _data
+        elif self.intCompression == "CRYSALIS":
+            _dataSize = self.header['Width']*self.header['Width']
+            _image = self.open()
+            # Jump over the header
+            _image.read(self.header['HeaderSize'])
+            # Read the remaining bytes
+            _data = _image.read(_dataSize)
+            # unpack
+            _fmt = self.header['EndianType'] + "c" * _dataSize
+            _data = struct.unpack(_fmt, _data)
+
+            _image.close()
+            #print max(_data)
+            #print min(_data)
+            return _data
+
         else:
             raise XIOError, "Sorry, this image is internaly compressed."
 

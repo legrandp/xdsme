@@ -35,56 +35,14 @@ def pixel_size(detector_type, binning):
     else:
         return 0.06*binning[0]
 
-# UINT16 unsigned short 
-# INT16 short        
-# UINT32 unsigned int  = I          = 4 bytes
-# INT32 int            = i          = 4 bytes 
-# INT16 short          = h          = 2 bytes
-# char                 = c          = 1 byte
-# string               = s or p     = 1 byte
-# float                = f          = 4 bytes
-# double               = d          = 8 bytes
-
-headerStructure = [
-('Device name', '10s'),         # Type of instrument
-('Versions', '10s'),
-('Crystal name', '20s'),
-('Crystal system', '12s'),
-('Cell Parameter a', 'f'),
-('Cell Parameter b', 'f'),
-('Cell Parameter c', 'f'),
-('Cell Parameter alpha', 'f'),
-('Cell Parameter beta', 'f'),
-('Cell Parameter gamma', 'f'),
-('Space group', '12s'),         # Space group symbol
-('Monochromator 2theta', 'f'),  # Monochromator 2theta (deg)
-('Colliomator', '20s'),         # Collimator size and type
-('Filter', '4s'),               # Filter type (Ni, etc.)
-('Camera length (mm)', 'f'),    # Crystal-to-detector distance
-('Tube Voltage  (KV)', 'f'),    # Generator voltage (kV)
-('Tube Current  (mA)', 'f'),    # Generator current (mA)
-('X-Ray Focus', '12s'),         # Focus info 
-('X-Ray Optics', '80s'),
-('Detector Shape Code', 'l'),   # IP shape, 0=flat,1=cylinder
-('Weissenberg Coupling', 'f'),  # Weissenberg oscillation 1
-('res2', '56s'),                # Reserved space for future use */
-
-('Mounted axis', '4s'),         # Crystal mount axis closest to spindle axis   
-('X-ray beam axis', '4s'),      # Crystal mount axis closest to beam axis
-('Phi 0', 'f'),                 # Datum phi angle (deg)
-('Phi start', 'f'),             # Phi oscillation start angle (deg)
-('Phi end', 'f'),               # Phi oscillation end angle (deg)
-('Oscillation number ', 'l'),   # Frame number
-('Exposure time (min)', 'f'),   # Exposure time (min)
-('Direct beam X (pixel)', 'f'), # Direct beam X position
-('Direct beam Z (pixel)', 'f'), # Direct beam Z position
-('Omega', 'f'),                 # Goniostat angle omega
-('Chi', 'f'),                   # Goniostat angle chi
-('Theta', 'f'),                 # Goniostat angle 2theta
-('Mu', 'f'),                    # Spindle inclination angle
-('res3', '204s'),               # Reserved space for future use# 
-('res5', '768s'),               # Reserved space for future use
-]
+# UINT32 unsigned int   = I          = 4 bytes
+# INT32 int             = i          = 4 bytes 
+# UINT16 unsigned short = H          = 2 bytes
+# INT16 short           = h          = 2 bytes
+# char                  = c          = 1 byte
+# string                = s or p     = 1 byte
+# float                 = f          = 4 bytes
+# double                = d          = 8 bytes
 
 class Interpreter:
 
@@ -134,7 +92,8 @@ class Interpreter:
         ascii_head = rawHead[18:205].replace("\r\n"," ")
         re_xdsPar = r"([^ ]+[=])"
         rec_xdsPar = re.compile(re_xdsPar)
-
+        
+        print ascii_head
         lpar = []
         l_s = rec_xdsPar.split(ascii_head)
         len_s = len(l_s)
