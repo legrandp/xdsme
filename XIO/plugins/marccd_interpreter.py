@@ -204,7 +204,7 @@ class Interpreter:
     def __init__(self):
         self.raw_head_dict = None
 
-    def getRawHeadDict(self, raw_head, verbose=True):
+    def getRawHeadDict(self, raw_head, verbose=False):
         "Intepret the binary structure of the marccd header."
         # Get the header endian type
         if struct.unpack('<I', raw_head[1052:1056])[0] == 1234:
