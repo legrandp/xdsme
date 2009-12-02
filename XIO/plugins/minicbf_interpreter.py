@@ -30,7 +30,7 @@ def date_seconds(timestr):
     return time.mktime(t_a) + msec
 
 def get_edge_resolution(pixel_x, width, distance, wavelength):
-    "Calculate EdgeResolution: Graeme's Method"
+    "Calculate EdgeResolution"
     from math import sin, atan
     if distance > 0.0:
         rad = 0.5 * float(pixel_x) * int(width)
@@ -97,7 +97,7 @@ class Interpreter:
 
     def getRawHeadDict(self, raw_head):
         "Intepret the ascii structure of the minicbf image header."
-        
+
         i_1 = 28+raw_head.find("_array_data.header_contents")
         i_2 = raw_head.find("_array_data.data", i_1)
         i_3 = raw_head.find("--CIF-BINARY-FORMAT-SECTION--", i_2)+29
@@ -108,8 +108,13 @@ class Interpreter:
         lis2 = [line[2:].strip().split(": ", 1) \
                    for line in raw_head[i_3:i_4].splitlines() \
                        if line and line[0:2]=="X-"]
-        self.raw_head_dict = dict([ val for val in lis \
-                                        if val[0] in HEADER_KEYS])
+        self.raw_head_dict = {}
+        for val in lis:
+            if (val[0] in HEADER_KEYS):
+                if len(val) == 2:
+                    self.raw_head_dict[val[0]] = val[1]
+                else:
+                    self.raw_head_dict[val[0]] = None
         self.raw_head_dict.update(dict([ val for val in lis2 \
                                              if "Binary-" in val[0]]))
         self.raw_head_dict.update({'HEADER_SIZE': i_3})

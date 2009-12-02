@@ -26,7 +26,7 @@
 
 __version__ = "0.4.5"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "23-11-2009"
+__date__ = "2-12-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -459,8 +459,8 @@ class XDSLogParser:
         quality_t = [x[3] for x in origin_t if x[3] < 2.]
         #R_d["index_score"] = reduce(lambda a,b: a+b, quality_t)/len(quality_t)
         max_ot = min(origin_n, 5)
-        R_d["shift_pixel"] = origin_t[0][4]*meanPixel
-        R_d["shift_mm"] = origin_t[0][4]
+        R_d["shift_pixel"] = origin_t[0][4]
+        R_d["shift_mm"] = origin_t[0][4]*meanPixel
         prp = """  Unit cell parameters:   %(refined_cell_str)s
   Space group number:     %(space_group_number)s
   Indexed spots:          %(indexed_percentage).1f%% (%(indexed_spots)d/%(total_spots)d)
@@ -778,7 +778,8 @@ class XDS:
         self.inpParam["TRUSTED_REGION"] = [0, 1.20]
         self.inpParam["JOB"] = "XYCORR", "INIT"
         i1, i2 = self.inpParam["DATA_RANGE"]
-        if "slow" in self.mode:
+        #if "slow" in self.mode:
+        if SLOW:
             self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+11)
         else:
             self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+3)
@@ -947,7 +948,7 @@ class XDS:
         self.inpParam["TRUSTED_REGION"] = [0, 1.0]
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
-        if self.mode == "slow":
+        if "slow" in self.mode:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA/BETA"] = 13
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
@@ -971,8 +972,9 @@ class XDS:
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
         newH = res.results["HighResCutoff"]
-        if newH > H:
-            print "   ->  Rerunning CORRECT with a new high resolution cutoff."
+        if newH > H and not RES_HIGH:
+            print "   ->  Rerunning CORRECT with a new high resolution",
+            print "cutoff: %.2f A" % newH
             self.inpParam["INCLUDE_RESOLUTION_RANGE"] = L, newH
             self.run(rsave=True)
         s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
@@ -1289,12 +1291,12 @@ if __name__ == "__main__":
     BEAM_Y = 0
     _spg = 0
     _strategy = False
-    _res_high = 0
+    RES_HIGH = 0
     _distance = 0
     _oscillation = 0
     _project = ""
     _wavelength = 0
-    _res_low = 45
+    RES_LOW = 45
     _reference = False
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
@@ -1339,9 +1341,9 @@ if __name__ == "__main__":
         if o in ("-w", "--wavelength"):
             _wavelength = float(a)
         if o in ("-r", "--high-resolution"):
-            _res_high = float(a)
+            RES_HIGH = float(a)
         if o in ("-R", "--low-resolution"):
-            _res_low = float(a)
+            RES_LOW = float(a)
         if o in ("-x", "--beam_x"):
             if "mm" in a:
                 _beam_in_mm = True
@@ -1377,6 +1379,7 @@ if __name__ == "__main__":
     #
     _linkimages = False
     if not _coll.isContinuous(inputf):
+        print "Discontinous naming scheme, creating ling."
         _linkimages = True
         link_dir_name = "img_links"
         inputf = make_xds_image_links(inputf,
@@ -1446,8 +1449,8 @@ if __name__ == "__main__":
         newPar["X_RAY_WAVELENGTH"] = _wavelength
     if _xds_input:
         newPar.update(xdsInp2Param(inp_str=_xds_input))
-    if _res_high or _res_low != 35:
-        newPar["INCLUDE_RESOLUTION_RANGE"] = _res_low, _res_high
+    if RES_HIGH or RES_LOW != 45:
+        newPar["INCLUDE_RESOLUTION_RANGE"] = RES_LOW, RES_HIGH
 
     if _linkimages:
         collect.setDirectory(link_dir_name)
@@ -1483,9 +1486,9 @@ if __name__ == "__main__":
     if STEP <= 2:
         R2 = newrun.run_colspot()
     if STEP <= 3:
-        if newrun.mode == "slow" and _res_high:
-            print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % _res_high
-            #newrun.spots_resolution_cutoff(_res_high)
+        if SLOW and RES_HIGH:
+            print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH
+            #newrun.spots_resolution_cutoff(RES_HIGH)
         R3 = newrun.run_idxref(_beam_center_optimize, _beam_center_ranking)
     if R3:
         i = 0
