@@ -350,12 +350,12 @@ class Image:
         # Special = interpreter.SpecialRules
         #
         self.interpreter = interpreterClass()
-        RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
-
+        self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
+        
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
-            #self.header[k] = apply(func, map(RawHeadDict.get,args))
-            self.header[k] = func(*map(RawHeadDict.get, args))
+            #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
+            self.header[k] = func(*map(self.RawHeadDict.get, args))
         #
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
@@ -458,20 +458,35 @@ class Image:
             #print max(_data)
             #print min(_data)
             return _data
+            
         elif self.intCompression == "CRYSALIS":
             _dataSize = self.header['Width']*self.header['Width']
             _image = self.open()
+            
             # Jump over the header
-            _image.read(self.header['HeaderSize'])
+            head = _image.read(self.header['HeaderSize'])
             # Read the remaining bytes
-            _data = _image.read(_dataSize)
-            # unpack
-            _fmt = self.header['EndianType'] + "c" * _dataSize
-            _data = struct.unpack(_fmt, _data)
+            OI = int(self.RawHeadDict["OI"])
+            OL = int(self.RawHeadDict["OL"])
 
+            _data = _image.read(_dataSize)
+            _fmt = self.header['EndianType'] + "B" * _dataSize
+            _data = struct.unpack(_fmt, _data)
+            file_size = self.header['HeaderSize'] + _dataSize + OI*2 + OL*4
+            print "Total file size = %d" % (file_size)
+            if OI:
+                _fmt = self.header['EndianType'] + OI*"H"
+                _overloads_short = _image.read(OI*2)
+                _overloads_short = struct.unpack(_fmt, _overloads_short)
+            if OL:
+                _fmt = self.header['EndianType'] + OL*"I"
+                _overloads_long = _image.read(OL*4)
+                _overloads_long = struct.unpack(_fmt, _overloads_long)
+            
             _image.close()
-            #print max(_data)
-            #print min(_data)
+            # unpack
+            #_data = [pix-127 for pix in _data if pix < 254]
+            
             return _data
 
         else:

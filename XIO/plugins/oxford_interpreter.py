@@ -152,9 +152,7 @@ class Interpreter:
     def getData(self):
         """Read the image bytes. For now only support the 16bits unsigned, and
         uncompressed internaly. Can read compressed file directly (.gz or .Z)."""
-        print "OHHHHHHHHHHH"
-        self.intCompression = True
-        raise XIOError, "Sorry, this image is internaly compressed."
+
         if not self.intCompression:
             _dataSize = self.header['Width']*self.header['Width']
                         
