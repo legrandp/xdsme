@@ -143,7 +143,7 @@ class Interpreter:
                 RawHeadDict['OSC_WIDTH'] = RawHeadDict['OSC_END'] - \
                                            RawHeadDict['OSC_START']
         
-        RawHeadDict['ENDIANTYPE'] = '<'
+        RawHeadDict['ENDIANTYPE'] = '>'
         RawHeadDict['SERIAL'] = 'N/A'
         import pprint
         #pprint.pprint(RawHeadDict)
