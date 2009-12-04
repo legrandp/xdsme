@@ -468,26 +468,66 @@ class Image:
             # Read the remaining bytes
             OI = int(self.RawHeadDict["OI"])
             OL = int(self.RawHeadDict["OL"])
-
+            
+            endian = "<"
             _data = _image.read(_dataSize)
-            _fmt = self.header['EndianType'] + "B" * _dataSize
+            _fmt = endian + "B" * _dataSize
             _data = struct.unpack(_fmt, _data)
             file_size = self.header['HeaderSize'] + _dataSize + OI*2 + OL*4
             print "Total file size = %d" % (file_size)
             if OI:
-                _fmt = self.header['EndianType'] + OI*"H"
+                #_fmt = self.header['EndianType'] + OI*"H"
+                _fmt = endian + OI*"h"
                 _overloads_short = _image.read(OI*2)
                 _overloads_short = struct.unpack(_fmt, _overloads_short)
+                print "short_max=", max(_overloads_short), 2**16
             if OL:
-                _fmt = self.header['EndianType'] + OL*"I"
+                #_fmt = self.header['EndianType'] + OL*"I"
+                _fmt = ">" + OL*"l"
                 _overloads_long = _image.read(OL*4)
                 _overloads_long = struct.unpack(_fmt, _overloads_long)
-            
+                print "long_max=", max(_overloads_long), 2**32
             _image.close()
             # unpack
+            image = _dataSize*[0,]
+            i, j, k = 1, 0, 0
+            if _data[0] == 254:
+                image[0] = _overloads_short[j]
+                j += 1
+            elif _data[0] == 255:
+                image[0] = _overloads_long[k]
+                k += 1
+            else:
+                image[0] = _data[0] - 127
+            while i < _dataSize:
+                tmp = _data[i]
+                if tmp == 254:
+                    image[i] = image[i-1] + _overloads_short[j]
+                    j += 1
+                elif tmp == 255:
+                    image[i] = image[i-1] + _overloads_long[k]
+                    k += 1
+                else:
+                    image[i] = image[i-1] + tmp - 127
+                if image[i] > 2**16-1:
+                    image[i] = 2**16-1
+                if image[i] < 0:
+                    image[i] = 0
+            #for     
+                i += 1
             #_data = [pix-127 for pix in _data if pix < 254]
-            
-            return _data
+            #print len(image) - _dataSize
+            print "OI", OI, j, _overloads_short[:20]
+            print "OL", OL, k, _overloads_long[:20]
+            for i in range(30,500):
+                print "%8d %8d %8d" % (i, _data[i], image[i])
+            for i in range(-100,-30):
+                print "%8d %8d %8d" % (i, _data[i], image[i])
+            new = open("test_001.img","w")
+            print len(image), _dataSize
+            new.write(struct.pack("<"+_dataSize*"H", *image))
+            new.close()
+            return image
 
         else:
             raise XIOError, "Sorry, this image is internaly compressed."
