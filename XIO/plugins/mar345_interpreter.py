@@ -181,6 +181,12 @@ class Interpreter:
     'DateSeconds':(['date'], date_seconds),
     }
 
+    Identifiers = {
+    # ESRF info found at
+    # http://www.esrf.eu/UsersAndScience/Experiments/MX/Software/PXSOFT/Denzo
+    # Based on Serial Number. Contains (Synchrotron,BLname,DetectorType)
+    '50':('EMBL_HAMBURG','BW7A','Mar345'),
+    }
 
     SpecialRules = {
     # No special rules for now
