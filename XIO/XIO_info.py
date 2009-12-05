@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# __init__.py
+# XIO.py
 # Maintained by P.Legrand
 # 14th April 2005
 #
 
-import os, sys
-import  __init__
+import os
+import sys
+import  XIO
 
 def _print_autopar(parDict):
     K = parDict.keys()
@@ -15,12 +16,12 @@ def _print_autopar(parDict):
         print "%s = %s" % (k, parDict[k])
 
 def _test1(filename):
-    #dc = __init__.Collect(filename)
+    #dc = XIO.Collect(filename)
     try:
-        im = __init__.Image(filename)
-    except __init__.XIOError:
-        print __init__.Image(filename)
-        im =  __init__.Image(filename, doInterpret=False)
+        im = XIO.Image(filename)
+    except XIO.XIOError:
+        print XIO.Image(filename)
+        im =  XIO.Image(filename, doInterpret=False)
         if im.type == 'unknown':
             print "\nUnrecognise file type for image %s.\nSorry." % filename
         else:
@@ -32,10 +33,10 @@ def _test1(filename):
 
 def _export(filename, format):
     try:
-        datacoll = __init__.Collect(filename)
+        datacoll = XIO.Collect(filename)
         datacoll.interpretImage()
         datacoll.lookup_imageRanges()
-    except __init__.XIOError:
+    except XIO.XIOError:
         print "\nError while trying to acceess %s.\nSorry." % filename
         sys.exit()
     newPar = datacoll.export(format)

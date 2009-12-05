@@ -20,6 +20,7 @@ __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 #
 # Standard modules
 #
+
 import os
 import sys
 import struct
@@ -475,6 +476,8 @@ class Image:
             _data = struct.unpack(_fmt, _data)
             file_size = self.header['HeaderSize'] + _dataSize + OI*2 + OL*4
             print "Total file size = %d" % (file_size)
+            _overloads_short = 0
+            _overloads_long = 0
             if OI:
                 #_fmt = self.header['EndianType'] + OI*"H"
                 _fmt = endian + OI*"h"
@@ -483,7 +486,7 @@ class Image:
                 print "short_max=", max(_overloads_short), 2**16
             if OL:
                 #_fmt = self.header['EndianType'] + OL*"I"
-                _fmt = ">" + OL*"l"
+                _fmt = endian + OL*"i"
                 _overloads_long = _image.read(OL*4)
                 _overloads_long = struct.unpack(_fmt, _overloads_long)
                 print "long_max=", max(_overloads_long), 2**32
@@ -491,6 +494,8 @@ class Image:
             # unpack
             image = _dataSize*[0,]
             i, j, k = 1, 0, 0
+            
+            # first pixel
             if _data[0] == 254:
                 image[0] = _overloads_short[j]
                 j += 1
@@ -499,6 +504,8 @@ class Image:
                 k += 1
             else:
                 image[0] = _data[0] - 127
+            
+            # following pixels
             while i < _dataSize:
                 tmp = _data[i]
                 if tmp == 254:
@@ -509,24 +516,30 @@ class Image:
                     k += 1
                 else:
                     image[i] = image[i-1] + tmp - 127
-                if image[i] > 2**16-1:
-                    image[i] = 2**16-1
+                #if image[i] > 2**16-1:
+                #    image[i] = 2**16-1
+                #if image[i] < 0:
+                #    image[i] = 0
+                i+= 1
+            i = 0
+            print "MinI: %7d  MaxI: %7d  " % (min(image), max(image)),
+            print "AvgI: %.1f" % (add_reduce(image)*1./len(image))
+            while i < _dataSize:
                 if image[i] < 0:
                     image[i] = 0
-            #for     
+                if image[i] > 2**16-1:
+                    image[i] = 2**16 -1
                 i += 1
             #_data = [pix-127 for pix in _data if pix < 254]
             #print len(image) - _dataSize
-            print "OI", OI, j, _overloads_short[:20]
-            print "OL", OL, k, _overloads_long[:20]
-            for i in range(30,500):
-                print "%8d %8d %8d" % (i, _data[i], image[i])
-            for i in range(-100,-30):
-                print "%8d %8d %8d" % (i, _data[i], image[i])
-            new = open("test_001.img","w")
-            print len(image), _dataSize
-            new.write(struct.pack("<"+_dataSize*"H", *image))
-            new.close()
+            if _overloads_short:
+                print "OI", OI, j#, _overloads_short[:20]
+            if _overloads_long:
+                print "OL", OL, k, _overloads_long[:20]
+            #for i in range(30,500):
+            #    print "%8d %8d %8d" % (i, _data[i], image[i])
+            #for i in range(-100,-30):
+            #    print "%8d %8d %8d" % (i, _data[i], image[i])
             return image
 
         else:

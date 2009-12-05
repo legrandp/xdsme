@@ -93,7 +93,7 @@ class Interpreter:
         re_xdsPar = r"([^ ]+[=])"
         rec_xdsPar = re.compile(re_xdsPar)
         
-        print ascii_head
+        #print ascii_head
         lpar = []
         l_s = rec_xdsPar.split(ascii_head)
         len_s = len(l_s)

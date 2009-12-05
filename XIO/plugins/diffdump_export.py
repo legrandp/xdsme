@@ -61,6 +61,7 @@ HTD = {
 'twotheta':(['TwoTheta'], float),
 'osc_start':(['PhiStart'], float),
 'osc_end':(['PhiStart', 'PhiWidth'], lambda x,y: x + y),
+'osc_range':(['PhiWidth'],float),
 'osc_axis':(['OscAxis'], str),
 'width':(['Width'], int),
 'height':(['Height'], int),
