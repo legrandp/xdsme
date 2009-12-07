@@ -7,7 +7,7 @@
 
 import os
 import sys
-import  XIO
+import XIO
 
 def _print_autopar(parDict):
     K = parDict.keys()

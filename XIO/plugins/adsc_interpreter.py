@@ -22,7 +22,7 @@ def date_seconds(time_str):
     "from tupple return seconds"
     try:
         return time.mktime(time.strptime(time_str))
-    except ValueError, err:
+    except (ValueError,TypeError), err:
         print "Warning:", err
         print "... Using time.time() instead."
         return time.time()
