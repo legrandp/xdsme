@@ -5,15 +5,15 @@
  28th March 2005
 
  TODO:
- - Add oscillation axis and goniometer angles.
+ - if given, get the goniometer angles (list of 4 angles omega, kappa/chi, phi, theta).
  - What needs to be unicode compatible (type(val) == str or unicode)???
 
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "10-11-2009"
+__date__ = "7-12-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
@@ -356,7 +356,8 @@ class Image:
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
-            self.header[k] = func(*map(self.RawHeadDict.get, args))
+            if args[0] in self.RawHeadDict:
+                self.header[k] = func(*map(self.RawHeadDict.get, args))
         #
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
@@ -428,7 +429,7 @@ class Image:
                 print len(hval), max(hval)
             len_data = len(data)
             mean_data = add_reduce(data)/len_data
-            print ">> MaxI: %d, AvgI: %.1f" % (max(data), mean_data)
+            print ">> MaxI: %d, AvgI: %.0f" % (max(data), mean_data)
         except XIOError:
             print ">> Don't know how (yet) to read %s compressed raw data." %\
                          self.intCompression
