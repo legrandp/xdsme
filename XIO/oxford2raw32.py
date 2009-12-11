@@ -55,15 +55,16 @@ for oxf in sys.argv[1:]:
     datacoll = XIO.Collect(oxf)
     datacoll.interpretImage()
     header = header_fmt % datacoll.export("diffdump")
-    
+
     datacoll.nDigits = 4
+    datacoll.suffix = "raw32"
     datacoll.setTemplates()
     num = datacoll.getNumber(oxf)
     new_name = datacoll.pythonTemplate % num
 
     print "%s --> %s" % (oxf, new_name)    
     new = open(new_name,"w")
-    data = datacoll.image.getData(clipping=True)
-    #new.write("%-1024s" % header)
-    new.write(struct.pack("<"+len(data)*"H", *data))
+    data = datacoll.image.getData()
+    new.write("%-1024s" % header)
+    new.write(struct.pack("<"+len(data)*"I", *data))
     new.close()
