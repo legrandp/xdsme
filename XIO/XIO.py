@@ -434,10 +434,11 @@ class Image:
             print ">> Don't know how (yet) to read %s compressed raw data." %\
                          self.intCompression
 
-    def getData(self):
+    def getData(self, clipping=False):
         """Read the image bytes. For now only support the 16bits unsigned,
 	and uncompressed internaly. Can read compressed file directly
-	(like .gz or .Z)."""
+	(like .gz or .Z).
+        If clipping=True, set I<0 to O and I>2**16 to 2**16"""
 
         if not self.interpreter:
             self.headerInterpreter()
@@ -460,17 +461,17 @@ class Image:
             #print max(_data)
             #print min(_data)
             return _data
-            
+
         elif self.intCompression == "CRYSALIS":
             _dataSize = self.header['Width']*self.header['Width']
             _image = self.open()
-            
+
             # Jump over the header
             head = _image.read(self.header['HeaderSize'])
             # Read the remaining bytes
             OI = int(self.RawHeadDict["OI"])
             OL = int(self.RawHeadDict["OL"])
-            
+
             endian = "<"
             _data = _image.read(_dataSize)
             _fmt = endian + "B" * _dataSize
@@ -495,7 +496,7 @@ class Image:
             # unpack
             image = _dataSize*[0,]
             i, j, k = 1, 0, 0
-            
+
             # first pixel
             if _data[0] == 254:
                 image[0] = _overloads_short[j]
@@ -505,7 +506,7 @@ class Image:
                 k += 1
             else:
                 image[0] = _data[0] - 127
-            
+
             # following pixels
             while i < _dataSize:
                 tmp = _data[i]
@@ -517,20 +518,17 @@ class Image:
                     k += 1
                 else:
                     image[i] = image[i-1] + tmp - 127
-                #if image[i] > 2**16-1:
-                #    image[i] = 2**16-1
-                #if image[i] < 0:
-                #    image[i] = 0
                 i+= 1
             i = 0
             print "MinI: %7d  MaxI: %7d  " % (min(image), max(image)),
             print "AvgI: %.1f" % (add_reduce(image)*1./len(image))
-            while i < _dataSize:
-                if image[i] < 0:
-                    image[i] = 0
-                if image[i] > 2**16-1:
-                    image[i] = 2**16 -1
-                i += 1
+            if clipping:
+                while i < _dataSize:
+                    if image[i] < 0:
+                        image[i] = 0
+                    if image[i] > 2**16-1:
+                        image[i] = 2**16 -1
+                    i += 1
             #_data = [pix-127 for pix in _data if pix < 254]
             #print len(image) - _dataSize
             if _overloads_short:

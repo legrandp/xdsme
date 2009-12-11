@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.7.5"
+__version__ = "0.7.6"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "23-09-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
@@ -92,9 +92,10 @@ shelxall_script = """#!/bin/sh
 
 search_sites_shelx () {
 
-ID=$1
-RES=$2
-NSITES=$3
+ID=$1      # Identifier
+RES=$2     # High resolution limit
+NSITES=$3  # Number of sites
+PATS=$4    # Patterson seeding option
 
 shelxc ${ID} << EOFC > ${ID}_shelxc.log
 SAD  %(file_name_out)s
@@ -104,9 +105,12 @@ SHEL 999 ${RES}
 NTRY 1000
 FIND  ${NSITES}
 SFAC %(ha_name)s
-MIND -3.5
+MIND -3.5 1
 MAXM 2
 EOFC
+
+test $PATS != "yes" && grep -v PATS ${ID}_fa.ins > ${ID}_fa.tmp.ins && \
+mv ${ID}_fa.tmp.ins ${ID}_fa.ins
 
 shelxd ${ID}_fa > ${ID}_shelxd.log
 
@@ -120,8 +124,8 @@ deriv_atyp   %(ha_name)s
 #
 read_set SHELXD1  1.0      ${ID}_fa.lst   10    ${NSITES}
 #read_set SHELXD2  1.0      a4_fa.lst     10    ${nsites}
-#read_sol HYSS    1.0      a3_fa.pdb           
-#read_sol SHELXD5  1.0      a2_fa.pdb          
+#read_sol HYSS    1.0      a3_fa.pdb
+#read_sol SHELXD5  1.0      a2_fa.pdb
 EOFS
 
 sitcom < ${ID}_sitcom.inp > ${ID}_sitcom.log
@@ -129,12 +133,15 @@ sitcom < ${ID}_sitcom.inp > ${ID}_sitcom.log
 
 id="aaa"
 nsites=%(num_sites)d
+pats="yes"
 
+# loop to start batch process with different resoution limit
 for res in 3.2 3.5 4.0 4.4 ; do
 
-search_sites_shelx ${id}${res} ${res} ${nsites}  &
+search_sites_shelx ${id}${res} ${res} ${nsites} ${pats} &
 
 done
+# end of the loop.
 """
 
 xprep_script = """../%(file_name_in)s
