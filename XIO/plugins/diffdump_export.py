@@ -17,7 +17,7 @@ DETECTOR_DICT = {
     "mar555":    "MAR345",
     "marccd":    "MARCCD",
     "adsc":      "SMV",
-    "raxis":     "RAXIS",
+    "raxis":     "R-AXIS",
     "minicbf":   "MINI-CBF",
     "mscccd":    "SMV",
     "oxford":    "CRYSALIS"

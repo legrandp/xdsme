@@ -24,15 +24,16 @@
  TODO-2: Start multiple COLSPOT with different thresholds+ multiple IDXREF...
 """
 
-__version__ = "0.4.5"
+__version__ = "0.4.6"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "2-12-2009"
+__date__ = "16-12-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
 import re
+from xml.dom import minidom
 
 if sys.version_info <= (2, 4, 0):
     from popen2 import Popen3
@@ -226,6 +227,41 @@ def _mkdir(newdir):
         #print "_mkdir %s" % repr(newdir)
         if tail:
             os.mkdir(newdir)
+
+def pointless(dir_name):
+    cmline = "pointless XDSIN XDS_ASCII.HKL XMLOUT XDS_pointless.xml"
+    cmline += " HKLOUT XDS_pointless.mtz > pointless.log"
+    os.chdir(dir_name)
+    os.system(cmline)
+
+    xml_inp = "XDS_pointless.xml"
+    likely_spacegroups = []
+
+    dom = minidom.parse(xml_inp)
+
+    spg_list = dom.getElementsByTagName('SpacegroupList')[0]
+    spg_node = spg_list.getElementsByTagName('Spacegroup')[0]
+    prob_max = 0
+
+    print "\n      Possible spacegroup from pointless:"
+    print "      Symbol     num   TotalProb   SysAbsProb"
+    print "      "+38*"-"
+    for node in spg_list.getElementsByTagName('Spacegroup'):
+        get_elem = lambda m, f: f(
+                   node.getElementsByTagName(m)[0].childNodes[0].data.strip())
+        total_prob = get_elem('TotalProb', float)
+        sys_abs_prob = get_elem('SysAbsProb', float)
+        spg_name = get_elem('SpacegroupName', str)
+        spg_num = get_elem('SGnumber', int)
+
+        all_dat = (spg_name, spg_num, total_prob, sys_abs_prob)
+        prob_max = max(total_prob, prob_max)
+        print "%13s   (#%d) %9.3f   %9.3f" % all_dat
+        if total_prob == prob_max:
+            likely_spacegroups.append(all_dat)
+    print
+    #print "\n    Best probablilty = %.3f for space_group: %s\n" % \
+    #                  (prob_max, likely_spacegroups)
 
 def make_xds_image_links(imagename_list, dir_name="img_links",
                        prefix="image", start_num=1):
@@ -1512,5 +1548,7 @@ if __name__ == "__main__":
         R4 = newrun.run_integrate(collect.imageRanges)
     if STEP <= 5:
         R5 = newrun.run_correct()
+        pointless(dir_name=newrun.run_dir)
+
 
 
