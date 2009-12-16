@@ -152,11 +152,11 @@ class Interpreter:
                        'Camera length (mm)','Wavelength'],
                         getEdgeResolutionRAXIS),
 
-    # Added keys from Graeme's convention.
     'TwoTheta':(['Theta'], float),
     'SerialNumber':(['IP number'], str),  # _VERIFY_
     'EndianType':(['EndianType'], str),
     'HeaderSize':(['Record length (byte)'], int),
+    'OscAxis':(['OSC_AXIS'], lambda x: x.lower()),
     }
 
     SpecialRules = {
@@ -178,7 +178,9 @@ class Interpreter:
         RawHeadDict = dict(zip(headerStructureKeys, read_unp))
         import pprint
         #pprint.pprint(RawHeadDict)
-        RawHeadDict.update({'MESSAGE':'', 'EndianType':EndianType})
+        RawHeadDict.update({'MESSAGE':'',
+	                    'EndianType':EndianType,
+			    'OSC_AXIS': "PHI"})
         return RawHeadDict
 
     def getData(self):
