@@ -19,14 +19,15 @@
  TODO-0: If just the space group is selected and not the cell:
          try to find the proper cell if it is not ambigous
          (like P21212, P2122,,,),
- TODO-1: Add in the CORRECT summary the Rmrgd-F, image range, and total
+ TODO-1: Add in the CORRECT summary the Rmrgd-F, and total
          overloaded refl.
  TODO-2: Start multiple COLSPOT with different thresholds+ multiple IDXREF...
+ TODO-3: Generating plots !
 """
 
 __version__ = "0.4.6"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "16-12-2009"
+__date__ = "17-12-2009"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -702,11 +703,10 @@ class XDS:
             if not os.path.exists(self.run_dir):
                 try:
                     os.mkdir(self.run_dir)
-                except:
-                    print
+                except OSError, err:
                     raise XIO.XIOError, \
-                       "STOP! Can't creat xds working directory:",self.run_dir
-            #
+                     ("\nSTOP! Can't create xds working directory: %s\n" % \
+                                                              self.run_dir)
             if os.path.isdir(self.run_dir):
                 os.chdir(self.run_dir)
                 if self.link_to_images:  
