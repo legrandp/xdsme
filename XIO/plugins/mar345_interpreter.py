@@ -1,7 +1,7 @@
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "30-11-2009"
+__date__ = "30-12-2009"
 __copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -9,6 +9,7 @@ import sys
 import struct
 import time
 
+VERBOSE = False
 divE3 = lambda x: float(x)/1e3
     
 def getEdgeResolutionMAR345(PixelX, Width, Distance, Wavelength):
@@ -186,6 +187,7 @@ class Interpreter:
     # http://www.esrf.eu/UsersAndScience/Experiments/MX/Software/PXSOFT/Denzo
     # Based on Serial Number. Contains (Synchrotron,BLname,DetectorType)
     '50':('EMBL_HAMBURG','BW7A','Mar345'),
+    '92':('MARSEILLE','AFMB','Mar345'),
     }
 
     SpecialRules = {
@@ -220,7 +222,12 @@ class Interpreter:
         
         for k in asciiHeaderStructure:
             keyw, func = asciiHeaderStructure[k]
-            if keyw in _dic: RawHeadDict[k] = func(_dic[keyw])
+            if keyw in _dic:
+                try:
+                    RawHeadDict[k] = func(_dic[keyw])
+                except ValueError:
+                    if VERBOSE:
+                        print "WARNING: Can't interpret header key: %s" % k
         
         # Add other needed information to RawHeadDict
         RawHeadDict.update({'MESSAGE':'','HEADER_BYTES':4096,
