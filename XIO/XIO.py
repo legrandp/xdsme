@@ -357,7 +357,11 @@ class Image:
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
             if args[0] in self.RawHeadDict:
-                self.header[k] = func(*map(self.RawHeadDict.get, args))
+                try:
+                    self.header[k] = func(*map(self.RawHeadDict.get, args))
+                except ValueError:
+                    if VERBOSE:
+                        print "WARNING: Can't interpret header KEY %s" % k
         #
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
