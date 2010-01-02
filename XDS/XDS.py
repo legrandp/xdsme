@@ -27,20 +27,20 @@
 
 __version__ = "0.4.6"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "17-12-2009"
-__copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
+__date__ = "02-01-2010"
+__copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
 import re
-from xml.dom import minidom
 
 if sys.version_info <= (2, 4, 0):
     from popen2 import Popen3
 else:
     from subprocess import Popen, PIPE
 
+from pointless import pointless
 from pycgtypes import vec3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
@@ -229,41 +229,6 @@ def _mkdir(newdir):
         if tail:
             os.mkdir(newdir)
 
-def pointless(dir_name):
-    cmline = "pointless XDSIN XDS_ASCII.HKL XMLOUT XDS_pointless.xml"
-    cmline += " HKLOUT XDS_pointless.mtz > pointless.log"
-    os.chdir(dir_name)
-    os.system(cmline)
-
-    xml_inp = "XDS_pointless.xml"
-    likely_spacegroups = []
-
-    dom = minidom.parse(xml_inp)
-
-    spg_list = dom.getElementsByTagName('SpacegroupList')[0]
-    spg_node = spg_list.getElementsByTagName('Spacegroup')[0]
-    prob_max = 0
-
-    print "\n      Possible spacegroup from pointless:"
-    print "      Symbol     num   TotalProb   SysAbsProb"
-    print "      "+38*"-"
-    for node in spg_list.getElementsByTagName('Spacegroup'):
-        get_elem = lambda m, f: f(
-                   node.getElementsByTagName(m)[0].childNodes[0].data.strip())
-        total_prob = get_elem('TotalProb', float)
-        sys_abs_prob = get_elem('SysAbsProb', float)
-        spg_name = get_elem('SpacegroupName', str)
-        spg_num = get_elem('SGnumber', int)
-
-        all_dat = (spg_name, spg_num, total_prob, sys_abs_prob)
-        prob_max = max(total_prob, prob_max)
-        print "%13s   (#%d) %9.3f   %9.3f" % all_dat
-        if total_prob == prob_max:
-            likely_spacegroups.append(all_dat)
-    print
-    #print "\n    Best probablilty = %.3f for space_group: %s\n" % \
-    #                  (prob_max, likely_spacegroups)
-
 def make_xds_image_links(imagename_list, dir_name="img_links",
                        prefix="image", start_num=1):
     """All image names in the imagename_list are supposed to be part
@@ -383,7 +348,6 @@ class XDSLogParser:
                 start = self.lp.index(match, start) + len(match)
         except Exception, err:
             raise err
-            #return 0
         if multi_line:
             _raw = self.lp[start:start+limit].split()
         else:
@@ -829,7 +793,7 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 8
         _trial = 0
-        
+
         frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
         if "slow" in self.mode:
             frames_per_colspot_sequence = 32
@@ -843,7 +807,6 @@ class XDS:
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
         # xds export function XIO
-        # 
         cfo = XIO.Collect("foo_001.bar")
         cfo.imageNumbers = cfo._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
         #
@@ -1001,18 +964,39 @@ class XDS:
             sys.exit(0)
         return res.results
 
-    def run_correct(self):
-        "Runs the last step: CORRECT"
+    def run_pre_correct(self):
+        """Runs a first pass of CORRECT to evaluate high_res and
+           point group.
+        """
         self.inpParam["JOB"] = "CORRECT",
+        if not SPG:
+            # run first CORRECT in P1 with the cell used for integration.
+            # read the cell parameters from the XPARM.XDS file
+            self.inpParam["SPACE_GROUP_NUMBER"] = 1
+            xparm_file = os.path.join(self.run_dir, "XPARM.XDS")
+            self.inpParam["UNIT_CELL_CONSTANTS"] = \
+               map(float, (open(xparm_file,'r').readlines()[7]).split()[1:])
+        # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
         newH = res.results["HighResCutoff"]
         if newH > H and not RES_HIGH:
-            print "   ->  Rerunning CORRECT with a new high resolution",
-            print "cutoff: %.2f A" % newH
-            self.inpParam["INCLUDE_RESOLUTION_RANGE"] = L, newH
-            self.run(rsave=True)
+            H = newH
+        # run pointless
+        likely_spg = pointless(dir_name=self.run_dir)
+        return (L, H), likely_spg[0][1]
+
+    def run_correct(self, res_cut=(1000, 0), spg_num=0):
+        "Runs the last step: CORRECT"
+        if res_cut[1]:
+            print "   ->  New high resolution limit: %.2f A" % res_cut[1]
+        if spg_num:
+            print "   ->  Usging spacegroup number: %d" % spg_num
+        self.inpParam["JOB"] = "CORRECT",
+        self.inpParam["SPACE_GROUP_NUMBER"] = spg_num
+        self.run(rsave=True)
+        res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
         s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         if not s:
@@ -1023,7 +1007,6 @@ class XDS:
             print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
             print FMT_ANOMAL % vars(s)
-        return res.results
 
     def run_scaleLaueGroup(self):
         """Runs the CORRECT step with reindexation for all the selected Laue
@@ -1325,7 +1308,7 @@ if __name__ == "__main__":
     STRICT_CORR = False
     BEAM_X = 0
     BEAM_Y = 0
-    _spg = 0
+    SPG = 0
     _strategy = False
     RES_HIGH = 0
     _distance = 0
@@ -1354,7 +1337,7 @@ if __name__ == "__main__":
         if o[1] in "123456":
             STEP = int(o[1])
         if o in ("-s", "--spg"):
-            _spg, _spg_info, _spg_str = parse_spacegroup(a)
+            SPG, _spg_info, _spg_str = parse_spacegroup(a)
         if o in ("-i", "--xds-input"):
             _xds_input = a
         if o in ("-c", "--cell"):
@@ -1464,13 +1447,13 @@ if __name__ == "__main__":
         newPar["ORGX"] = BEAM_X
     if BEAM_Y:
         newPar["ORGY"] = BEAM_Y
-    if _spg and _cell:
-        newPar["SPACE_GROUP_NUMBER"] = _spg
+    if SPG and _cell:
+        newPar["SPACE_GROUP_NUMBER"] = SPG
         newPar["UNIT_CELL_CONSTANTS"] = _cell
-    elif _spg and not _cell:
+    elif SPG and not _cell:
         WARNING = "  WARNING: Spacegroup is defined but not cell."
         WARNING += " Waiting for indexation for setting cell."
-    elif _cell and not _spg:
+    elif _cell and not SPG:
         WARNING = "  WARNING: Cell is defined but not spacegroup,"
         WARNING += " setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
@@ -1510,7 +1493,7 @@ if __name__ == "__main__":
     print FMT_HELLO % vars(newrun.inpParam)
     if WARNING:
         print WARNING
-    if _spg:
+    if SPG:
         print _spg_str
 
     #newrun.run()
@@ -1547,8 +1530,8 @@ if __name__ == "__main__":
     if STEP <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
     if STEP <= 5:
-        R5 = newrun.run_correct()
-        pointless(dir_name=newrun.run_dir)
+        (h, l), spgn  = newrun.run_pre_correct()
+        newrun.run_correct((h, l), spgn)
 
 
 
