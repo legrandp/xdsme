@@ -26,7 +26,7 @@
 """
 
 __version__ = "0.4.6"
-__author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
+__author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "02-01-2010"
 __copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
@@ -993,6 +993,10 @@ class XDS:
             print "   ->  New high resolution limit: %.2f A" % res_cut[1]
         if spg_num:
             print "   ->  Usging spacegroup number: %d" % spg_num
+        lattice = Lattice(self.inpParam["UNIT_CELL_CONSTANTS"],
+                            "Unknown", symmetry=spg_num)
+        lattice.idealize()
+        self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
         self.inpParam["JOB"] = "CORRECT",
         self.inpParam["SPACE_GROUP_NUMBER"] = spg_num
         self.run(rsave=True)

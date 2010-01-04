@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+__version__ = "0.1.0"
+__author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
+__date__ = "02-01-2010"
+__copyright__ = "Copyright (c) 2010 Pierre Legrand"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
+
 import os
 from xml.dom import minidom
-
 
 def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     cmline = "pointless XDSIN %s XMLOUT XDS_pointless.xml"
@@ -22,9 +28,9 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
 
     cell_par = dict([(x, get_elem(cell, x, float)) for x in ('a', 'b', 'c')])
     # Looking at systematique extinctions
-    print "\n      Systematique extinctions from pointless:"
-    print "      Zone Type            axe len.   #obs     Condition    Prob."
-    print "      "+59*"-"
+    print "\n  Systematique extinctions from pointless:"
+    print "  Zone Type            axe len.   #obs     Condition    Prob."
+    print "  "+59*"-"
     for node in zone_list.getElementsByTagName('Zone'):
         ztype = get_elem(node, 'ZoneType', str)
         nobs = get_elem(node, 'Nobs', int)
@@ -32,10 +38,10 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
         condition = get_elem(node, 'Condition', str)
         axe = cell_par[ztype[ztype.index("[")+1:ztype.index("]")]]
         all_dat = (ztype, axe, nobs, condition, prob)
-        print "%25s %8.1f %7d  %12s  %7.3f" % all_dat
-    print "\n      Possible spacegroup from pointless:"
-    print "      Symbol      num   TotalProb   SysAbsProb"
-    print "      "+40*"-"
+        print "%21s %8.1f %7d  %12s  %7.3f" % all_dat
+    print "\n  Possible spacegroup from pointless:"
+    print "  Symbol      num   TotalProb   SysAbsProb"
+    print "  "+40*"-"
     # looking for most probable spacegroup
     for node in spg_list.getElementsByTagName('Spacegroup'):
         total_prob = get_elem(node, 'TotalProb', float)
@@ -45,7 +51,7 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
 
         all_dat = (spg_name, spg_num, total_prob, sys_abs_prob)
         prob_max = max(total_prob, prob_max)
-        print "%15s   #%d  %9.3f    %9.3f" % all_dat
+        print "%11s   #%d  %9.3f    %9.3f" % all_dat
         if total_prob == prob_max:
             likely_spacegroups.append(all_dat)
     os.chdir("..")
