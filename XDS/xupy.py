@@ -19,11 +19,11 @@ import shutil
 import fnmatch
 from time import time, sleep
 
-__version__ = "0.7.4"
+__version__ = "0.7.5"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-06-2009"
-__copyright__ = "Copyright (c) 2006-2009  Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "04-01-2010"
+__copyright__ = "Copyright (c) 2006-2010  Pierre Legrand"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 
 # Environemantal variable XDSHOME, if set, defines the place where the xds
@@ -214,10 +214,10 @@ def get_BravaisToSpgs():
     Bravais_to_spg = {}
     for br in Bravais_to_Laue:
         for lauespgs in Bravais_to_Laue[br]:
-	    if br in Bravais_to_spg:
-	        Bravais_to_spg[br] += lauespgs[3]
-	    else:
-	        Bravais_to_spg[br] = lauespgs[3]
+            if br in Bravais_to_spg:
+                Bravais_to_spg[br] += lauespgs[3]
+            else:
+                Bravais_to_spg[br] = lauespgs[3]
     return Bravais_to_spg
 
 # global dictionary to keep trac of the XDS.INP key order appearance
@@ -225,7 +225,7 @@ xdsKeyOrder = []
 
 class Lattice:
 
-    def __init__(self, cell, Bravais_type, symmetry=None,
+    def __init__(self, cell, Bravais_type="Unknown", symmetry=None,
                       dmin=0.5, friedels_law=1):
         self.alpha = 90.
         self.beta = 90.
@@ -270,8 +270,13 @@ class Lattice:
         if Bravais_type in Bravais_to_Laue.keys():
             self.Bravais_type = Bravais_type
 
-        if Bravais_type == "Unknown":
+        if Bravais_type == "Unknown" and symmetry:
             self.symmetry_num = int(symmetry)
+            for brav in Bravais_to_Laue:
+                for Laue_spgs in Bravais_to_Laue[brav]:
+                    if self.symmetry_num in Laue_spgs[3]:
+                        self.Bravais_type = brav
+                        break
         else: 
             if symmetry:
             # Verify that the symmetry number is 
