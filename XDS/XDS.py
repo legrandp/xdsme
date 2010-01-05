@@ -383,13 +383,13 @@ class XDSLogParser:
 
     def parse_init(self):
         "Parse INIT.LP"
-        R_d, R_f = self.results, self.get_par
+        rdi, gpa = self.results, self.get_par
         #
-        R_d["background_range"] = R_f("BACKGROUND_RANGE=")
-        R_d["mean_gain"] = R_f("MEAN GAIN VALUE")
-        R_d["min_gain"] = R_f("MINIMUM GAIN VALUE IN TABLE")
-        R_d["max_gain"] = R_f("MAXIMUM GAIN VALUE IN TABLE")
-        R_d["mean_background"] = R_f("BACKGROUND COUNTS IN A DATA IMAGE PIXEL")
+        rdi["background_range"] = gpa("BACKGROUND_RANGE=")
+        rdi["mean_gain"] = gpa("MEAN GAIN VALUE")
+        rdi["min_gain"] = gpa("MINIMUM GAIN VALUE IN TABLE")
+        rdi["max_gain"] = gpa("MAXIMUM GAIN VALUE IN TABLE")
+        rdi["mean_background"] = gpa("BACKGROUND COUNTS IN A DATA IMAGE PIXEL")
         #
         prp =  "  Looking at images %(background_range)s\n"
         prp += "  Mean Gain:        %(mean_gain).1f\n"
@@ -397,30 +397,30 @@ class XDSLogParser:
         prp += "  Max table gain:   %(max_gain).2f\n"
         prp += "  Mean Backgroud:   %(mean_background).1f\n"
         if self.verbose:
-            print prp % R_d
-        return R_d, prp
+            print prp % rdi
+        return rdi, prp
 
     def parse_colspot(self):
         "Parse COLSPOT.LP"
-        R_d, R_f = self.results, self.get_par
+        rdi, gpa = self.results, self.get_par
         #
-        R_d["strong_pixels"] = R_f("EXTRACTED FROM IMAGES")
-        R_d["weak_spots_ignored"] = R_f("WEAK SPOTS OMITTED")
-        R_d["out_of_center_spots"] = R_f("SPOT MAXIMUM OUT OF CENTER")
-        R_d["spot_number"] = self.get_spot_number()
-        R_d["time"] = R_f("elapsed wall-clock time", 11)
+        rdi["strong_pixels"] = gpa("EXTRACTED FROM IMAGES")
+        rdi["weak_spots_ignored"] = gpa("WEAK SPOTS OMITTED")
+        rdi["out_of_center_spots"] = gpa("SPOT MAXIMUM OUT OF CENTER")
+        rdi["spot_number"] = self.get_spot_number()
+        rdi["time"] = gpa("elapsed wall-clock time", 11)
 
         prp =  "  Number of spots found:    %(spot_number)10d\n"
         prp += "  Out of center rejected:   %(out_of_center_spots)10d\n"
         prp += "  Weak spots rejected:      %(weak_spots_ignored)10d\n"
         prp += "  Number of spots accepted: %(spot_number)10d\n"
         if self.verbose:
-            print prp % R_d
-        return R_d, prp
+            print prp % rdi
+        return rdi, prp
 
     def parse_idxref(self):
         "Parse IDXREF.LP"
-        R_d, R_f = self.results, self.get_par
+        rdi, gpa = self.results, self.get_par
         #
         rexp1 = r".* (\d+) OUT OF\ +(\d+) SPOTS INDEXED\..*"
         rexp2 = r".* QX=\ +([\d|\.]+)\ +QY=\ +([\d|\.]+)"
@@ -429,9 +429,9 @@ class XDSLogParser:
         nis, nts = map(int, re.match(rexp1, self.lp, re.DOTALL).groups())
         qx, qy = map(float, re.match(rexp2, self.lp, re.DOTALL).groups())
         meanPixel = (qx+qy)/2
-        R_d["indexed_spots"] = nis
-        R_d["total_spots"] = nts
-        R_d["indexed_percentage"] = 100.*nis/nts
+        rdi["indexed_spots"] = nis
+        rdi["total_spots"] = nts
+        rdi["indexed_percentage"] = 100.*nis/nts
         #
         st0 = self.lp.index("START OF INTEGRATION *****")
         st1 = "STANDARD DEVIATION OF SPOT    POSITION (PIXELS)"
@@ -440,28 +440,28 @@ class XDSLogParser:
         st4 = "SPACE GROUP NUMBER"
         st5 = "COORDINATES (PIXELS) OF DIRECT BEAM"
         #
-        R_d["oscillation_range"] = R_f("OSCILLATION_RANGE=") 
-        R_d["xy_spot_position_ESD"] = R_f(st1, start=st0)
-        R_d["z_spot_position_ESD"] = R_f(st2, start=st0)
-        R_d["index_origin_table"] = self._get_index_origins_table()
-        R_d["lattices_table"] = self._get_lattices_table()
-        R_d["refined_cell"] = R_f(st3, start=st0)
-        R_d["refined_cell_str"] = 6*"%.2f " % \
-                                           tuple(R_d["refined_cell"])
-        R_d["space_group_number"] = R_f(st4, start=st0)
-        R_d["direct_beam_pixels"] = R_f(st5, start=st0)
-        R_d["direct_beam_mm"] = R_d["direct_beam_pixels"][0]*qx, \
-                                           R_d["direct_beam_pixels"][1]*qy
-        R_d["bmx"], R_d["bmy"] = R_d["direct_beam_mm"]
-        R_d["bpx"], R_d["bpy"] = R_d["direct_beam_pixels"]
+        rdi["oscillation_range"] = gpa("OSCILLATION_RANGE=")
+        rdi["xy_spot_position_ESD"] = gpa(st1, start=st0)
+        rdi["z_spot_position_ESD"] = gpa(st2, start=st0)
+        rdi["index_origin_table"] = self._get_index_origins_table()
+        rdi["lattices_table"] = self._get_lattices_table()
+        rdi["refined_cell"] = gpa(st3, start=st0)
+        rdi["refined_cell_str"] = 6*"%.2f " % \
+                                           tuple(rdi["refined_cell"])
+        rdi["space_group_number"] = gpa(st4, start=st0)
+        rdi["direct_beam_pixels"] = gpa(st5, start=st0)
+        rdi["direct_beam_mm"] = rdi["direct_beam_pixels"][0]*qx, \
+                                           rdi["direct_beam_pixels"][1]*qy
+        rdi["bmx"], rdi["bmy"] = rdi["direct_beam_mm"]
+        rdi["bpx"], rdi["bpy"] = rdi["direct_beam_pixels"]
 
-        origin_t = R_d["index_origin_table"]
+        origin_t = rdi["index_origin_table"]
         origin_n = len(origin_t)
         quality_t = [x[3] for x in origin_t if x[3] < 2.]
-        #R_d["index_score"] = reduce(lambda a,b: a+b, quality_t)/len(quality_t)
+        #rdi["index_score"] = reduce(lambda a,b: a+b, quality_t)/len(quality_t)
         max_ot = min(origin_n, 5)
-        R_d["shift_pixel"] = origin_t[0][4]
-        R_d["shift_mm"] = origin_t[0][4]*meanPixel
+        rdi["shift_pixel"] = origin_t[0][4]
+        rdi["shift_mm"] = origin_t[0][4]*meanPixel
         prp = """  Unit cell parameters:   %(refined_cell_str)s
   Space group number:     %(space_group_number)s
   Indexed spots:          %(indexed_percentage).1f%% (%(indexed_spots)d/%(total_spots)d)
@@ -484,33 +484,33 @@ class XDSLogParser:
         prp2 += "  Origin ranking for the best %d solutions: " % max_ot
         prp2 += ppa[:-1] + ppb[:-1] + ppc[:-1]
         prp2 += ppd[:-1] + ppe[:-1] + ppf[:-1] + "\n"
-        #prp += " Index origin score: %.2f\n" % (R_d["index_score"])
+        #prp += " Index origin score: %.2f\n" % (rdi["index_score"])
         if self.verbose == 1:
-            print (prp + prp2) % R_d
+            print (prp + prp2) % rdi
         elif self.verbose == 2:
-            print prp % R_d
-        return R_d, prp
+            print prp % rdi
+        return rdi, prp
 
     def parse_integrate(self):
         "Parse INTEGRATE.LP"
-        R_d, R_f = self.results, self.get_par
-        R_d["reflections"] = R_f("REFLECTIONS SAVED ON FILE",
+        rdi, gpa = self.results, self.get_par
+        rdi["reflections"] = gpa("REFLECTIONS SAVED ON FILE",
                                   start=9, func=int, before=True)
-        R_d["divergence"] = R_f("BEAM_DIVERGENCE_E.S.D.= ")
-        R_d["mosaicity"] = R_f("REFLECTING_RANGE_E.S.D.= ")
+        rdi["divergence"] = gpa("BEAM_DIVERGENCE_E.S.D.= ")
+        rdi["mosaicity"] = gpa("REFLECTING_RANGE_E.S.D.= ")
         prp =  "\n  Number of reflection integrated:      %(reflections)d\n"
         prp += "  Estimated divergence:                 %(divergence).3f\n"
         prp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
         if self.verbose:
-            print prp % R_d
-        return R_d, prp
+            print prp % rdi
+        return rdi, prp
 
     def parse_xplan(self):
         "Parse XPLAN.LP"
-        R_d, R_f = self.results, self.get_par
-        R_d["spacegroup"] = R_f("SPACE_GROUP_NUMBER=")
-        R_d["unitcell"] = 6*" %8.2f" % tuple(R_f("UNIT_CELL_CONSTANTS="))
-        R_d["friedels_law"] = R_f("FRIEDEL'S_LAW=")[0]
+        rdi, gpa = self.results, self.get_par
+        rdi["spacegroup"] = gpa("SPACE_GROUP_NUMBER=")
+        rdi["unitcell"] = 6*" %8.2f" % tuple(gpa("UNIT_CELL_CONSTANTS="))
+        rdi["friedels_law"] = gpa("FRIEDEL'S_LAW=")[0]
         st0 = self.lp.index(72*"*")
         st1 = self.lp.index(72*"*", st0+72)
         st2 = self.lp.index(72*"*", st1+72)
@@ -519,41 +519,41 @@ class XDSLogParser:
         prp += "  Spacegroup:      %(spacegroup)d\n"
         prp += "  Unitcell:        %(unitcell)s\n"
         if self.verbose:
-            print prp % R_d
+            print prp % rdi
             print
             print self.lp[st0:st2]
-        return R_d, prp
+        return rdi, prp
 
     def parse_correct(self):
         "Parse CORRECT.LP"
-        R_d, R_f = self.results, self.get_par
+        rdi, gpa = self.results, self.get_par
 
-        R_d["RMSd_spotPosition"] = R_f("SPOT    POSITION (PIXELS)")
-        R_d["RMSd_spindlePosition"] = R_f("SPINDLE POSITION (DEGREES)")
-        R_d["Mosaicity"] = R_f("CRYSTAL MOSAICITY (DEGREES)")
-        r = R_f(" "+"-"*74+"\n")
-        R_d["I_sigma"], R_d["Rsym"] = r[2], r[4]
-        R_d["Compared"], R_d["Total"] = r[6], r[7]
+        rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
+        rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
+        rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
+        r = gpa(" "+"-"*74+"\n")
+        rdi["I_sigma"], rdi["Rsym"] = r[2], r[4]
+        rdi["Compared"], rdi["Total"] = r[6], r[7]
         ### Select Diffraction range.
         sp1 = self.lp.index("RESOLUTION RANGE  I/Sigma")
         sp2 = self.lp.index(10*"-", sp1)
         _table = self.lp[sp1:sp2].splitlines()[3:-1]
         _table = [ map(float, l.split()[1:3]) for l in _table ]
-        R_d["HighResCutoff"] = self.get_proper_resolition_range(_table)
+        rdi["HighResCutoff"] = self.get_proper_resolition_range(_table)
         prp = ""
-        if R_d["Mosaicity"]:
+        if rdi["Mosaicity"]:
             prp += "  RMSd spot position in pixel:      %(RMSd_spotPosition)9.2f\n"
             prp += "  RMSd spot position in degree:     %(RMSd_spindlePosition)9.2f\n"
             prp += "  Refined Mosaicity:                %(Mosaicity)9.2f\n\n"
         prp += "  Rsym:                             %(Rsym)9.1f\n"
         prp += "  I/sigma:                          %(I_sigma)9.1f\n"
-        if R_d["HighResCutoff"]:
+        if rdi["HighResCutoff"]:
             prp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
         prp += "  Compared reflections:                 %(Compared)d\n"
         prp += "  Total number of measures:             %(Total)d\n"
         if self.verbose:
-            print prp % R_d
-        return R_d, prp
+            print prp % rdi
+        return rdi, prp
 
     def get_proper_resolition_range(self, res_table):
         "High res is selected when at least 3 values of I/sigma are below 1."
@@ -990,11 +990,13 @@ class XDS:
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
         "Runs the last step: CORRECT"
         if res_cut[1]:
-            print "   ->  New high resolution limit: %.2f A" % res_cut[1]
+            print "   ->  New high resolution limit: %.2f Å" % res_cut[1]
+            self.inpParam["INCLUDE_RESOLUTION_RANGE"] = res_cut
         if spg_num:
-            print "   ->  Usging spacegroup number: %d" % spg_num
+            print "   ->  Usging spacegroup: %s  #%d" % \
+                                   (SPGlib[spg_num][1], spg_num)
         lattice = Lattice(self.inpParam["UNIT_CELL_CONSTANTS"],
-                            "Unknown", symmetry=spg_num)
+                          symmetry=spg_num)
         lattice.idealize()
         self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
         self.inpParam["JOB"] = "CORRECT",

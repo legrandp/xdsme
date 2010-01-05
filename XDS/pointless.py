@@ -29,8 +29,8 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     cell_par = dict([(x, get_elem(cell, x, float)) for x in ('a', 'b', 'c')])
     # Looking at systematique extinctions
     print "\n  Systematique extinctions from pointless:"
-    print "  Zone Type            axe len.   #obs     Condition    Prob."
-    print "  "+59*"-"
+    print "  Zone Type            axe len.    #obs     Condition    Prob."
+    print "  "+60*"-"
     for node in zone_list.getElementsByTagName('Zone'):
         ztype = get_elem(node, 'ZoneType', str)
         nobs = get_elem(node, 'Nobs', int)
@@ -38,7 +38,7 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
         condition = get_elem(node, 'Condition', str)
         axe = cell_par[ztype[ztype.index("[")+1:ztype.index("]")]]
         all_dat = (ztype, axe, nobs, condition, prob)
-        print "%21s %8.1f %7d  %12s  %7.3f" % all_dat
+        print "%21s %8.1f Å %6d  %12s  %7.3f" % all_dat
     print "\n  Possible spacegroup from pointless:"
     print "  Symbol      num   TotalProb   SysAbsProb"
     print "  "+40*"-"
