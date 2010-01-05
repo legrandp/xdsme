@@ -791,7 +791,7 @@ class XDS:
         "Runs the COLSPOT step."
         self.inpParam["JOB"] = "COLSPOT",
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
-        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 8
+        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 32
         _trial = 0
 
         frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
@@ -927,7 +927,7 @@ class XDS:
 
     def run_xplan(self, ridx=None):
         "Running the strategy."
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
+        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 32
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
 
         select_strategy(ridx, self.inpParam)

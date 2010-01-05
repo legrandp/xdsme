@@ -10,7 +10,22 @@ __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 import os
 from xml.dom import minidom
 
+def is_pointless_installed():
+    tmpfile = "/tmp/xdsme_pointless.xml"
+    cmline = "rm -f %s; pointless XMLOUT %s > /dev/null 2>&1"
+    os.system(cmline % (tmpfile, tmpfile))
+    if os.path.isfile(tmpfile):
+        return True
+    else:
+        return False
+    os.system("rm -f %s" % tmpfile)
+
 def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
+    # Run pointless and extract pointgroup and spacegroup determination
+    # from its xmlout file.
+    if not is_pointless_installed():
+        print "!!  Warning. Pointless doesn't seems to be installed."
+        return []
     cmline = "pointless XDSIN %s XMLOUT XDS_pointless.xml"
     cmline += " HKLOUT XDS_pointless.mtz > XDS_pointless.log"
     os.chdir(dir_name)
