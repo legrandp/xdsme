@@ -23,9 +23,6 @@ def is_pointless_installed():
 def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     # Run pointless and extract pointgroup and spacegroup determination
     # from its xmlout file.
-    if not is_pointless_installed():
-        print "!!  Warning. Pointless doesn't seems to be installed."
-        return []
     cmline = "pointless XDSIN %s XMLOUT XDS_pointless.xml"
     cmline += " HKLOUT XDS_pointless.mtz > XDS_pointless.log"
     os.chdir(dir_name)
@@ -76,4 +73,7 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
 if __name__ == '__main__':
     import os
     from xml.dom import minidom
-    pointless(".")
+    if not is_pointless_installed():
+        print "!!  Error. Pointless program doesn't seems to be properly installed."
+    else:
+        pointless(".")
