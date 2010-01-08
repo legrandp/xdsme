@@ -40,7 +40,7 @@ if sys.version_info <= (2, 4, 0):
 else:
     from subprocess import Popen, PIPE
 
-from pointless import pointless
+from pointless import pointless, is_pointless_installed
 from pycgtypes import vec3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
@@ -968,6 +968,16 @@ class XDS:
         """Runs a first pass of CORRECT to evaluate high_res and
            point group.
         """
+        # run pointless on INTEGRATE.HKL
+        if not is_pointless_installed():
+            print "!!  Warning. Pointless program doesn't seems to be installed."
+            print "  -> Skipping pointless analysis."
+            likely_spg = [["P1", 0],]
+        else:
+            print "     Pointless analysis on the INTEGRATE.HKL file"
+            print "     "+44*"="
+            likely_spg = pointless(dir_name=self.run_dir, hklinp="INTEGRATE.HKL")
+
         self.inpParam["JOB"] = "CORRECT",
         if not SPG:
             # run first CORRECT in P1 with the cell used for integration.
@@ -984,7 +994,7 @@ class XDS:
         if newH > H and not RES_HIGH:
             H = newH
         # run pointless
-        likely_spg = pointless(dir_name=self.run_dir)
+        #likely_spg = pointless(dir_name=self.run_dir, hklinp="XDS_ASCII.HKL")
         return (L, H), likely_spg[0][1]
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
