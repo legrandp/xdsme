@@ -31,13 +31,16 @@ def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     xml_inp = "XDS_pointless.xml"
     likely_spacegroups = []
     prob_max = 0
-    dom = minidom.parse(xml_inp)
-    get_elem = lambda n, m, f: f(
+    try:
+        dom = minidom.parse(xml_inp)
+        get_elem = lambda n, m, f: f(
                    n.getElementsByTagName(m)[0].childNodes[0].data.strip())
-    cell = dom.getElementsByTagName('cell')[0]
-    zone_list = dom.getElementsByTagName('ZoneScoreList')[0]
-    spg_list = dom.getElementsByTagName('SpacegroupList')[0]
-
+        cell = dom.getElementsByTagName('cell')[0]
+        zone_list = dom.getElementsByTagName('ZoneScoreList')[0]
+        spg_list = dom.getElementsByTagName('SpacegroupList')[0]
+    except:
+        os.chdir("..")
+        raise 
     cell_par = dict([(x, get_elem(cell, x, float)) for x in ('a', 'b', 'c')])
     # Looking at systematique extinctions
     print "\n  Systematique extinctions from pointless:"

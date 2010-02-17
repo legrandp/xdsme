@@ -775,6 +775,8 @@ class XDS:
 
     def run_init(self):
         "Runs the 2 first steps: XYCORR and INIT"
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["TRUSTED_REGION"] = [0, 1.20]
         self.inpParam["JOB"] = "XYCORR", "INIT"
         i1, i2 = self.inpParam["DATA_RANGE"]
@@ -789,6 +791,8 @@ class XDS:
 
     def run_colspot(self):
         "Runs the COLSPOT step."
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "COLSPOT",
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 32
@@ -849,7 +853,8 @@ class XDS:
 
     def run_idxref(self, beam_center_search=False, ranking_mode="ZSCORE"):
         "Runs the IDXREF step. Can try to search for better beam_center."
-        #
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "IDXREF",
         self.inpParam["TRUSTED_REGION"] = [0, 0.98]
         self.run(rsave=True)
@@ -926,6 +931,8 @@ class XDS:
             raise Exception(err)
 
     def run_xplan(self, ridx=None):
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         "Running the strategy."
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 32
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
@@ -944,6 +951,8 @@ class XDS:
 
     def run_integrate(self, image_ranges):
         "Running INTEGRATE."
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["TRUSTED_REGION"] = [0, 1.0]
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
@@ -968,7 +977,9 @@ class XDS:
         """Runs a first pass of CORRECT to evaluate high_res and
            point group.
         """
-        # run pointless on INTEGRATE.HKL
+        if XDS_INPUT:
+            self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
+        # run pointless on INTEGRATE.HKL        
         if not is_pointless_installed():
             print "!!  Warning. Pointless program doesn't seems to be installed."
             print "  -> Skipping pointless analysis."
@@ -976,7 +987,11 @@ class XDS:
         else:
             print "     Pointless analysis on the INTEGRATE.HKL file"
             print "     "+44*"="
-            likely_spg = pointless(dir_name=self.run_dir, hklinp="INTEGRATE.HKL")
+            try:
+                likely_spg = pointless(dir_name=self.run_dir, hklinp="INTEGRATE.HKL")
+            except:
+                print "  -> ERROR. While running Pointless... skiping this step."
+                likely_spg = [["P1", 0],]
 
         self.inpParam["JOB"] = "CORRECT",
         if not SPG:
@@ -984,6 +999,7 @@ class XDS:
             # read the cell parameters from the XPARM.XDS file
             self.inpParam["SPACE_GROUP_NUMBER"] = 1
             xparm_file = os.path.join(self.run_dir, "XPARM.XDS")
+            #xparm_file = "XPARM.XDS"
             self.inpParam["UNIT_CELL_CONSTANTS"] = \
                map(float, (open(xparm_file,'r').readlines()[7]).split()[1:])
         # run CORRECT
@@ -993,9 +1009,11 @@ class XDS:
         newH = res.results["HighResCutoff"]
         if newH > H and not RES_HIGH:
             H = newH
-        # run pointless
-        #likely_spg = pointless(dir_name=self.run_dir, hklinp="XDS_ASCII.HKL")
-        return (L, H), likely_spg[0][1]
+        if SPG:
+            spg_choosen = SPG
+        else:
+            spg_choosen = likely_spg[0][1]
+        return (L, H), spg_choosen
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
         "Runs the last step: CORRECT"
@@ -1325,7 +1343,7 @@ if __name__ == "__main__":
     BEAM_X = 0
     BEAM_Y = 0
     SPG = 0
-    _strategy = False
+    STRATEGY = False
     RES_HIGH = 0
     _distance = 0
     _oscillation = 0
@@ -1336,7 +1354,7 @@ if __name__ == "__main__":
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
     _cell = ""
-    _xds_input = ""
+    XDS_INPUT = ""
     _beam_in_mm = False
     SLOW = False
     _fast = False
@@ -1355,7 +1373,7 @@ if __name__ == "__main__":
         if o in ("-s", "--spg"):
             SPG, _spg_info, _spg_str = parse_spacegroup(a)
         if o in ("-i", "--xds-input"):
-            _xds_input = a
+            XDS_INPUT = a
         if o in ("-c", "--cell"):
             _cell = a
         if o in ("-d", "--distance"):
@@ -1372,7 +1390,7 @@ if __name__ == "__main__":
         if o in ("-p", "--project"):
             _project = str(a)
         if o in ("-S", "--strategy"):
-            _strategy = True
+            STRATEGY = True
         if o in ("-w", "--wavelength"):
             _wavelength = float(a)
         if o in ("-r", "--high-resolution"):
@@ -1482,8 +1500,8 @@ if __name__ == "__main__":
         newPar["OSCILLATION_RANGE"] = _oscillation
     if _wavelength:
         newPar["X_RAY_WAVELENGTH"] = _wavelength
-    if _xds_input:
-        newPar.update(xdsInp2Param(inp_str=_xds_input))
+    #if XDS_INPUT:
+    #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
     if RES_HIGH or RES_LOW != 45:
         newPar["INCLUDE_RESOLUTION_RANGE"] = RES_LOW, RES_HIGH
 
@@ -1541,7 +1559,7 @@ if __name__ == "__main__":
         # If not multiple possible solutions (like P2, or P1...) try to define
         # unitcell from spacegroup.
         #if _spg and not _cell:
-        if (len(collect.imageRanges) > 1) or _strategy:
+        if (len(collect.imageRanges) > 1) or STRATEGY:
             newrun.run_xplan(ridx=R3)
     if STEP <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
