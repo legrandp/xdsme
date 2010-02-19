@@ -45,7 +45,7 @@ from pycgtypes import vec3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
-                 get_BravaisToSpgs
+                 get_BravaisToSpgs, get_number_of_processors
 import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -795,7 +795,7 @@ class XDS:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "COLSPOT",
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
-        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 32
+        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = NUMBER_OF_PROCESSORS
         _trial = 0
 
         frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
@@ -934,7 +934,7 @@ class XDS:
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         "Running the strategy."
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 32
+        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
 
         select_strategy(ridx, self.inpParam)
@@ -1334,6 +1334,7 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
+    NUMBER_OF_PROCESSORS = get_number_of_processors()
     WARNING = ""
     VERBOSE = False
     DEBUG = False

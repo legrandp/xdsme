@@ -15,6 +15,7 @@
 import sys
 import os
 import re
+import commands
 import shutil
 import fnmatch
 from time import time, sleep
@@ -1155,3 +1156,16 @@ def guess_imageType(image_name):
     elif len(imageType) > 1:
         print "ERROR: Can't choose the detector type between:", imageType
         sys.exit()
+
+def get_number_of_processors():
+    platf = None
+    try:
+        if "linux" in sys.platform:
+            platf = int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
+        else:
+            #"darwin" in sys.platform:
+            # or [Free|Net|Open]BSD and MacOS X
+            platf = int(commands.getoutput("sysctl -n hw.ncpu"))
+    except:
+        platf = 4
+    return platf
