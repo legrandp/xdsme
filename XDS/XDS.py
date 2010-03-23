@@ -660,9 +660,8 @@ class XDS:
         if run_dir:
             self.run_dir = run_dir
         if not self.run_dir:
-            self.run_dir = "."#
+            self.run_dir = "."
         result = 0
-        #
         if self.run_dir:
             if not os.path.exists(self.run_dir):
                 try:
@@ -682,8 +681,6 @@ class XDS:
                     #    raise XIO.XIOError, \
                     #     "STOP! Can't creat link %s in working directory: %s" \
                     #     % (self.link_name_to_image, self.run_dir)
-        #
-        #
         opWriteCl("XDS.INP", "%s" % self.inpParam)
         #
         xdsProcess = self._creat_process(self.__execfile)
@@ -828,10 +825,8 @@ class XDS:
         else:
             spot_ranges = (min_fn, min(min_fn + _2fpcs - 1, max_fn)),
         # Restrict to matching collected images...
-        #print "T1", spot_ranges
         self.inpParam["SPOT_RANGE"] = cfo.lookup_imageRanges(False, \
                                               mask_range=spot_ranges)
-        #
         self.run(rsave=True)
         _rs = "  Image range(s) for spot collection: "
         for sub_range in self.inpParam["SPOT_RANGE"]:
