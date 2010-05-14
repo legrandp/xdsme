@@ -251,15 +251,20 @@ phaser_script = """#!/bin/bash
 # script written by xdsconv.py (pierre.legrand at synchrotron-soleil.fr)
 
 ID=%(ID)s
+HAND="o"
 PARTIAL_MODEL_OPTION=""
 INVERT_HAND=""
 solvent_content=0.5
+parrot_cycles=5
+parrot_resolution=1.0
 
 function usage () {
   echo
   echo " $0 [-i] [-s x] ha_sites.pdb  [partial_model.pdb]"
   echo "    -i, --invert                 invert hand for ha sites"
-  echo "    -s solvc, --solvent solvc    set the solvent content"
+  echo "    -s solvc,   --solvent solvc  set the solvent content"
+  echo "    -n ncycles, --parrot_cycles  number of parrot cycles"
+  echo "    -r resol,   --resolution     parrot resolution cutoff"
   echo "    -h, --help                   print this help"
   echo
 }
@@ -278,19 +283,28 @@ while [ $# -gt 0 ]; do
     -i | --invert )
       echo "INFO:  Inverting hand of heavy atom sites"
       INVERT_HAND="HAND ON"
-      invert=1
+      HAND="i"
       shift  ;;
     -s | --solvent )
       solvent_content=$2
       echo "INFO:  Using a solvent fraction of: $solvent_content"
+      shift; shift ;;
+    -r | --resolution )
+      parrot_resolution=$2
+      echo "INFO:  Cuting high resolution for parrot to: $2"
+      shift; shift ;;
+    -n | --parrot_cycles )
+      parrot_cycles=$2
+      echo "INFO:  Number of parrot parrot cycles set to: $2"
       shift; shift ;;
     * )
       hatom_pdb=$1
       break ;;
   esac
 done
+ID=${ID}_${HAND}
 
-#if [[ invert -eq 1 ]]; then
+#if [[ $HAND = "i" ]]; then
 #      invert_hand $1 > inverted_sites.pdb
 #      hatom_pdb="inverted_sites.pdb"
 #else
@@ -318,8 +332,6 @@ ${PARTIAL_MODEL_OPTION}
 ${INVERT_HAND}
 eof
 
-parrot_cycles=20
-
 cparrot \\
 -mtzin-wrk      ${ID}_auto.mtz \\
 -pdbin-wrk-ha   ${ID}_auto.pdb \\
@@ -331,7 +343,7 @@ cparrot \\
 -solvent-flatten \\
 -histogram-match \\
 -cycles         ${parrot_cycles} \\
--resolution     1.8 \\
+-resolution     ${parrot_resolution} \\
 -solvent-content ${solvent_content} \\
 -ncs-average \\
 > cparrot_${ID}_${solvent_content}_${parrot_cycles}.log
