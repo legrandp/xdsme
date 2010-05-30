@@ -34,14 +34,19 @@ __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 import os
 import sys
 import re
+import math
 
 if sys.version_info <= (2, 4, 0):
     from popen2 import Popen3
 else:
     from subprocess import Popen, PIPE
 
+from XOconv.pycgtypes import mat3
+from XOconv.pycgtypes import vec3
+from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, \
+                          volum, r2d, cosd, sind, ex, ey, ez
+
 from pointless import pointless, is_pointless_installed
-from pycgtypes import vec3
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
@@ -1008,6 +1013,9 @@ class XDS:
             spg_choosen = SPG
         else:
             spg_choosen = likely_spg[0][1]
+            self.inpParam["UNIT_CELL_CONSTANTS"]  = new_reidx_cell(
+                                              self.inpParam["UNIT_CELL_CONSTANTS"],
+                                              likely_spg[0][-1])
         return (L, H), spg_choosen
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
@@ -1145,8 +1153,13 @@ def get_beam_origin(beam_coor, beam_vec, det_parameters):
     beamOx, beamOy, beamOz = beam_coor[0]*qx, beam_coor[1]*qy, beam_vec*det_z
     return (beamOx - beam_vec*det_x*dist/beamOz)/qx, \
            (beamOy - beam_vec*det_y*dist/beamOz)/qy
-
-
+        
+def new_reidx_cell(init_cell, reidx_mat):
+    "Applies the reindexing card to initial cell parameters and return a new cell"
+    UB = BusingLevy(reciprocal(init_cell))
+    REIDX = mat3(reidx_mat)
+    return reciprocal(UB_to_cellParam(UB*REIDX))
+    
 #def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
     # cut unwanted spots at low or high resolution.

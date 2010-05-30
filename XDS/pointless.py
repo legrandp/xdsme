@@ -53,18 +53,19 @@ def process_pointless_xml():
             all_dat = (ztype, axe, nobs, condition, prob)
             print "%21s %8.1f Å %6d  %12s  %7.3f" % all_dat
     print "\n  Possible spacegroup from pointless:"
-    print "  Symbol      num   TotalProb   SysAbsProb"
-    print "  "+40*"-"
+    print "  Symbol      num   TotalProb   SysAbsProb  Reindexing_card"
+    print "  "+57*"-"
     # looking for most probable spacegroup
     for node in spg_list.getElementsByTagName('Spacegroup'):
         total_prob = get_elem(node, 'TotalProb', float)
         sys_abs_prob = get_elem(node, 'SysAbsProb', float)
         spg_name = get_elem(node, 'SpacegroupName', str)
         spg_num = get_elem(node, 'SGnumber', int)
-
-        all_dat = (spg_name, spg_num, total_prob, sys_abs_prob)
+        reidx_mat = map(int, get_elem(node, 'ReindexMatrix', str).split())
+        
+        all_dat = (spg_name, spg_num, total_prob, sys_abs_prob, reidx_mat)
         prob_max = max(total_prob, prob_max)
-        print "%11s   #%d  %9.3f    %9.3f" % all_dat
+        print "%11s   #%d  %9.3f    %9.3f   %s" % all_dat
         if total_prob == prob_max:
             likely_spacegroups.append(all_dat)
     os.chdir("..")
