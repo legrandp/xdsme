@@ -1013,9 +1013,10 @@ class XDS:
             spg_choosen = SPG
         else:
             spg_choosen = likely_spg[0][1]
-            self.inpParam["UNIT_CELL_CONSTANTS"]  = new_reidx_cell(
-                                              self.inpParam["UNIT_CELL_CONSTANTS"],
-                                              likely_spg[0][-1])
+            reidx_mat = likely_spg[0][-1]
+            new_cell = new_reidx_cell(self.inpParam["UNIT_CELL_CONSTANTS"],
+                                      reidx_mat)
+            self.inpParam["UNIT_CELL_CONSTANTS"] = new_cell
         return (L, H), spg_choosen
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
