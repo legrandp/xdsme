@@ -20,9 +20,9 @@ import shutil
 import fnmatch
 from time import time, sleep
 
-__version__ = "0.7.5"
+__version__ = "0.7.6"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "04-01-2010"
+__date__ = "06-06-2010"
 __copyright__ = "Copyright (c) 2006-2010  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -51,7 +51,7 @@ LP_names = ["COLSPOT.LP","CORRECT.LP","DEFPIX.LP","IDXREF.LP","XSCALE.LP",
 multiple_keys = ("SPOT_RANGE",
                  "EXCLUDE_RESOLUTION_RANGE",
                  "PROFILE_RANGE",
-		 "UNTRUSTED_RECTANGLE")
+                 "UNTRUSTED_RECTANGLE")
 
 modified_keys = {
   "DIRECTION_OF_DETECTOR_Y-AXIS": "DIRECTION_OF_DETECTOR_Y_AXIS",
@@ -74,8 +74,8 @@ modified_keys = {
   "REFINE(IDXREF)": "REFINE_IDXREF",
   "REFINE(INTEGRATE)": "REFINE_INTEGRATE",
   "REFINE(CORRECT)": "REFINE_CORRECT",
-  "X-GEO_CORR=": "X_GEO_CORR=",
-  "Y-GEO_CORR=": "Y_GEO_CORR=",
+  "X-GEO_CORR": "X_GEO_CORR",
+  "Y-GEO_CORR": "Y_GEO_CORR",
   "SPOT_MAXIMUM-CENTROID": "SPOT_MAXIMUM_CENTROID" }
 
 illegal_keys = ["SPOT_WIDTH_ALONG_X", "SPOT_WIDTH_ALONG_Y",
