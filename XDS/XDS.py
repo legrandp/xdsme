@@ -314,15 +314,25 @@ class XDSLogParser:
         _err_level = None
         if _err != -1:
             _err_msg = self.lp[_err:]
-            if _err_msg.count("INSUFFICIENT PERCENTAGE (< 70%) OF INDEXED REF"):
+            if _err_msg.count(" CANNOT READ IMAGE "):
+                _err_type = "Some images connot be read"
+                _err_level = "WARNING"
+            # IDXREF ERROR Messages:
+            elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
                 _err_type = "IDXREF. Percentage of indexed"
                 _err_type += " reflections bellow 70%.\n"
                 _err_level = "WARNING"
-            if _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
-                _err_type = "IDXREF. Insufficient number of accepted spots."
+            elif _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
+                _err_type = "IDXREF. INSUFFICIENT NUMBER OF ACCEPTED SPOTS."
                 _err_level = "FATAL"
+            elif _err_msg.count("CANNOT INDEX REFLECTIONS"):
+                _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
+                _err_level = "FATAL"
+            else:
+                print "\n %s \n" % (self.lp[_err:-1])
+                sys.exit()
         if _err_level in ("FATAL", "ERROR") and raiseErrors:
-            raise XDSExecError, _err_type
+            raise XDSExecError, (_err_level, _err_type)
 
         if self.verbose and _err != -1:
             print "\n %s in %s" % (_err_level, _err_type)
@@ -861,7 +871,9 @@ class XDS:
         try:
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir, verbose=1)
         except XDSExecError, err:
-            print "ERROR in", err
+            print " !!! ERROR in", err[1], "\n"
+            if err[0] == "FATAL":
+                sys.exit()
 
         RD = res.results
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]

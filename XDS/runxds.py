@@ -9,7 +9,7 @@ __date__ = "18-11-2009"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __copyright__ = "Copyright (c) 2004 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
-            
+
 import sys
 import shutil
 
