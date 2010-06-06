@@ -101,6 +101,15 @@ XDS_DETECTOR_DICT = {
     "minicbf":  4,
     "mscccd":   8,
   },
+  "sensor_thickness":{
+    "mar":      0,
+    "mar555":   0,
+    "marccd":   0,
+    "adsc":     0,
+    "raxis":    0,
+    "minicbf":  0.32,
+    "mscccd":   0,
+  },
   "orient":{ # X_det, Y_det, distanceSign, spindle_axis, twoThetaAxis, beamdef
     "mar":      ( EX, EY,  1,  EX, -EX, "XY"),
     "mar555":   ( EX, EY,  1,  EX, -EX, "XY"),
@@ -140,6 +149,7 @@ TEMPLATE += """
     NX= %(NX)d    NY= %(NY)d
     QX= %(QX).5f  QY= %(QY).5f
     ORGX= %(ORGX).2f   ORGY= %(ORGY).2f
+    SENSOR_THICKNESS= %(SENSOR_THICKNESS)s
 
  ROTATION_AXIS= %(ROTATION_AXIS)s
  INCIDENT_BEAM_DIRECTION= 0.0 0.0 1.0
@@ -153,8 +163,8 @@ TEMPLATE += """
  SPACE_GROUP_NUMBER= 0
  UNIT_CELL_CONSTANTS= 0 0 0 0 0 0
 
- INCLUDE_RESOLUTION_RANGE= 30.0 0.0
- TRUSTED_REGION= 0.0 1.05
+ INCLUDE_RESOLUTION_RANGE= 50.0 0.0
+ TRUSTED_REGION= 0.0 1.42
  VALUE_RANGE_FOR_TRUSTED_DETECTOR_PIXELS= 7000 30000
 
  DELPHI= %(DELPHI).2f
@@ -212,6 +222,8 @@ CTD = {
 'DETECTOR':(['imageType'], lambda x: XDS_DETECTOR_DICT["detector_name"][x]),
 'NAME_TEMPLATE_OF_DATA_FRAMES':(['xdsTemplate'], str),
 'OVERLOAD':(['imageType'], lambda x: XDS_DETECTOR_DICT["overload"][x]),
+'SENSOR_THICKNESS':(['imageType'], lambda x: \
+                                   XDS_DETECTOR_DICT["sensor_thickness"][x]),
 'MINIMUM_VALID_PIXEL_VALUE':(['imageType'], lambda x: \
                                              XDS_DETECTOR_DICT["minval"][x]),
 'MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT':(['imageType'], lambda x: \

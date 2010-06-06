@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "02-01-2010"
+__date__ = "06-06-2010"
 __copyright__ = "Copyright (c) 2010 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -53,8 +53,8 @@ def process_pointless_xml():
             all_dat = (ztype, axe, nobs, condition, prob)
             print "%21s %8.1f Å %6d  %12s  %7.3f" % all_dat
     print "\n  Possible spacegroup from pointless:"
-    print "  Symbol      num   TotalProb   SysAbsProb  Reindexing_card"
-    print "  "+57*"-"
+    print "  Symbol      num   TotalProb   SysAbsProb   Reindexing_card"
+    print "  "+58*"-"
     # looking for most probable spacegroup
     for node in spg_list.getElementsByTagName('Spacegroup'):
         total_prob = get_elem(node, 'TotalProb', float)
@@ -62,7 +62,6 @@ def process_pointless_xml():
         spg_name = get_elem(node, 'SpacegroupName', str)
         spg_num = get_elem(node, 'SGnumber', int)
         reidx_mat = map(int, get_elem(node, 'ReindexMatrix', str).split())
-        
         all_dat = (spg_name, spg_num, total_prob, sys_abs_prob, reidx_mat)
         prob_max = max(total_prob, prob_max)
         print "%11s   #%d  %9.3f    %9.3f   %s" % all_dat
@@ -71,7 +70,6 @@ def process_pointless_xml():
     os.chdir("..")
     print 
     return likely_spacegroups
-    
 
 def run_pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     # Run pointless and extract pointgroup and spacegroup determination
@@ -84,7 +82,7 @@ def run_pointless(dir_name, hklinp="XDS_ASCII.HKL"):
 def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     run_pointless(dir_name, hklinp)
     return process_pointless_xml()
-    
+
 if __name__ == '__main__':
     import os
     from xml.dom import minidom

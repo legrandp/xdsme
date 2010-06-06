@@ -789,7 +789,7 @@ class XDS:
         "Runs the 2 first steps: XYCORR and INIT"
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
-        self.inpParam["TRUSTED_REGION"] = [0, 1.20]
+        #self.inpParam["TRUSTED_REGION"] = [0, 1.20]
         self.inpParam["JOB"] = "XYCORR", "INIT"
         i1, i2 = self.inpParam["DATA_RANGE"]
         #if "slow" in self.mode:
@@ -866,7 +866,10 @@ class XDS:
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "IDXREF",
-        self.inpParam["TRUSTED_REGION"] = [0, 0.98]
+        # this prevent bad spot to be included.
+        saved_trusted_region = self.inpParam["TRUSTED_REGION"]
+        if saved_trusted_region[1] > 0.98:
+            self.inpParam["TRUSTED_REGION"] = [0, 0.98]
         self.run(rsave=True)
         try:
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir, verbose=1)
@@ -933,6 +936,8 @@ class XDS:
             self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(best_beam)
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
+        # Set back the Trusted_region to larger values.
+        self.inpParam["TRUSTED_REGION"] = saved_trusted_region
         return res.results
 
     def check_fileout(self, fileout):
@@ -955,7 +960,6 @@ class XDS:
         self.run(rsave=True)
         res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir, verbose=2)
         # Select just the internal circle of the detector.
-        self.inpParam["TRUSTED_REGION"] = 0.0, 1.0
         self.inpParam["JOB"] = "DEFPIX", "XPLAN"
         self.run(rsave=True)
         res =  XDSLogParser("XPLAN.LP", run_dir=self.run_dir, verbose=1)      
@@ -965,7 +969,6 @@ class XDS:
         "Running INTEGRATE."
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
-        self.inpParam["TRUSTED_REGION"] = [0, 1.0]
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
         if "slow" in self.mode:
@@ -1371,7 +1374,7 @@ if __name__ == "__main__":
     _oscillation = 0
     _project = ""
     _wavelength = 0
-    RES_LOW = 45
+    RES_LOW = 50
     _reference = False
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
@@ -1524,7 +1527,7 @@ if __name__ == "__main__":
         newPar["X_RAY_WAVELENGTH"] = _wavelength
     #if XDS_INPUT:
     #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
-    if RES_HIGH or RES_LOW != 45:
+    if RES_HIGH or (RES_LOW != 50):
         newPar["INCLUDE_RESOLUTION_RANGE"] = RES_LOW, RES_HIGH
 
     if _linkimages:
