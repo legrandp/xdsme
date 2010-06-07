@@ -840,11 +840,18 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     if file_type == "CORREC": correct = 1
     elif file_type == "XSCALE": correct = 0
 
+    sp1 = lp.index("b              INPUT DATA SET")
+    if correct:
+        sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
+    else:
+        sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
+    s.K1s, s.K2s = map(float, lp[sp1+30: sp2].split())
+    s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
     st2  = lp.index("  STATISTICS OF S")
     s.LowestReso = 100
+    slowr = lp.index("INCLUDE_RESOLUTION_RANGE=") + 26
+    s.LowestReso, s.HighestReso = lp[slowr:slowr+21].split()
     if correct:
-        slowr = lp.index("INCLUDE_RESOLUTION_RANGE=") + 26
-        s.LowestReso, s.HighestReso = lp[slowr:slowr+21].split()
         st3 = lp.index("NUMBER OF REJECTED MISFITS ",st2)
         st6 = lp.index("NUMBER OF UNIQUE ACCEPTED REFLECTIONS " ,st2)
         stat_g = lp[st3:st6+58].split()
