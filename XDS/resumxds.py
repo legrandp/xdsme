@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 02/04/03 legrand@embl-grenoble.fr
 23/06/09 pierre.legrand@synchrotron-soleil.fr
@@ -25,8 +26,8 @@ facteur_repr = [['LowR','LowestReso',"%5.1f"],
                 ['AnoC','anoCorr',"%4.f"],
                 ['AnoS','anoSig',"%5.2f"],
                 ['Abs','absent',"%4d"],
-                ['IAbs','AbsIav',"%5.1f"]]
-                
+                ['IAbs','AbsIav',"%5.1f"],
+                ['Io6asy','IoverSigmaAsympt','%6.2f']]
 
 #                ['Compa3','compar3',"%6d"],
 #                ['Rsym3','rsym3',"%6.1f"],
