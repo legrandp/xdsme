@@ -1011,7 +1011,8 @@ class XDS:
             print "     Pointless analysis on the INTEGRATE.HKL file"
             print "     "+44*"="
             try:
-                likely_spg = pointless(dir_name=self.run_dir, hklinp="INTEGRATE.HKL")
+                likely_spg, new_cell = pointless(dir_name=self.run_dir,
+                                                 hklinp="INTEGRATE.HKL")
             except:
                 print "  -> ERROR. While running Pointless... skiping this step."
                 likely_spg = [["P1", 0],]
@@ -1036,10 +1037,12 @@ class XDS:
             spg_choosen = SPG
         else:
             spg_choosen = likely_spg[0][1]
-            reidx_mat = likely_spg[0][-1]
-            new_cell = new_reidx_cell(self.inpParam["UNIT_CELL_CONSTANTS"],
-                                      reidx_mat)
-            self.inpParam["UNIT_CELL_CONSTANTS"] = new_cell
+            lattice = Lattice(new_cell, symmetry=spg_choosen)
+            lattice.idealize()
+            #reidx_mat = likely_spg[0][-1]
+            #new_cell = new_reidx_cell(self.inpParam["UNIT_CELL_CONSTANTS"],
+            #                          reidx_mat)
+            self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
         return (L, H), spg_choosen
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
