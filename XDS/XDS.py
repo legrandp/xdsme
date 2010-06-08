@@ -1182,7 +1182,7 @@ def new_reidx_cell(init_cell, reidx_mat):
     "Applies the reindexing card to initial cell parameters and return a new cell"
     UB = BusingLevy(reciprocal(init_cell))
     REIDX = mat3(reidx_mat)
-    return reciprocal(UB_to_cellParam(UB*REIDX))
+    return reciprocal(UB_to_cellParam(REIDX*UB))
     
 #def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
