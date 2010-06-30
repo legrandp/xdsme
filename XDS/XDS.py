@@ -320,7 +320,11 @@ class XDSLogParser:
             # IDXREF ERROR Messages:
             elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
                 _err_type = "IDXREF. Percentage of indexed"
-                _err_type += " reflections bellow 70%.\n"
+                _err_type += " reflections bellow 50%.\n"
+                _err_level = "WARNING"
+            # IDXREF ERROR Messages:
+            elif _err_msg.count("SOLUTION IS INACCURATE"):
+                _err_type = "IDXREF. Solution is inaccurate.\n"
                 _err_level = "WARNING"
             elif _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
                 _err_type = "IDXREF. INSUFFICIENT NUMBER OF ACCEPTED SPOTS."
@@ -335,7 +339,7 @@ class XDSLogParser:
             raise XDSExecError, (_err_level, _err_type)
 
         if self.verbose and _err != -1:
-            print "\n %s in %s" % (_err_level, _err_type)
+            print "\n  !!! %s in %s" % (_err_level, _err_type)
 
         if full_filename.count("INIT.LP"):
             self.parse_init()
@@ -546,11 +550,11 @@ class XDSLogParser:
         sp1 = self.lp.index("b              INPUT DATA SET")
         sp2 = self.lp.index("  INTEGRATE.HKL   ", sp1)
         K1s, K2s = map(float, self.lp[sp1+30: sp2].split())
-        print "  Variance estimate scaling (K1, K2): %6.3f, %.3e" % \
-                                                   (4*K1s, (K2s/4+0.0001))
         rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
         print "  Upper theoritical limit of I/sigma: %8.3f" % \
                                                    rdi["IoverSigmaAsympt"]
+        print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
+                                                   (4*K1s, (K2s/4+0.0001))
         rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
         rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
         rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
@@ -565,9 +569,9 @@ class XDSLogParser:
         rdi["HighResCutoff"] = self.get_proper_resolition_range(_table)
         prp = ""
         if rdi["Mosaicity"]:
-            prp += "  RMSd spot position:     %(RMSd_spotPosition)9.2f pix,"
-            prp += " %(RMSd_spindlePosition)6.2f deg.\n"
-            prp += "  Refined Mosaicity:                %(Mosaicity)9.2f\n\n"
+            prp += "  RMSd spot position:     %(RMSd_spotPosition)19.2f pix,"
+            prp += "%(RMSd_spindlePosition)6.2f deg.\n"
+            prp += "  Refined Mosaicity:       %(Mosaicity)29.2f deg.\n\n"
         prp += "  Rsym:                             %(Rsym)9.1f\n"
         prp += "  I/sigma:                          %(I_sigma)9.1f\n"
         if rdi["HighResCutoff"]:
@@ -1185,7 +1189,7 @@ def new_reidx_cell(init_cell, reidx_mat):
     "Applies the reindexing card to initial cell parameters and return a new cell"
     UB = BusingLevy(reciprocal(init_cell))
     REIDX = mat3(reidx_mat)
-    return reciprocal(UB_to_cellParam(UB*REIDX))
+    return reciprocal(UB_to_cellParam(REIDX*UB))
     
 #def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
