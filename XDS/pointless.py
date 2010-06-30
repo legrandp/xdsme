@@ -22,12 +22,22 @@ def is_pointless_installed():
 
 def process_pointless_xml():
     xml_inp = "XDS_pointless.xml"
+    logf_name = "XDS_pointless.log"
     pname = 'a', 'b', 'c', 'alpha', 'beta', 'gamma'
     likely_spacegroups = []
     prob_max = 0
     zone_list = []
     get_elem = lambda n, m, f: f(
                 n.getElementsByTagName(m)[0].childNodes[0].data.strip())
+    # Reading final choosen cell paramters from the logfile
+    logf = open(logf_name)
+    logf_raw = logf.read()
+    logf_raw.find(" * Dataset ID, project")
+    logf.close()
+    id1 = logf_raw.find(" * Dataset ID, project")
+    id2 = logf_raw.find(" * Number of Columns", id1)
+    new_cell_par = map(float, logf_raw[id1:id2].splitlines()[5].split())
+    # Reading informations from the XML file
     try:
         dom = minidom.parse(xml_inp)
         cell = dom.getElementsByTagName('cell')[0]
@@ -39,7 +49,7 @@ def process_pointless_xml():
         raise
     init_cell_par = dict([(x, get_elem(cell, x, float)) for x in pname])
     #new_cell_par = dict([(x, get_elem(new_cell, x, float)) for x in pname])
-    new_cell_par = [(get_elem(new_cell, x, float)) for x in pname]
+    #new_cell_par = [(get_elem(new_cell, x, float)) for x in pname]
     try:
         zone_list = dom.getElementsByTagName('ZoneScoreList')[0]
     except:
