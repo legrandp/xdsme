@@ -547,14 +547,18 @@ class XDSLogParser:
         "Parse CORRECT.LP"
         rdi, gpa = self.results, self.get_par
 
-        sp1 = self.lp.index("b              INPUT DATA SET")
-        sp2 = self.lp.index("  INTEGRATE.HKL   ", sp1)
-        K1s, K2s = map(float, self.lp[sp1+30: sp2].split())
-        rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
-        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+        try:
+            sp1 = self.lp.index("b              INPUT DATA SET")
+            sp2 = self.lp.index("  INTEGRATE.HKL   ", sp1)
+            K1s, K2s = map(float, self.lp[sp1+30: sp2].split())
+
+            rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
+            print "  Upper theoritical limit of I/sigma: %8.3f" % \
                                                    rdi["IoverSigmaAsympt"]
-        print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
+            print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
                                                    (4*K1s, (K2s/4+0.0001))
+        except ValueError:
+            rdi["IoverSigmaAsympt"] =  0.0
         rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
         rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
         rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
