@@ -1572,6 +1572,8 @@ if __name__ == "__main__":
         newrun.mode.append("weak")
 
     print FMT_HELLO % vars(newrun.inpParam)
+    print "  Maximum number of processors avialable:  %3d\n" % NUMBER_OF_PROCESSORS
+
     if WARNING:
         print WARNING
     if SPG:
