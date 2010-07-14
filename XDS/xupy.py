@@ -840,12 +840,12 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     if file_type == "CORREC": correct = 1
     elif file_type == "XSCALE": correct = 0
 
-    sp1 = lp.index("b              INPUT DATA SET")
+    sp1 = lp.index("   INPUT DATA SET")
     if correct:
         sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
     else:
         sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
-    s.K1s, s.K2s = map(float, lp[sp1+30: sp2].split())
+    s.K1s, s.K2s = map(float, lp[sp1+18: sp2].split())[:2]
     s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
     st2  = lp.index("  STATISTICS OF S")
     s.LowestReso = 100
@@ -862,26 +862,27 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         s.misfit, tmp = get_num(lp[st3-24:st6].split(),(0,-1))
         s.absent = "0"
     #
-    st10 = lp.index("NOISE >= -3.0" ,st2)
-    st11 = lp.index("NOISE >=  0.0 ",st10)
-    st12 = lp.index("NOISE >=  3.0" ,st11)
-    st13 = lp.index("NOISE >=  6.0 ",st12)
-    st14 = lp.index("WILSON LINE ",st13)
+    st10 = lp.index("    Corr\n\n" ,st2)+10
+    st11 = lp.index("\n\n",st10)
+    #st12 = lp.index("NOISE >=  3.0" ,st11)
+    #st13 = lp.index("\n\n\n",st12)
+    st14 = lp.index("WILSON LINE ",st11)
     #
     if correct:
-        stat_tg = lp[st10:st11].splitlines()[4:-2]
-        stat_tg3 = lp[st12:st13].splitlines()[4:-2]
+        stat_tg = lp[st10:st11].splitlines()
+        #stat_tg = lp[st10:st11].splitlines()[4:-2]
+        #stat_tg3 = lp[st12:st13].splitlines()[4:-2]
     else:
         st10x = lp.index("NOISE >= -2.0" ,st2)
         st12x = lp.index("NOISE >=  4.0" ,st11)
         stat_tg = lp[st10:st10x].splitlines()[4:-2]
-        stat_tg3 = lp[st12:st12x].splitlines()[4:-2]
+        #stat_tg3 = lp[st12:st12x].splitlines()[4:-2]
 
     stat_wilson = lp[st14+30:st14+75].split()
     #
     TG, TG3 = [], []
     for l in stat_tg: TG.append(l.split())
-    for l in stat_tg3: TG3.append(l.split())
+    #for l in stat_tg3: TG3.append(l.split())
 
     s.wilson_b, s.wilson_corr = stat_wilson[3], stat_wilson[5]
     s.reso, s.resoL =       TG[-2][0], TG[-3][0]
@@ -895,11 +896,11 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     s.anoSig, s.anoSigL  =  TG[-1][-2], TG[-2][-2]
     s.anoCorr,s.anoCorrL =  TG[-1][-3], TG[-2][-3]
     s.unique =              TG[-1][2]
-    s.rsym3, s.rsym3L =     TG3[-1][5], TG3[-2][5]
-    s.rmeas3, s.rmeas3L =   TG3[-1][9], TG3[-2][9]
-    s.total3 =              TG3[-1][1]
-    s.compl3, s.compl3L =   TG3[-1][4], TG3[-2][4]
-    s.compar3, s.compar3L = TG3[-1][7], TG3[-2][7]
+    #s.rsym3, s.rsym3L =     TG3[-1][5], TG3[-2][5]
+    #s.rmeas3, s.rmeas3L =   TG3[-1][9], TG3[-2][9]
+    #s.total3 =              TG3[-1][1]
+    #s.compl3, s.compl3L =   TG3[-1][4], TG3[-2][4]
+    #s.compar3, s.compar3L = TG3[-1][7], TG3[-2][7]
     if correct:
         stt = lp.index("   STANDARD ERROR OF REFLECTION INTENSITIES")
         stt = lp.index("--------\n", stt)
@@ -942,8 +943,6 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     elif ind == 0: s.dmin = reso[-1]
     else: s.dmin = reso[ind]
     #print s.dmin
-    #
-    #s.TG, s.TG3 = TG, TG3
     s.multiplicity = s.total/s.unique
     return s
 
