@@ -177,7 +177,7 @@ FMT_FINAL_STAT = """
     (%(resoL).2f - %(reso).2f)
 
       Completeness                    %(compl)5.1f%%   (%(complL).1f%%)
-      I/sigma(I)                     %(isig)6.1f    (%(isigL).1f)
+      I/sigma(I)                     %(isig)6.2f    (%(isigL).2f)
       Rmeas                          %(rmeas)6.1f%%   (%(rmeasL).1f%%)
       Rsym                          %(rsym)7.2f%%   (%(rsymL).1f%%)
       Multiplicity               %(multiplicity)10.1f
@@ -548,9 +548,9 @@ class XDSLogParser:
         rdi, gpa = self.results, self.get_par
 
         try:
-            sp1 = self.lp.index("b              INPUT DATA SET")
+            sp1 = self.lp.index("   INPUT DATA SET")
             sp2 = self.lp.index("  INTEGRATE.HKL   ", sp1)
-            K1s, K2s = map(float, self.lp[sp1+30: sp2].split())
+            K1s, K2s = map(float, self.lp[sp1+18: sp2].split())[:2]
 
             rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
             print "  Upper theoritical limit of I/sigma: %8.3f" % \
