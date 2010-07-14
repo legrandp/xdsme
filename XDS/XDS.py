@@ -985,7 +985,7 @@ class XDS:
         "Running INTEGRATE."
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 8
+        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
         if "slow" in self.mode:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA/BETA"] = 13
@@ -1188,13 +1188,13 @@ def get_beam_origin(beam_coor, beam_vec, det_parameters):
     beamOx, beamOy, beamOz = beam_coor[0]*qx, beam_coor[1]*qy, beam_vec*det_z
     return (beamOx - beam_vec*det_x*dist/beamOz)/qx, \
            (beamOy - beam_vec*det_y*dist/beamOz)/qy
-        
+
 def new_reidx_cell(init_cell, reidx_mat):
     "Applies the reindexing card to initial cell parameters and return a new cell"
     UB = BusingLevy(reciprocal(init_cell))
     REIDX = mat3(reidx_mat)
     return reciprocal(UB_to_cellParam(REIDX*UB))
-    
+
 #def resolution2trustedRegion(high_res, dist, beam_center, pixel_size, npixel):
     # Usefull for the IDXREF stage. One can use the TRUSTED_REGION keyword to
     # cut unwanted spots at low or high resolution.
@@ -1562,8 +1562,11 @@ if __name__ == "__main__":
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
 
+    if NUMBER_OF_PROCESSORS > 8:
+        newrun.inpParam["DELPHI"] = NUMBER_OF_PROCESSORS * newPar["OSCILLATION_RANGE"]
+
     if SLOW:
-        newrun.inpParam["DELPHI"] = 12 * newPar["OSCILLATION_RANGE"]
+        newrun.inpParam["DELPHI"] = 16 * newPar["OSCILLATION_RANGE"]
         newrun.mode.append("slow")
     if WEAK:
         newrun.mode.append("weak")
