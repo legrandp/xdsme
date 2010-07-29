@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.7.6"
+__version__ = "0.7.7"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "23-09-2009"
+__date__ = "23-07-2010"
 __copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -24,7 +24,8 @@ atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 'Tb', 'Tc', 'Te', 'Th', 'Ti', 'Tl', 'Tm', 'U', 'V', 'W', 'Xe', 'Y',
 'Yb', 'Zn', 'Zr']
 
-options = ["CCP4","CNS","FALL","SHELX","SOLVE","EPMR","CRANK","AMORE","SHARP","PHASER"]
+options = ["CCP4","CNS","FALL","SHELX","SOLVE","EPMR","CRANK",
+           "AMORE","SHARP","PHASER","REPLACE"]
 
 
 #sys.exit()
@@ -349,6 +350,60 @@ cparrot \\
 > cparrot_${ID}_${solvent_content}_${parrot_cycles}.log
 
 """
+
+replace_script = """#!/bin/bash
+
+cat << eof > RF_SELF_3.inp
+title ordinary self RF by slow RF from xdsme
+!
+print RF_SELF_3.prt
+!
+polar xzk
+euler zyz
+orthog axabz
+!
+acell %(cell_str)s
+asymmetry %(spg_name)s
+aobsfile data.hkl
+acutoff 1.0 1.0 0.0
+aformat 3i6, 2e10.3
+! reading F power=2
+! reading I power=1
+apower 2
+origin true
+!
+cutoff 0.25
+!
+resolution 40.0 3.5
+boxsize 3 3 3
+radius 20.0
+geval 2
+!
+self true
+cross false
+fast true
+!
+sangle polar
+oangle polar xyk
+!
+! This sets the search limits automatically
+!
+slimit 2 270 90 3
+!
+mapfile RF_SELF_3.map
+peak 3.0 50
+!
+cntf RF_SELF_3.ps
+cntl 3 9 0.5 1
+cntl 1.5 2.5 0.5 4
+!
+stop
+eof
+
+glrf < RF_SELF_3.inp > RF_SELF.log
+
+"""
+
 
 crossec_script = """
 ATOM %(ha_name)s
@@ -753,7 +808,7 @@ class DoMode:
 
         elif self.mode == "SOLVE":
             self.name_ext = ".hkli"
-            P.mode_out = "FALL"
+            P.mode_out = "NONE"
             P.merge_out == "FALSE"
             P.friedel_out = "TRUE"
 
@@ -764,8 +819,20 @@ class DoMode:
             P.friedel_out = "TRUE"
 
         elif self.mode == "AMORE":
+            P.free_out = ""
+            P.free_lbl = ""
+            P.free_code = ""
+            self.name_ext = ".HKL"
+            P.mode_out = "CCP4"
+            P.merge_out == "TRUE"
+            P.friedel_out = "TRUE"
+
+        elif self.mode == "REPLACE":
+            P.free_out = ""
+            P.free_lbl = ""
+            P.free_code = ""
             self.name_ext = ".hkl"
-            P.mode_out = "FALL"
+            P.mode_out = "CCP4"
             P.merge_out == "TRUE"
             P.friedel_out = "TRUE"
 
@@ -898,10 +965,22 @@ class DoMode:
         elif self.mode == "EPMR":
             opWriteCl("%s/cell" % P.dir_mode, "%(cell_str)s %(spgn_in)s\n" % vars(P))
 
+        elif self.mode == "REPLACE":
+            t = """awk '{gsub(",","");print}' """
+            t += """%(dir_mode)s/%(file_name_out)s >> %(dir_mode)s/data.hkl"""
+            os.system(t % vars(P))
+            opWriteCl("%s/run_glrf_self.sh" % P.dir_mode, replace_script % vars(P))
+            os.system("chmod a+x %(dir_mode)s/run_glrf_self.sh" % vars(P))
+            os.system("rm -f %(dir_mode)s/%(file_name_out)s" % vars(P))
+
         elif self.mode == "AMORE":
-            os.system('echo "FORMAT (3I5,2E12.4)" > format.dat')
-            os.system("cat format.dat %(dir_mode)s/%(file_name_in) > %(dir_mode)/hkl.d" % vars(P))
-            os.system("rm -f format.dat %(dir_modes)/%(file_name_in)" % vars(P))
+            os.system('echo "CELL %(cell_str)s" > format.dat'%vars(P))
+            os.system('echo "FORMAT (3I6,2E10.3)" >> format.dat')
+            os.system("cat format.dat > %(dir_mode)s/hkl.d" % vars(P))
+            t = """awk '{gsub(",","");print}' """
+            t += """%(dir_mode)s/%(file_name_out)s >> %(dir_mode)s/hkl.d"""
+            os.system(t % vars(P))
+            os.system("rm -f format.dat %(dir_mode)s/%(file_name_out)s" % vars(P))
             afmt = " * xds *\n%(cell_str)s\n%(symop)s 0\n95. 0.\n15 3.5\n1 1\n"
             P.symop = amore_symops[int(P.spgn_in)][1]
             opWriteCl("%s/data.d" % P.dir_mode, afmt % vars(P))
