@@ -23,13 +23,14 @@ atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 'Tb', 'Tc', 'Te', 'Th', 'Ti', 'Tl', 'Tm', 'U', 'V', 'W', 'Xe', 'Y',
 'Yb', 'Zn', 'Zr']
 
-options = ["CCP4","CNS","FALL","SHELX","SOLVE","EPMR","CRANK",
+options = ["CCP4","CNS","SHELX","SOLVE","EPMR","CRANK",
            "AMORE","SHARP","PHASER","REPLACE"]
 
 usage   = """
-    USAGE : %s filein.hkl OPTIONS [free_hkl_to_inherit] [nSites] [atomType] EXPORT_MODE \n
+    USAGE : %s FILE OPTIONS [free_hkl_to_inherit] [nSites] [atomType] EXPORT_MODE \n
         EXPORT_MODE can be one of these:\n
             %s\n
+        FILE is a XDS or XSCALE reflection file (usually XDS_ASCII.HKL).\n
     OPTIONS:
         -a       force anomal output (Friedel's law = False)
         -n       force normal output (Friedel's law = True)
@@ -49,7 +50,7 @@ usage   = """
         free_hkl_to_inherit: is a reflection file containing a previously
                  selected set of free reflection to be kept in the newly
                  exported reflection file for calculation of unbiased Rfree.
-                 The accepted format are: SHELX, CNS and MTZ (with the
+                 The accepted file format are: SHELX, CNS and MTZ (with the
                  following labels:  FP=FP SIGFP=SIGFP FREE=FreeR_flag).\n
         nSites: integer describing the number of heavy atom sites expected.\n
         atomType: Symbol of the heavy atom type expected. Only one or two
