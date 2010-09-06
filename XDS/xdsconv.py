@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.7.7"
+__version__ = "0.8.0"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "23-07-2010"
-__copyright__ = "Copyright (c) 2006-2009 Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "06-08-2010"
+__copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 # Environemantal variable XDSHOME, if set, defines the place where the xds
 # executables will be searched. The parallelized execs (xds_par, xscale_par)
@@ -13,7 +13,6 @@ __license__ = "LGPL"
 
 import sys
 import os
-
 
 atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 'C', 'Ca', 'Cd', 'Ce', 'Cl', 'Co', 'Cr', 'Cs', 'Cu', 'Dy', 'Er', 'Eu', 'F',
@@ -27,26 +26,52 @@ atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 options = ["CCP4","CNS","FALL","SHELX","SOLVE","EPMR","CRANK",
            "AMORE","SHARP","PHASER","REPLACE"]
 
-
-#sys.exit()
-
 usage   = """
->>>   Usage : %s filein.hkl -[a|n] -[u|m] [free_hkl_to_inherit] [nSites] [atomeType] MODE \n
-        MODE can be one of these:\n
-          %s\n
-        option:
-          -a    force anomal output (Friedel's law = False)
-          -n    force normal output (Friedel's law = True)
-          -m    force merged output
-          -u    force unmerged output
-          -f    force generation of free reflection flag
-          -nf   force no generation of free reflection flag
+    USAGE : %s filein.hkl OPTIONS [free_hkl_to_inherit] [nSites] [atomType] EXPORT_MODE \n
+        EXPORT_MODE can be one of these:\n
+            %s\n
+    OPTIONS:
+        -a       force anomal output (Friedel's law = False)
+        -n       force normal output (Friedel's law = True)
+        -m       force merged output
+        -u       force unmerged output
+        -f       force generation of free reflection flag
+        -nf      force no generation of free reflection flag
         Default is keeping the XDS input file settings.
 
->>>   Cell parameters and space group number are taken
-      from the input file header.
->>>   Example:
-      %s XDS_ASCII.HKL shelx 12 Se -u 
+        -l label, or -l=label
+                 In case of CCP4 export, give a new label columns.
+                 The defaults labels: FP, SIGFP, DANO, SIGDANO, ISYM with
+                 -l pk or -l=pk becomes:
+                 FP_pk, SIGFP_pk, DANO_pk ... in CCP4 mode
+                 FP_pk, SIGFP_pk, F(+)_pk, SIGF(+)_pk, ... in PHASER mode
+
+        free_hkl_to_inherit: is a reflection file containing a previously
+                 selected set of free reflection to be kept in the newly
+                 exported reflection file for calculation of unbiased Rfree.
+                 The accepted format are: SHELX, CNS and MTZ (with the
+                 following labels:  FP=FP SIGFP=SIGFP FREE=FreeR_flag).\n
+        nSites: integer describing the number of heavy atom sites expected.\n
+        atomType: Symbol of the heavy atom type expected. Only one or two
+                 letters symbols are recognised (like I, Se, S, Hg).\n
+      NOTE:
+          i)   Keywords free_hkl_to_inherit, nSites, atomeType and EXPORT_MODE
+               can be given in any order.
+          ii)  Cell parameters, space group number and wavelength are taken
+               from the XDS reflection file header.
+          iii) If Friedel's law == False and heavy atom type is not given, a
+               guess is made base on the wavelength closest atome type edge.
+          iv)  All the exported files are created in a new local directory named
+               after the requested mode (./ccp4, ./phaser, ./solve...).
+          v)   In most modes, custom bash scripts are created to allow a rapid
+               interactive exploration of data processing.
+
+      EXAMPLES:
+          xdsconv.py XDS_ASCII.HKL shelx 12 Se
+          xdsconv.py solve XDS_ASCII.HKL Se 12
+          xdsconv.py 12 Se phaser XDS_ASCII.HKL
+          xdsconv.py XDS_ASCII.HKL ccp4 -n FreeR_reference.mtz
+          xdsconv.py XDS_ASCII.HKL ccp4 Se 12 -l=peak FreeR_reference.mtz
 """
 
 fmt_inp = """
@@ -759,15 +784,15 @@ def get_crossec(P):
         except: pass
     else: return 0., 0.
 
-class Dumy: pass
+class Dumy:
+    pass
 
 class DoMode:
     def __init__(self, P):
         self.mode = P.mode
-        self.dir_mode = string.lower(self.mode)+"/"
+        self.dir_mode = self.mode.lower()+"/"
         P.dir_mode = self.dir_mode
         P.spg_name = (xupy.SPGlib[int(P.spgn_in)][0]).lower()
-
         try:
             # It will fail herre in case Numeric is not installed
             # Or for old version of XDS
@@ -985,10 +1010,9 @@ class DoMode:
             P.symop = amore_symops[int(P.spgn_in)][1]
             opWriteCl("%s/data.d" % P.dir_mode, afmt % vars(P))
 
-import xupy
-import string, sys, os
-
 if __name__=='__main__':
+
+    import xupy
 
     # Default options
     __format_out = "CCP4"
@@ -1005,23 +1029,28 @@ if __name__=='__main__':
     __force_no_free = False
     __label = ""
 
-    progname = sys.argv[0]
-    if (len(sys.argv) == 1) or ("-h" in sys.argv):
-        print usage % (progname, "|".join(options), progname)
+    argp_fmt = "<<< %-24s %s"
+    progname = sys.argv[0].split("/")[-1]
+    if (len(sys.argv) == 1) or ("-h" in sys.argv) \
+        or  ("--help" in sys.argv) or ("-help" in sys.argv):
+        print usage % (progname, "|".join(options))
         sys.exit(1)
 
     args = sys.argv[1:]
+    print "\n<== OPTIONS:"
     for arg in args:
         nonnum = [i for i in arg if i not in "1234567890"]
         if nonnum == []:
             try:
                 n = int(arg)
                 __num_sites = n
-                print "N", arg
+                print argp_fmt %("nSites:", n)
             except:
                 pass
         elif arg.count("-l="):
             __label = "_"+arg[3:]
+        elif arg.count("-l"):
+            __label = "_"+str(args[args.index("-l") + 1])
         elif arg == "-f":
             __force_free = True
         elif arg == "-nf":
@@ -1037,10 +1066,10 @@ if __name__=='__main__':
         # Geting output format
         elif arg.upper() in options:
             __format_out = arg.upper()
-            print "O", __format_out
+            print argp_fmt %("Export mode:", __format_out)
         # Geting Atom type
         elif arg.title() in atom_names:
-            print "A", arg
+            print argp_fmt % ("atomType:", arg)
             __atom_name = arg.title()
         # Identifying file type
         elif os.path.isfile(arg):
@@ -1056,7 +1085,6 @@ if __name__=='__main__':
                     pass
                 if "!FORMAT=XDS_ASCII" in s:
                     __xds_input = arg
-                    print "X", arg
                 elif (("NREFlection=" in s) and ("ANOMalous=" in s)):
                     __free_refl_input = arg
                     __free_refl_type = "CNS"
@@ -1067,15 +1095,16 @@ if __name__=='__main__':
                     __free_refl_input = arg
                     __free_refl_type = "CCP4"
                 else:
-                    print "Warning: Can't define the file type for argument '%s' " % arg
+                    print "\nWarning: Can't define the file type",
+                    print "for argument '%s'\n" % arg
             except:
                 pass
-    
+
     # If input file for free reflection set is CCP4 it needs to be converted
     # to shelx format for input in xdsconv.
     if __free_refl_input:
-        print "F: Set of free reflections inherited from file %s [%s format]."%\
-                  (__free_refl_input, __free_refl_type)
+        print argp_fmt % ("free_hkl_to_inherit:", __free_refl_input),
+        print "[%s format]." % ( __free_refl_type)
         if __free_refl_type == "CCP4":
             print "   --> Converting CCP4 free reflections to SHELX format."
             script = open("mtz2shelx_free.sh", "w")
@@ -1159,10 +1188,10 @@ if __name__=='__main__':
     print fmt_inp % vars(XC)
 
     #-----------------------------
-    print XC.mode
     E = DoMode(XC)
     print fmt_outp % vars(XC)
-    if XC.friedel_in == "FALSE": print fmt_outp_ha % vars(XC)
+    if XC.friedel_in == "FALSE":
+        print fmt_outp_ha % vars(XC)
     E.run()
     E.post_run(XC)
 
