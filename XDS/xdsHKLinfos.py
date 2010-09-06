@@ -148,7 +148,7 @@ def get_info(hklFileName, t0=None):
             print "... Calculate Reso:   %.3fs" % (t4 - t3)
 
     res_low, res_high =  max(res), min(res)
-    print res[:10], res.shape
+    #print res[:10], res.shape
     return {"res_low": res_low,
             "res_high": res_high,
             "refl_numb": len(hkls),
