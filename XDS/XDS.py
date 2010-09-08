@@ -25,9 +25,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.4.6"
+__version__ = "0.4.9d"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "02-01-2010"
+__date__ = "08-09-2010"
 __copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -130,11 +130,19 @@ USAGE = """
 
     -x,  --beam-x
          Set a new value for ORGX: X-coordinates (in pixels) of the
-         detector origin.
+         detector origin. It may be given in mm if the value is directly
+         ended by "mm", (e.g. -x 109.1mm).
 
     -y,  --beam-y
          Set a new value for ORGY: Y-coordinates (in pixels) of the
-         detector origin.
+         detector origin. It may be given in mm if the value is directly
+         ended by "mm", (e.g. -y 106.4mm).
+
+    -W,  --beam-center-swap
+         From the header recorded X and Y corrdinate values, try the 8 possible
+         permutations and select the best one by z-score ranking. This very useful
+         if indexing fails, the convention for recording these values may not be
+         identical from one synchrotron to another.
 
     -v,  --verbose
          Turn on verbose output.
@@ -877,7 +885,8 @@ class XDS:
             res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
 
-    def run_idxref(self, beam_center_search=False, ranking_mode="ZSCORE"):
+    def run_idxref(self, beam_center_search=False, ranking_mode="ZSCORE",
+                         beam_center_swap=False):
         "Runs the IDXREF step. Can try to search for better beam_center."
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
@@ -894,7 +903,6 @@ class XDS:
             if err[0] == "FATAL":
                 sys.exit()
 
-        RD = res.results
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         dist = self.inpParam["DETECTOR_DISTANCE"]
         det_x = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
@@ -905,8 +913,27 @@ class XDS:
         #RD["indexed_percentage"] < 70. or \
         #if beam_center_search or RD["xy_spot_position_ESD"] > 2. or \
         #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
+        TestResults = [res.results]
+        if beam_center_swap:
+            x, y = self.inpParam["ORGX"], self.inpParam["ORGY"]
+            mx, my = self.inpParam["NX"] - x, self.inpParam["NY"] - y
+            origins = [[y, x], [mx, my], [my, mx],
+                       [ x, my], [y, mx], [mx, y], [my, x]]
+            for origin in origins:
+                self.inpParam["ORGX"] = origin[0]
+                self.inpParam["ORGY"] = origin[1]
+                print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
+                                           (origin[0]*qx, origin[1]*qy),
+                print "  %.1f, %.1f" % (origin[0], origin[1])
+                self.run(rsave=True, verbose=False)
+                try:
+                    TestResults.append(XDSLogParser("IDXREF.LP",
+                                           run_dir=self.run_dir,
+                                           verbose=0, raiseErrors=True).results)
+                except XDSExecError, err:
+                    print "\t\tError in", err
         if beam_center_search:
-            TestResults = [RD]
+            RD = res.results
             print " Number of possible beam coordinates: %d" % \
                               len(RD["index_origin_table"])
             maxTestOrigin = min(60, len(RD["index_origin_table"]))
@@ -931,25 +958,28 @@ class XDS:
                                            verbose=0, raiseErrors=True).results)
                 except XDSExecError, err:
                     print "\t\tError in", err
+        if beam_center_search or beam_center_swap:
             print "\n"
-            # Need to lookup in the results for the beam-center giving 
+            # Need to lookup in the results for the beam-center giving
             best_index_rank = rank_indexation(TestResults, ranking_mode)
             #for o in origins:
             #    print origins.index(o), o[:-3]
             best_origin = origins[best_index_rank[ranking_mode]-1]
             if VERBOSE:
                 print best_index_rank
-                fmt = "%4i%4i%4i%7.2f%7.2f%8.1f%8.1f%9.5f%9.5f%9.5f"
+                #fmt = "%4i%4i%4i%7.2f%7.2f%8.1f%8.1f%9.5f%9.5f%9.5f"
                 print "best_index_rank", best_index_rank[ranking_mode]
-                print "best_origin", fmt % tuple(best_origin[:10])
-            best_beam = vec3(best_origin[7:10])
-            best_beam_coor = best_origin[5:7]
-            best_beam_orig = get_beam_origin(best_beam_coor,
+                #print "best_origin", fmt % tuple(best_origin)
+            if beam_center_search:
+                best_beam = vec3(best_origin[7:10])
+                best_beam_coor = best_origin[5:7]
+                best_beam_orig = get_beam_origin(best_beam_coor,
                                              best_beam, det_params)
-            self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_orig
-            if VERBOSE:
-                print best_beam_orig, best_beam_coor
-            self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(best_beam)
+                self.inpParam["ORGX"], self.inpParam["ORGY"] = best_beam_orig
+                self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(best_beam)
+            else:
+                self.inpParam["ORGX"], self.inpParam["ORGY"] = best_origin
+            # Running again with updated best parameters
             self.run(rsave=True)
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir)
         # Set back the Trusted_region to larger values.
@@ -1346,7 +1376,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:i:O:p:s:Sr:R:x:y:vw:SF"
+    short_opt =  "123456aAbBc:d:f:i:O:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1362,6 +1392,7 @@ if __name__ == "__main__":
                 "project",
                 "beam-center-optimize-i",
                 "beam-center-optimize-z",
+                "beam-center-swap",
                 "xds-input=",
                 "verbose",
                 "wavelength=",
@@ -1397,6 +1428,7 @@ if __name__ == "__main__":
     _reference = False
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
+    _beam_center_swap = False
     _cell = ""
     XDS_INPUT = ""
     _beam_in_mm = False
@@ -1457,6 +1489,8 @@ if __name__ == "__main__":
         if o in ("-B", "--beam-center-optimize-z"):
             _beam_center_optimize = True
             _beam_center_ranking = "ZSCORE"
+        if o in ("-W", "--beam-center-swap"):
+            _beam_center_swap = True
         if o in ("--slow"):
             SLOW = True
         if o in ("--weak"):
@@ -1591,7 +1625,9 @@ if __name__ == "__main__":
         if SLOW and RES_HIGH:
             print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH
             #newrun.spots_resolution_cutoff(RES_HIGH)
-        R3 = newrun.run_idxref(_beam_center_optimize, _beam_center_ranking)
+        R3 = newrun.run_idxref(_beam_center_optimize,
+                               _beam_center_ranking,
+                               _beam_center_swap)
     if R3:
         i = 0
         _selected_cell = []
