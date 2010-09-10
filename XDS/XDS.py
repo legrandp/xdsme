@@ -1045,6 +1045,7 @@ class XDS:
             print "!!  Warning. Pointless program doesn't seems to be installed."
             print "  -> Skipping pointless analysis."
             likely_spg = [["P1", 0],]
+            new_cell = False
         else:
             print "     Pointless analysis on the INTEGRATE.HKL file"
             print "     "+44*"="
@@ -1054,7 +1055,7 @@ class XDS:
             except:
                 print "  -> ERROR. While running Pointless... skiping this step."
                 likely_spg = [["P1", 0],]
-
+                new_cell = False
         self.inpParam["JOB"] = "CORRECT",
         if not SPG:
             # run first CORRECT in P1 with the cell used for integration.
@@ -1075,12 +1076,12 @@ class XDS:
             spg_choosen = SPG
         else:
             spg_choosen = likely_spg[0][1]
-            lattice = Lattice(new_cell, symmetry=spg_choosen)
-            lattice.idealize()
+            if new_cell:
+                lattice = Lattice(new_cell, symmetry=spg_choosen)
+                lattice.idealize()
+                self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
             #reidx_mat = likely_spg[0][-1]
             #new_cell = new_reidx_cell(self.inpParam["UNIT_CELL_CONSTANTS"],
-            #                          reidx_mat)
-            self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
         return (L, H), spg_choosen
 
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
