@@ -795,7 +795,13 @@ class Collect:
             self.lookup_imageNumbers()
         if not self.image:
             self.image = Image(self.initialImageName)
-        last_image = self.pythonTemplate % self.imageNumbers[-1]
+        last_image_name = self.pythonTemplate % self.imageNumbers[-1]
+        if os.path.exists(last_image_name):
+            last_image = last_image_name
+        elif os.path.exists(last_image_name+".gz"):
+            last_image = last_image_name + ".gz"
+        elif os.path.exists(last_image_name+".bz2"):
+            last_image = last_image_name + ".bz2"
         # Check only for the initialImageName and last images of the list
         # their phi_osc range is compatible with their numbering.
         if methode == 0:
