@@ -8,9 +8,9 @@ http://dirac.cnrs-orleans.fr/plone/software/scientificpython
 """
 
 __author__ = "Pierre Legrand (pierre legrand \at synchrotron-soleil fr)"
-__date__ = "23-11-2009"
-__copyright__ = "Copyright (c) 2009  Pierre Legrand"
-__version__ = "0.1.0"
+__date__ = "23-09-2010"
+__copyright__ = "Copyright (c) 2009-2010  Pierre Legrand"
+__version__ = "0.1.1"
 
 from pycgtypes import  vec3
 from pycgtypes import  mat3
@@ -57,9 +57,9 @@ def axis_and_angle(mat_3):
         cosine = trace((mat_3-projector))/(3.-axis*axis)
         angle = angle_from_sine_and_cosine(sine, cosine)
     else:
-        tsr = 0.5*(mat_3+mat3(1))
-        diag = tsr[0, 0], tsr[1, 1], tsr[3, 3] 
-        i = tsr.index(max(diag))
+        tsr = 0.5*(mat_3 + mat3(1))
+        diag = tsr[0, 0], tsr[1, 1], tsr[2, 2]
+        i = list(diag).index(max(diag))
         axis = vec3(tsr.getRow(i)/(tsr[i, i])**0.5)
         angle = 0.
         if trace(tsr) < 2.:
