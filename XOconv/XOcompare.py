@@ -10,10 +10,10 @@
 """
 
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-11-2009"
-__copyright__ = "Copyright (c) 2009  Pierre Legrand"
+__date__ = "22-09-2010"
+__copyright__ = "Copyright (c) 2010  Pierre Legrand"
 __license__ = "New BSD License"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 import sys
@@ -172,18 +172,22 @@ if __name__=='__main__':
         elif XOparser.fileType == "XDS":
             UBmos = XOparser.UBxds_to_mos()/ XOparser.dict["wavelength"]
             Umos = (UBmos) * Bmos.inverse()
+            A = vec3(XOparser.dict["A"])
+            B = vec3(XOparser.dict["B"])
+            C = vec3(XOparser.dict["C"])
+            print "A", A
+            print "B", B
+            print "C", C
+            UBR = mat3(A, B, C).transpose()
+            printmat(UBR, '\n   UBR',  "%12.6f")
 
         is_orthogonal(Umos)
         printmat( Umos,'\n   U',  "%12.6f")
         printmat( Bmos,'\n   B',  "%12.6f")
         printmat( UBmos,'\n  UB', "%12.6f")
-<<<<<<< local
-        XOmat.append(UBmos)
-    
-=======
-        XOmat.append(Umos)
+        #XOmat.append(UBmos)
+        XOmat.append(UBR)
 
->>>>>>> other
     ############################
     Udiff = XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
@@ -200,6 +204,14 @@ if __name__=='__main__':
     print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
     print "Angle_i: %10.5f degree" % (angle*R2D)
 
+    ############################
+    Udiff = XOmat[0] * XOmat[0].inverse()
+    printmat(Udiff, '\n   U*U-1',  "%12.6f")
+#    axis, angle = axis_and_angle(Udiff)
+#    print "\n>>> DIFFERENCE_3:\n"
+#    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
+#    print "Angle_i: %10.5f degree" % (angle*R2D)
+
     if DO_PG_PERMUTATIONS:
         spgn = XOparser.dict["symmetry"]
         pointGroup = SPGlib[spgn][3]
@@ -210,73 +222,24 @@ if __name__=='__main__':
         print  ">>> Point group: %s" % (pointGroup)
         print  ">>> Number of equivalent crystal ortientations: %d\n" % \
                                          (len(PGequivOperators)+1)
-        allPermutedU = getPermutU(PGequivOperators, XOmat[0])
+        #allPermutedU = getPermutU(PGequivOperators, XOmat[0])
         n = 0
-        for Up in allPermutedU:
+        for Up in PGequivOperators:
             n+=1
-            print "Operator number:", n
-            print Up
-            Udiff = Up * XOmat[1].inverse()
-            axis, angle = axis_and_angle(Udiff)
-            print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
-            print "Angle_i: %10.5f degree" % (angle*R2D)
-
-
-    sys.exit()
-
-    XDSi.debut()
-    MOSi.UB = XDSi.UBxds_to_mos()
-    MOSi.cell = XDSi.dict["cell"]
-
-    B = MOSi.get_B(reciprocal(MOSi.cell))
-    MOSi.U = MOSi.UB * B.inverse() / XDSi.dict["wavelength"]
-
-    verif = is_orthogonal(MOSi.U)
-    if not verif:
-        print "???  Warning: The U matrix is not orthogonal."
-        print "???  Epsilon error: %.1e" % verif
-
-    XDSi.dict["origin"] = XDSi.getBeamOrigin()
-    XDSi.dict["omega"] = XDSi.getOmega()
-    XDSi.dict["twotheta"] = XDSi.getTwoTheta()
-    print "\n   Calculated Omega:    %9.2f degree" % (XDSi.dict["omega"]*r2d)
-    print "   Calculated 2theta:   %9.2f degree\n" % (XDSi.dict["twotheta"]*r2d)
-
-    if _write_out_angles:
-        MOSi.missetingAngles = map_r2d(ThreeAxisRotation2(MOSi.U.toList(1),
-                                          inversAxesOrder=1).getAngles()[0])
-        MOSi.U = mat3(ex, ey, ez)
-    else:    
-        MOSi.missetingAngles = 0, 0, 0
-        
-    MOSi.write_umat(matf_name)
-    
-    mosDict = PARS_xds2mos(XDSi.dict)
-    mosDict["matrixfile"] = matf_name
-    if "mosaicity" in mosDict:
-        mosDict['mosaicity_instruction'] = mosflmInpTemplate2 % mosDict
-    else:
-        mosDict['mosaicity_instruction'] = ""
-    
-    if "detector" in mosDict:
-        mosDict['detector_instruction'] = mosflmInpTemplate3 % mosDict
-    else:
-        mosDict['detector_instruction'] = ""
-            
-    openWriteClose(mosi_name, mosflmInpTemplate % mosDict)
-
-    if _verbose:
-        Ud = MOSi.UB.decompose()[0]
-        Bd = Ud.inverse() * MOSi.UB / XDSi.dict["wavelength"]
-        print "   Decomposition Epsilon Ud-U = %8.1e" % diffMAT(Ud, MOSi.U)
-        print "   Decomposition Epsilon Bd-B = %8.1e" % diffMAT(Bd, B)
-        print 
-        print str_mat(B , '   B decomposition:\n\n', "%14.7f")
-    
-    print str_mat(MOSi.UB, "   Mosflm UB:\n\n", "%14.7f")
-    print "   New Mosflm matix file:  %s" % matf_name
-    print "   New Mosflm input file:  %s\n" % mosi_name
-    print "   Use -s or --start-mosflm option to start 'ipmosflm < %s'\n" % mosi_name
-    
-    if _start_mosflm:
-        os.system("ipmosflm <  %s" % mosi_name)
+            print "Operator # %2d" % n,
+            if 1:
+                Up = mat3(Up[0], Up[1], Up[2])
+                #print "1", Up
+                Udiff = (Up * XOmat[0]) * XOmat[1].inverse()
+                axis, angle = axis_and_angle(Udiff)
+                print "Axis:  %9.5f%9.5f%9.5f" % tuple(axis),
+                print "Angle: %10.4f degree" % (angle*R2D)
+            if 0:
+                Up = mat3(Up[0], Up[1], Up[2])
+                print "1", Up
+                #Udiff = Up * UBR
+                axis, angle = axis_and_angle(Up)
+                #print
+                print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
+                print "Angle_i: %10.5f degree" % (angle*R2D)
+                printmat(Up* UBR, '\n   UBR',  "%12.6f")
