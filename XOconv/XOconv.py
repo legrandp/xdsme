@@ -985,5 +985,18 @@ PGequiv={'1':[],'2':[[-X,Y,-Z],],'222':[[-X,-Y,Z],
 [-Y,Z,-X],[-Z,-X,Y],[-Z,X,-Y],[Y,-Z,-X],[Y,X,-Z],[-Y,-X,-Z],
 [-X,Z,Y],[-X,-Z,-Y],[Z,-Y,X],[-Z,-Y,-X]]}
 
+def getPGequiv(symbol, add_identity=False, invert=False):
+    OPs = []
+    if add_identity:
+        OPs = [[X, Y, Z],]
+    OPs += PGequiv[symbol]
+    if invert:
+       invOPs = []
+       for OP in OPs:
+           invOPs.append([-1*OP[0],-1*OP[1],-1*OP[2]])
+       OPs = invOPs
+    return OPs
+        
+
 if __name__ == '__main__':
     _test()

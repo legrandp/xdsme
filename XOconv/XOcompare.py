@@ -175,9 +175,6 @@ if __name__=='__main__':
             A = vec3(XOparser.dict["A"])
             B = vec3(XOparser.dict["B"])
             C = vec3(XOparser.dict["C"])
-            print "A", A
-            print "B", B
-            print "C", C
             UBR = mat3(A, B, C).transpose()
             printmat(UBR, '\n   UBR',  "%12.6f")
 
@@ -196,17 +193,6 @@ if __name__=='__main__':
     print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
     print "Angle_i: %10.5f degree" % (angle*R2D)
 
-    ############################
-    Udiff = mat3(-1) * XOmat[0] * XOmat[1].inverse()
-    printmat(Udiff, '\n   U*U-1',  "%12.6f")
-    axis, angle = axis_and_angle(Udiff)
-    print "\n>>> DIFFERENCE_2:\n"
-    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
-    print "Angle_i: %10.5f degree" % (angle*R2D)
-
-    ############################
-    Udiff = XOmat[0] * XOmat[0].inverse()
-    printmat(Udiff, '\n   U*U-1',  "%12.6f")
 #    axis, angle = axis_and_angle(Udiff)
 #    print "\n>>> DIFFERENCE_3:\n"
 #    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
@@ -215,13 +201,15 @@ if __name__=='__main__':
     if DO_PG_PERMUTATIONS:
         spgn = XOparser.dict["symmetry"]
         pointGroup = SPGlib[spgn][3]
-        PGequivOperators = PGequiv[pointGroup]
+        PGequivOperators = getPGequiv(pointGroup,
+                                      add_identity=True,
+                                      invert=False)
         print
         print  ">>> Space Group : %s" % (SPGlib[spgn][1])
         print  ">>> Space Group number: %s" % (spgn)
         print  ">>> Point group: %s" % (pointGroup)
         print  ">>> Number of equivalent crystal ortientations: %d\n" % \
-                                         (len(PGequivOperators)+1)
+                                         (len(PGequivOperators))
         #allPermutedU = getPermutU(PGequivOperators, XOmat[0])
         n = 0
         for Up in PGequivOperators:
@@ -229,7 +217,6 @@ if __name__=='__main__':
             print "Operator # %2d" % n,
             if 1:
                 Up = mat3(Up[0], Up[1], Up[2])
-                #print "1", Up
                 Udiff = (Up * XOmat[0]) * XOmat[1].inverse()
                 axis, angle = axis_and_angle(Udiff)
                 print "Axis:  %9.5f%9.5f%9.5f" % tuple(axis),
@@ -237,9 +224,7 @@ if __name__=='__main__':
             if 0:
                 Up = mat3(Up[0], Up[1], Up[2])
                 print "1", Up
-                #Udiff = Up * UBR
                 axis, angle = axis_and_angle(Up)
-                #print
                 print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
                 print "Angle_i: %10.5f degree" % (angle*R2D)
                 printmat(Up* UBR, '\n   UBR',  "%12.6f")
