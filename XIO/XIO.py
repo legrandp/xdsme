@@ -352,7 +352,7 @@ class Image:
         #
         self.interpreter = interpreterClass()
         self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
-        
+        VERBOSE = True
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
@@ -360,14 +360,16 @@ class Image:
                 try:
                     self.header[k] = func(*map(self.RawHeadDict.get, args))
                 except ValueError:
+                    self.header[k] = 0.
                     if VERBOSE:
                         print "WARNING: Can't interpret header KEY %s" % k
-        #
+        import pprint 
+        print pprint.pprint(self.header)
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
         # Some time the beam center is expressed in pixels rather than in mm.
         if (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"])\
-	      and \
+           and \
            (self.header["BeamX"] > self.header["Width"]*self.header["PixelX"]):
             self.header["BeamX"] = self.header["BeamX"]*self.header["PixelX"]
             self.header["BeamY"] = self.header["BeamY"]*self.header["PixelY"]
