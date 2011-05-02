@@ -3,10 +3,10 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "12-11-2009"
-__copyright__ = "Copyright (c) 2009 Pierre Legrand"
+__date__ = "02-05-2011"
+__copyright__ = "Copyright (c) 2009-2011 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -48,7 +48,7 @@ BEAMY = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[1])\
 
 class Interpreter:
     "Dummy class, container for standard Dict and Function."
-
+    
     HTD = {
     # The adsc Header Translator Dictionary.
     # Potential problems:
@@ -117,7 +117,14 @@ class Interpreter:
                     self.raw_head_dict[val[0]] = None
         self.raw_head_dict.update(dict([ val for val in lis2 \
                                              if "Binary-" in val[0]]))
+        # Add some default values
         self.raw_head_dict.update({'HEADER_SIZE': i_3})
         self.raw_head_dict.update({'DATE': " ".join(lis[1])})
-        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0'})
+        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0',
+                                   'Beam_xy':"(1330.30, 1314.90)",
+                                   'Detector_distance': "0.4 m",
+                                   'Wavelength':"0.980 A",
+                                   'Angle_increment':"0.2 deg",
+                                   'Start_angle': "0. deg",
+                                   'Detector_2theta': "0. deg"})
         return self.raw_head_dict
