@@ -1592,7 +1592,12 @@ if __name__ == "__main__":
     newPar["NAME_TEMPLATE_OF_DATA_FRAMES"] = collect.xdsTemplate
 
     newPar["DELPHI"] = 8 * newPar["OSCILLATION_RANGE"]
-    newrun.inpParam.mix(xdsInp2Param(inp_str=xdsinp_base))
+    if "SPECIFIC_KEYWORDS" in newPar.keys():
+        specific_keys = newPar["SPECIFIC_KEYWORDS"]
+        del newPar["SPECIFIC_KEYWORDS"]
+    else:
+        specific_keys = ""
+    newrun.inpParam.mix(xdsInp2Param(inp_str=xdsinp_base+specific_keys))
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
