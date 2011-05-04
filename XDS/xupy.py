@@ -20,10 +20,10 @@ import shutil
 import fnmatch
 from time import time, sleep
 
-__version__ = "0.7.6"
+__version__ = "0.7.7"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "06-06-2010"
-__copyright__ = "Copyright (c) 2006-2010  Pierre Legrand"
+__date__ = "03-05-2011"
+__copyright__ = "Copyright (c) 2006-2011  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 

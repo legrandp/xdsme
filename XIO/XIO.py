@@ -352,7 +352,7 @@ class Image:
         #
         self.interpreter = interpreterClass()
         self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
-        VERBOSE = True
+        #VERBOSE = True
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
@@ -363,8 +363,6 @@ class Image:
                     self.header[k] = 0.
                     if VERBOSE:
                         print "WARNING: Can't interpret header KEY %s" % k
-        import pprint 
-        print pprint.pprint(self.header)
         # Check consistancy of beam center coordinates (should be in mm).
         # with pixel size and number...
         # Some time the beam center is expressed in pixels rather than in mm.
@@ -442,8 +440,8 @@ class Image:
 
     def getData(self, clipping=False):
         """Read the image bytes. For now only support the 16bits unsigned,
-	and uncompressed internaly. Can read compressed file directly
-	(like .gz or .Z).
+        and uncompressed internaly. Can read compressed file directly
+        (like .gz or .Z).
         If clipping=True, set I<0 to O and I>2**16 to 2**16"""
 
         if not self.interpreter:
@@ -615,7 +613,7 @@ class Collect:
                 self._naming_convension = 2
 
             if not M:
-    	        #print "3rd conv."
+                #print "3rd conv."
                 M = REC_FULLIMAGENAME3.match(init)
                 self._naming_convension = 3
 
@@ -695,7 +693,7 @@ class Collect:
 
         # python template format
         self.pythonTemplate = self.formatTemplate % \
-	                                 ("%0" + "%sd" % self.nDigits)
+                                     ("%0" + "%sd" % self.nDigits)
 
         # MOSFLM Template
         self.mosflmTemplate = self.formatTemplate % ("#" * self.nDigits)
@@ -864,6 +862,11 @@ class Collect:
         for k in exporter.CTD.keys():
             args, func = exporter.CTD[k]
             exportDict[k] = func(*map(self.__dict__.get, args))
+        det_SN = self.image.header["SerialNumber"]
+        spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
+        for spec_type in spec_SN.keys():
+            if spec_type in det_SN:
+                exportDict["SPECIFIC_KEYWORDS"] = spec_SN[spec_type]
         return exportDict
 
     def export_template(self, exportType='xds'):
