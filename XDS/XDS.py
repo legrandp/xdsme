@@ -100,6 +100,10 @@ USAGE = """
     -B,  --beam-center-optimize-z
          Like -b/--beam-center-optimize-i, but best solution is chosen with after
          a z-score ranking.
+    
+    -W   --beam-center-swap
+         Test different conventions to interpret the beam-center recorded in
+         image headers.     
 
     -d,  --distance
          Set the detector to crystal distance.
