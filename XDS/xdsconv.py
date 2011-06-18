@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
 __date__ = "06-08-2010"
 __copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
@@ -132,6 +132,7 @@ SHEL 999 ${RES}
 NTRY 1000
 FIND  ${NSITES}
 SFAC %(ha_name)s
+ESEL 1.4
 MIND -3.5 1
 MAXM 2
 EOFC

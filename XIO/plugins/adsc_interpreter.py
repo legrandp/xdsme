@@ -70,7 +70,7 @@ class Interpreter:
            get_edge_resolution),
 
     # Added keys from Graeme's convention.
-    'TwoTheta':(['TWO_THETA'], float),   # Example missing.
+    'TwoTheta':(['TWOTHETA'], float),   # Example missing.
     'SerialNumber':(['DETECTOR_SN'], str),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),

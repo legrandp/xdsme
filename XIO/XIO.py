@@ -862,11 +862,15 @@ class Collect:
         for k in exporter.CTD.keys():
             args, func = exporter.CTD[k]
             exportDict[k] = func(*map(self.__dict__.get, args))
+        exportDict["SPECIFIC_KEYWORDS"] = ""
         det_SN = self.image.header["SerialNumber"]
-        spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
-        for spec_type in spec_SN.keys():
-            if spec_type in det_SN:
-                exportDict["SPECIFIC_KEYWORDS"] = spec_SN[spec_type]
+        try:
+            spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
+            for spec_type in spec_SN.keys():
+                if spec_type in det_SN:
+                    exportDict["SPECIFIC_KEYWORDS"] = spec_SN[spec_type]
+        except:
+            pass
         return exportDict
 
     def export_template(self, exportType='xds'):
