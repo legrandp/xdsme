@@ -25,10 +25,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.4.9d"
+__version__ = "0.4.9e"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "08-09-2010"
-__copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
+__date__ = "05-07-2011"
+__copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -1263,16 +1263,21 @@ def new_reidx_cell(init_cell, reidx_mat):
 
 def parse_spacegroup(spginp):
     "Try to interpret spg input string from command line."
+    spg_found = False
     try:
         spg_int = int(spginp)
+        spg_found = True
     except ValueError:
-        spg_int = 0
+        #spg_int = 0
         spginp_up = spginp.upper()
         for spgn in SPGlib:
             if spginp_up in SPGlib[spgn]:
                 spg_int = spgn
+                spg_found = True
                 break
-    if spg_int:
+    if spg_found:
+        if spg_int == 0:
+             spg_int = 1
         spg_info = SPGlib[spg_int]
         spg_str = "  Imposed Space group:  %s,  number %d" % \
                (spg_info[1], spg_int)
