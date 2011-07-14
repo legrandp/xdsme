@@ -840,12 +840,18 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     if file_type == "CORREC": correct = 1
     elif file_type == "XSCALE": correct = 0
 
-    sp1 = lp.index("   INPUT DATA SET")
+    spa = lp.index("CORRECTION PARAMETERS FOR THE STANDARD ERROR OF")
+    spb = lp.index(" ***********", spa+100)
+    AB6 = lp[spa:spb].split()
     if correct:
-        sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
+        print AB6[-6:]
+        #sp1 = lp.index("      b          ISa")
+        #sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
+        s.K1s, s.K2s = map(float, AB6[-3:-1])
     else:
-        sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
-    s.K1s, s.K2s = map(float, lp[sp1+18: sp2].split())[:2]
+        print AB6[-50:-6]
+        sp1 = lp.index("ISa0   INPUT DATA SET")
+        #sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
     s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
     st2  = lp.index("  STATISTICS OF S")
     s.LowestReso = 100
@@ -873,9 +879,11 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         #stat_tg = lp[st10:st11].splitlines()[4:-2]
         #stat_tg3 = lp[st12:st13].splitlines()[4:-2]
     else:
-        st10x = lp.index("NOISE >= -2.0" ,st2)
-        st12x = lp.index("NOISE >=  4.0" ,st11)
-        stat_tg = lp[st10:st10x].splitlines()[4:-2]
+        #st10x = lp.index("NOISE >= -2.0" ,st2)
+        st10x = lp.index("= STATISTICS " ,st2)
+        #st12x = lp.index("NOISE >=  4.0" ,st11)
+        #stat_tg = lp[st10:st10x].splitlines()[4:-2]
+        stat_tg = lp[st10:st10x].splitlines()[4:-3]
         #stat_tg3 = lp[st12:st12x].splitlines()[4:-2]
 
     stat_wilson = lp[st14+30:st14+75].split()

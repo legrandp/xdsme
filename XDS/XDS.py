@@ -652,6 +652,7 @@ class XDS:
         self.inpParam = XParam()
         self.collect_dir = "./"
         self.link_name_to_image = "img"
+        self.running_processes = []
         #
         if type(obj) == file:
             exec obj.read() in self.inpParam.__dict__
@@ -692,7 +693,7 @@ class XDS:
             else:
                 return ""
 
-    def run(self, run_dir=None, rsave=None, verbose=True):
+    def run(self, run_dir=None, rsave=None, verbose=True, async=False):
         "Control the runing of the xds process and parse the output."
         self.__cancelled = 0
         self.running = 1
@@ -700,6 +701,7 @@ class XDS:
         self.step_name = ""
         self.outp = []
         self.init_dir = os.getcwd()
+        self.async = async
         if run_dir:
             self.run_dir = run_dir
         if not self.run_dir:
@@ -726,6 +728,7 @@ class XDS:
                     #     % (self.link_name_to_image, self.run_dir)
         opWriteCl("XDS.INP", "%s" % self.inpParam)
         #
+        # self.running_processes 
         xdsProcess = self._creat_process(self.__execfile)
         _init_parse = True
         overloaded_spots = 0
@@ -783,6 +786,11 @@ class XDS:
         #    print "End of XDS run"
         os.chdir(self.init_dir)
         return 1
+        
+    def run_idxref_optimize(self, number_of_test=4, verbose=False):
+        "Run COLSPOT + DXREF with different spot search paramters"
+        min_pixels = [4, 7, 10, 15]
+        strong_pixel = [11, 9, 7, 5]
 
     def spots_resolution_cutoff(self, res_cutoff, verbose=False):
         "Read the SPOT.XDS file and filter spots using a resolution cutoff."
@@ -1542,6 +1550,7 @@ if __name__ == "__main__":
 
     imgDir = collect.directory
     newPar = collect.export("xds")
+    print newPar
 
     # Update some default values defined by XIO.export_xds:
     # In case no beam origin is defined, take the detector center.
@@ -1553,6 +1562,8 @@ if __name__ == "__main__":
     newPar["STARTING_ANGLE"] = newPar["STARTING_ANGLE"] - \
               newPar["OSCILLATION_RANGE"]*(newPar["DATA_RANGE"][0] - 1)
     newPar["STRONG_PIXEL"] = 7
+    newPar["RESOLUTION_SHELLS"] = 15.0, 7.0, newPar["_HIGH_RESOL_LIMIT"]
+    newPar["TEST_RESOLUTION_RANGE"] = 20, newPar["_HIGH_RESOL_LIMIT"]+1.5
 
     newrun = XDS()
 
