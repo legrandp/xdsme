@@ -64,6 +64,7 @@ def det_beam_y(x0, y0, qx, qy, dettype):
     elif _def == "YX":
         return orgx
 
+
 XDS_DETECTOR_DICT = {
   "detector_name":{
     "mar":       "MAR345",
@@ -217,6 +218,10 @@ TEMPLATE += """
 #     Translate image header entries in a new dictionay
 #     newdic['X_RAY_WAVELENGTH'] = float(head['Wavelength'])
 #
+#def TEST(x):
+#  print x, type(x)
+#  return round(x*1.02,2)
+
 HTD = {
 'X_RAY_WAVELENGTH':(['Wavelength'], float),
 'DETECTOR_DISTANCE':(['Distance','ImageType'], det_dist),

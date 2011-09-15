@@ -33,13 +33,21 @@ def get_edge_resolution(pixel_x, width, distance, wavelength):
     "Calculate EdgeResolution"
     from math import sin, atan
     if distance > 0.0:
-        rad = 0.5 * float(pixel_x) * int(width)
-        return float(wavelength)/sin(atan(rad/float(distance)))
+        rad = 0.5 * float(FLOAT2(pixel_x)) * int(width)
+        return FLOAT1(wavelength)/sin(atan(rad/DISTANCE(distance)))
     else:
         return 0.
 
 FLOAT1 = lambda x: float(x.split()[0])
 FLOAT2 = lambda x: float(x.split()[0])*1e3
+
+def DISTANCE(inp):
+    args = inp.split()
+    try:
+        if args[1] == "m": return float(args[0])*1e3
+    except:
+        return float(args[0])
+  
 
 BEAMX = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[0])\
                                                                *FLOAT2(y)
@@ -59,7 +67,7 @@ class Interpreter:
     'ExposureTime':(['Exposure_time'], FLOAT1),
     'BeamX':(['Beam_xy', 'Pixel_size'], BEAMX),
     'BeamY':(['Beam_xy', 'Pixel_size'], BEAMY),
-    'Distance':(['Detector_distance'], FLOAT2),
+    'Distance':(['Detector_distance'], DISTANCE),
     'Wavelength':(['Wavelength'], FLOAT1),
     'PixelX':(['Pixel_size'], FLOAT2),
     'PixelY':(['Pixel_size'], FLOAT2),
@@ -70,9 +78,8 @@ class Interpreter:
     'PhiEnd':(['Start_angle', 'Angle_increment'], \
                      lambda x, y: FLOAT1(x)+FLOAT1(y)),
     'PhiWidth':(['Angle_increment'], FLOAT1),
-    #'EdgeResolution':(['PIXEL_SIZE','SIZE1','DISTANCE','WAVELENGTH'],
-    #    getEdgeResolution),
-
+    'EdgeResolution':(['Pixel_size','Binary-Size-Second-Dimension','Detector_distance','Wavelength'], \
+                     get_edge_resolution),
     # Added keys from Graeme's convention.
     'TwoTheta':(['Detector_2theta'], FLOAT1),   # No example yet...
     'SerialNumber':(['Detector:'], str),
@@ -120,11 +127,11 @@ class Interpreter:
         # Add some default values
         self.raw_head_dict.update({'HEADER_SIZE': i_3})
         self.raw_head_dict.update({'DATE': " ".join(lis[1])})
-        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0',
-                                   'Beam_xy':"(1330.30, 1314.90)",
-                                   'Detector_distance': "0.4 m",
-                                   'Wavelength':"0.980 A",
-                                   'Angle_increment':"0.2 deg",
-                                   'Start_angle': "0. deg",
-                                   'Detector_2theta': "0. deg"})
+        #self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0',
+        #                           'Beam_xy':"(1330.30, 1314.90)",
+        #                           'Detector_distance': "0.4 m",
+        #                           'Wavelength':"0.980 A",
+        #                           'Angle_increment':"0.2 deg",
+        #                           'Start_angle': "0. deg",
+        #                           'Detector_2theta': "0. deg"})
         return self.raw_head_dict
