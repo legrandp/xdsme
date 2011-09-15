@@ -840,19 +840,22 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     if file_type == "CORREC": correct = 1
     elif file_type == "XSCALE": correct = 0
 
-    spa = lp.index("CORRECTION PARAMETERS FOR THE STANDARD ERROR OF")
-    spb = lp.index(" ***********", spa+100)
-    AB6 = lp[spa:spb].split()
-    if correct:
-        print AB6[-6:]
-        #sp1 = lp.index("      b          ISa")
-        #sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
-        s.K1s, s.K2s = map(float, AB6[-3:-1])
-    else:
-        print AB6[-50:-6]
-        sp1 = lp.index("ISa0   INPUT DATA SET")
-        #sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
-    s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
+    try:
+        spa = lp.index("CORRECTION PARAMETERS FOR THE STANDARD ERROR OF")
+        spb = lp.index(" ***********", spa+100)
+        AB6 = lp[spa:spb].split()
+        if correct:
+            #print AB6[-6:]
+            #sp1 = lp.index("      b          ISa")
+            #sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
+            s.K1s, s.K2s = map(float, AB6[-3:-1])
+        else:
+            #print AB6[-50:-6]
+            sp1 = lp.index("ISa0   INPUT DATA SET")
+            #sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
+        s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
+    except:
+        s.IoverSigmaAsympt =  -99.9
     st2  = lp.index("  STATISTICS OF S")
     s.LowestReso = 100
     slowr = lp.index("INCLUDE_RESOLUTION_RANGE=") + 26

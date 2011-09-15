@@ -25,9 +25,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.4.9e"
+__version__ = "0.5.0alpha"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "05-07-2011"
+__date__ = "15-09-2011"
 __copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -170,11 +170,9 @@ FMT_HELLO = """
   Oscillation range:           %(OSCILLATION_RANGE)10.4f degree\n
   Beam coordinate X:             %(ORGX)8.1f pixel
                   Y:             %(ORGY)8.1f pixel
-  Resolution range:           %(INCLUDE_RESOLUTION_RANGE)11s
   Image range:                %(DATA_RANGE)11s
 """
-#         RMSd spot position    %%() pixels   %%() degree
-
+  
 FMT_FINAL_STAT = """
       Refined Parameters and Scaling Statistics
       =========================================\n
@@ -1050,6 +1048,9 @@ class XDS:
         """Runs a first pass of CORRECT to evaluate high_res and
            point group.
         """
+        def _get_cell(_file):
+            return map(float, (open(_file,'r').readlines()[7]).split()[1:])
+            
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         # run pointless on INTEGRATE.HKL        
@@ -1073,10 +1074,12 @@ class XDS:
             # run first CORRECT in P1 with the cell used for integration.
             # read the cell parameters from the XPARM.XDS file
             self.inpParam["SPACE_GROUP_NUMBER"] = 1
-            xparm_file = os.path.join(self.run_dir, "XPARM.XDS")
-            #xparm_file = "XPARM.XDS"
-            self.inpParam["UNIT_CELL_CONSTANTS"] = \
-               map(float, (open(xparm_file,'r').readlines()[7]).split()[1:])
+            try:
+                xparm_file = os.path.join(self.run_dir, "XPARM.XDS")
+                self.inpParam["UNIT_CELL_CONSTANTS"] = _get_cell(xparm_file)
+            except:
+                os.chdir("..")
+                self.inpParam["UNIT_CELL_CONSTANTS"] = _get_cell(xparm_file)
         # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
@@ -1550,7 +1553,8 @@ if __name__ == "__main__":
 
     imgDir = collect.directory
     newPar = collect.export("xds")
-    print newPar
+    #for par in newPar: print par, newPar[par]
+    #print newPar["INCLUDE_RESOLUTION_RANGE"]
 
     # Update some default values defined by XIO.export_xds:
     # In case no beam origin is defined, take the detector center.
@@ -1601,7 +1605,9 @@ if __name__ == "__main__":
         newPar["X_RAY_WAVELENGTH"] = _wavelength
     #if XDS_INPUT:
     #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
-    if RES_HIGH or (RES_LOW != 50):
+    if "_HIGH_RESOL_LIMIT" in newPar:
+        newPar["INCLUDE_RESOLUTION_RANGE"] = RES_LOW, newPar["_HIGH_RESOL_LIMIT"]
+    if RES_HIGH:
         newPar["INCLUDE_RESOLUTION_RANGE"] = RES_LOW, RES_HIGH
 
     if _linkimages:
@@ -1611,7 +1617,6 @@ if __name__ == "__main__":
 
     newPar["NAME_TEMPLATE_OF_DATA_FRAMES"] = collect.xdsTemplate
 
-    newPar["DELPHI"] = 8 * newPar["OSCILLATION_RANGE"]
     if "SPECIFIC_KEYWORDS" in newPar.keys():
         specific_keys = newPar["SPECIFIC_KEYWORDS"]
         del newPar["SPECIFIC_KEYWORDS"]
@@ -1621,18 +1626,23 @@ if __name__ == "__main__":
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
-
-    if NUMBER_OF_PROCESSORS > 8:
-        newrun.inpParam["DELPHI"] = NUMBER_OF_PROCESSORS * newPar["OSCILLATION_RANGE"]
+    
+    # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
+    _MIN_DELPHI = 5. # in degree
+    _DELPHI = NUMBER_OF_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
+    while _DELPHI < _MIN_DELPHI:
+        _DELPHI *= 2
+    newrun.inpParam["DELPHI"] = _DELPHI
 
     if SLOW:
-        newrun.inpParam["DELPHI"] = 16 * newPar["OSCILLATION_RANGE"]
+        newrun.inpParam["DELPHI"] *= 2
         newrun.mode.append("slow")
     if WEAK:
         newrun.mode.append("weak")
 
     print FMT_HELLO % vars(newrun.inpParam)
-    print "  Maximum number of processors avialable:  %3d\n" % NUMBER_OF_PROCESSORS
+    print "  Selected resolution range:       %.2f - %.2f A" % newPar["INCLUDE_RESOLUTION_RANGE"]
+    print "  Number of processors avialable:    %3d\n" % NUMBER_OF_PROCESSORS
 
     if WARNING:
         print WARNING
