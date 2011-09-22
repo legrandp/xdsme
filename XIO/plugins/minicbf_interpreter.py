@@ -115,7 +115,9 @@ class Interpreter:
         lis2 = [line[2:].strip().split(": ", 1) \
                    for line in raw_head[i_3:i_4].splitlines() \
                        if line and line[0:2]=="X-"]
-        self.raw_head_dict = {}
+        # Filling the raw_header_dict with some default values,
+        # in case they are missing in the header.
+        self.raw_head_dict = {'Detector_2theta': "0.", 'MESSAGE': ''}
         for val in lis:
             if (val[0] in HEADER_KEYS):
                 if len(val) == 2:
