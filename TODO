@@ -3,7 +3,7 @@ xscale2.py:
    - Add the possibility to change merging, anomalous... -m, -u, -n, -a...
 
 XDS.py:
-   - Add unittestesting
+   - Add more unittesting
    - Fix starting angle/starting frame.
    - njob/nproc automatic for linux/osx
    -
