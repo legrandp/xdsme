@@ -819,7 +819,7 @@ class Collect:
             print fmt % (imagename_list[0], phi_start, phi_range)
             print fmt % (imagename_list[-1], phi_last, phi_range)
             print "Diff = (phi_last - phi_start)/phi_range -",
-            print "(num_last - num_start) = %f.4" % diff
+            print "(num_last - num_start) = %.4f" % diff
             return False
 
     def get_range(self, minf=None, maxf=None):

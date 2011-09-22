@@ -214,6 +214,21 @@ PG2SP = {"1":(1,),"2":(3,4,5),
 "23":(195,196,197,198,199),
 "432":(207,208,209,210,211,212,213,214)}
 
+EXCLUDE_ICE_RING = {"EXCLUDE_RESOLUTION_RANGE": [[3.93, 3.87], [3.70, 3.64],
+     [3.47, 3.41], [2.70, 2.64], [2.28, 2.22], [2.102, 2.042], [1.978, 1.918],
+     [1.948, 1.888], [1.913, 1.853], [1.751, 1.691]]}
+"""!EXCLUDE_RESOLUTION_RANGE= 3.93 3.87 !ice-ring at 3.897 Angstrom
+!EXCLUDE_RESOLUTION_RANGE= 3.70 3.64 !ice-ring at 3.669 Angstrom
+!EXCLUDE_RESOLUTION_RANGE= 3.47 3.41 !ice-ring at 3.441 Angstrom
+!EXCLUDE_RESOLUTION_RANGE= 2.70 2.64 !ice-ring at 2.671 Angstrom
+!EXCLUDE_RESOLUTION_RANGE= 2.28 2.22 !ice-ring at 2.249 Angstrom
+!EXCLUDE_RESOLUTION_RANGE= 2.102 2.042 !ice-ring at 2.072 Angstrom - strong
+!EXCLUDE_RESOLUTION_RANGE= 1.978 1.918 !ice-ring at 1.948 Angstrom - weak
+!EXCLUDE_RESOLUTION_RANGE= 1.948 1.888 !ice-ring at 1.918 Angstrom - strong
+!EXCLUDE_RESOLUTION_RANGE= 1.913 1.853 !ice-ring at 1.883 Angstrom - weak
+!EXCLUDE_RESOLUTION_RANGE= 1.751 1.691 !ice-ring at 1.721 Angstrom - weak
+"""
+
 def get_BravaisToSpgs():
     Bravais_to_spg = {}
     for br in Bravais_to_Laue:

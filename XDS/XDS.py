@@ -50,7 +50,8 @@ from pointless import pointless, is_pointless_installed
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
-                 get_BravaisToSpgs, get_number_of_processors
+                 get_BravaisToSpgs, get_number_of_processors, \
+                 EXCLUDE_ICE_RING
 import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -115,6 +116,9 @@ USAGE = """
     -f,  --reference FILE
          Defines a reference data set used during the XPLAN and CORRECT steps.
          For example: -f ../ref/XDS_ASCII.HKL
+    
+    -I,  --ice
+         Exclude resolution ranges where ice-rings occures.
 
     -O,  --oscillation
          Set frame oscillation range in degree.
@@ -1397,11 +1401,12 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:i:O:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:f:i:IO:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
                 "beam-y=",
+                "ice",
                 "spg=",
                 "strategy",
                 "high-resolution="
@@ -1435,6 +1440,7 @@ if __name__ == "__main__":
     DEBUG = False
     WEAK = False
     ANOMAL = False
+    ICE = False
     STRICT_CORR = False
     BEAM_X = 0
     BEAM_Y = 0
@@ -1444,7 +1450,7 @@ if __name__ == "__main__":
     _distance = 0
     _oscillation = 0
     _project = ""
-    _wavelength = 0
+    WAVELENGTH = 0
     RES_LOW = 50
     _reference = False
     _beam_center_optimize = False
@@ -1465,6 +1471,8 @@ if __name__ == "__main__":
         if o in ("-A", "--Anomal"):
             ANOMAL = True
             STRICT_CORR = True
+        if o in ("-I", "--ici"):
+            ICE = True
         if o[1] in "123456":
             STEP = int(o[1])
         if o in ("-s", "--spg"):
@@ -1489,7 +1497,7 @@ if __name__ == "__main__":
         if o in ("-S", "--strategy"):
             STRATEGY = True
         if o in ("-w", "--wavelength"):
-            _wavelength = float(a)
+            WAVELENGTH = float(a)
         if o in ("-r", "--high-resolution"):
             RES_HIGH = float(a)
         if o in ("-R", "--low-resolution"):
@@ -1584,6 +1592,8 @@ if __name__ == "__main__":
         newPar["ORGX"] = BEAM_X
     if BEAM_Y:
         newPar["ORGY"] = BEAM_Y
+    if ICE:
+        newPar.update(EXCLUDE_ICE_RING)
     if SPG and _cell:
         newPar["SPACE_GROUP_NUMBER"] = SPG
         newPar["UNIT_CELL_CONSTANTS"] = _cell
@@ -1601,8 +1611,8 @@ if __name__ == "__main__":
         newPar["REFERENCE_DATA_SET"] = "../"+_reference
     if _oscillation:
         newPar["OSCILLATION_RANGE"] = _oscillation
-    if _wavelength:
-        newPar["X_RAY_WAVELENGTH"] = _wavelength
+    if WAVELENGTH:
+        newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
     #if XDS_INPUT:
     #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
     if "_HIGH_RESOL_LIMIT" in newPar:
@@ -1626,6 +1636,7 @@ if __name__ == "__main__":
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
+    print newPar
     
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
