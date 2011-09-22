@@ -25,9 +25,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0alpha"
+__version__ = "0.5.0alpha2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "15-09-2011"
+__date__ = "22-09-2011"
 __copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -91,7 +91,7 @@ USAGE = """
          Set a high resolution cutoff. Default is 0 (no cutoff).
 
     -R,  --low-resolution
-         Set a low resolution cutoff. Default is 9999.
+         Set a low resolution cutoff. Default is 50 A.
 
     -b,  --beam-center-optimize-i
          Starting from the initial given values, search and optimize the beam
@@ -847,17 +847,19 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = NUMBER_OF_PROCESSORS
         _trial = 0
-
+        
+        # DEFAULT=3.2 deg., SLOW=6.4 deg., FAST=1.6 deg.
+        dPhi = self.inpParam["OSCILLATION_RANGE"]
         frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
         if "slow" in self.mode:
-            frames_per_colspot_sequence = 32
+            frames_per_colspot_sequence = int(round(6.4/dPhi, 0))
         elif "fast" in self.mode:
-            frames_per_colspot_sequence = 4
+            frames_per_colspot_sequence = int(round(1.6/dPhi, 0))
         else:
-            frames_per_colspot_sequence = 16
+            frames_per_colspot_sequence = int(round(3.2/dPhi, 0))
         if "weak" in self.mode:
             self.inpParam["STRONG_PIXEL"] = 4.5
-            frames_per_colspot_sequence = 32
+            frames_per_colspot_sequence = int(round(12.8/dPhi, 0))
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
         # xds export function XIO
@@ -865,7 +867,6 @@ class XDS:
         cfo.imageNumbers = cfo._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
         #
         min_fn, max_fn = self.inpParam["DATA_RANGE"] 
-        dPhi = self.inpParam["OSCILLATION_RANGE"]
         _fpcs = frames_per_colspot_sequence
         _2fpcs = 1 + 2 * frames_per_colspot_sequence
 
@@ -1447,9 +1448,9 @@ if __name__ == "__main__":
     SPG = 0
     STRATEGY = False
     RES_HIGH = 0
-    _distance = 0
-    _oscillation = 0
-    _project = ""
+    DISTANCE = 0
+    OSCILLATION = 0
+    PROJECT = ""
     WAVELENGTH = 0
     RES_LOW = 50
     _reference = False
@@ -1460,7 +1461,7 @@ if __name__ == "__main__":
     XDS_INPUT = ""
     _beam_in_mm = False
     SLOW = False
-    _fast = False
+    FAST = False
     STEP = 1
 
     for o, a in opts:
@@ -1482,7 +1483,7 @@ if __name__ == "__main__":
         if o in ("-c", "--cell"):
             _cell = a
         if o in ("-d", "--distance"):
-            _distance = float(a)
+            DISTANCE = float(a)
         if o in ("-f", "--reference"):
             if os.path.isfile(a):
                 _reference = str(a)
@@ -1491,9 +1492,9 @@ if __name__ == "__main__":
                 print "  STOP!\n"
                 sys.exit()
         if o in ("-O", "--oscillation"):
-            _oscillation = float(a)
+            OSCILLATION = float(a)
         if o in ("-p", "--project"):
-            _project = str(a)
+            PROJECT = str(a)
         if o in ("-S", "--strategy"):
             STRATEGY = True
         if o in ("-w", "--wavelength"):
@@ -1532,10 +1533,10 @@ if __name__ == "__main__":
         print "\nERROR. Can't open file: %s\n" % inputf[0] 
         sys.exit(2)
     _coll = XIO.Collect(inputf[0])
-    if not _project:
+    if not PROJECT:
         newDir = "xds_process_" + _coll.prefix
     else:
-        newDir = "xds_process_" + _project
+        newDir = "xds_process_" + PROJECT
     #
     _linkimages = False
     if not _coll.isContinuous(inputf):
@@ -1605,12 +1606,12 @@ if __name__ == "__main__":
         WARNING += " setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
         newPar["UNIT_CELL_CONSTANTS"] = _cell
-    if _distance:
-        newPar["DETECTOR_DISTANCE"] = _distance
+    if DISTANCE:
+        newPar["DETECTOR_DISTANCE"] = DISTANCE
     if _reference:
         newPar["REFERENCE_DATA_SET"] = "../"+_reference
-    if _oscillation:
-        newPar["OSCILLATION_RANGE"] = _oscillation
+    if OSCILLATION:
+        newPar["OSCILLATION_RANGE"] = OSCILLATION
     if WAVELENGTH:
         newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
     #if XDS_INPUT:
@@ -1636,7 +1637,7 @@ if __name__ == "__main__":
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
-    print newPar
+    #print newPar
     
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
