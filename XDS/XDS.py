@@ -25,9 +25,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0alpha2"
+__version__ = "0.5.0alpha3"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "22-09-2011"
+__date__ = "10-10-2011"
 __copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -166,8 +166,8 @@ USAGE = """
 
 """ % PROGNAME
 
-FMT_HELLO = """
-    Simplified XDS Processing\n
+FMT_HELLO = "\n    Simplified XDS Processing (xdsme v%s)\n" % __version__
+FMT_HELLO += """
     Diffraction Setup Parameters:\n
   Detector distance:             %(DETECTOR_DISTANCE)8.2f mm
   X-ray wavelength:            %(X_RAY_WAVELENGTH)10.4f A
@@ -180,7 +180,8 @@ FMT_HELLO = """
 FMT_FINAL_STAT = """
       Refined Parameters and Scaling Statistics
       =========================================\n
-      Image Range   %(image_start)5d  to  %(image_last)5d
+      Name template    %(name)s
+      Data range   %(image_start)5d  to  %(image_last)5d
 
       Space group   number    %(spg_num)d
                     symbol    %(spg_sym)s
@@ -202,7 +203,7 @@ FMT_FINAL_STAT = """
       Wilson scaling (B/Corr)    %(wilson_b)10.1f    (%(wilson_corr).2f)
 """
 
-FMT_ABSENCES = "      Systematic absente reflection measured %(AbsNum)6d \
+FMT_ABSENCES = "      Systematic absent reflections measured %(AbsNum)6d \
  with <Iabs>/<I> =  %(AbsIav).1f%%\n"
 
 FMT_ANOMAL = """
@@ -428,7 +429,7 @@ class XDSLogParser:
         prp += "  Mean Gain:        %(mean_gain).1f\n"
         prp += "  Min table gain:   %(min_gain).2f\n"
         prp += "  Max table gain:   %(max_gain).2f\n"
-        prp += "  Mean Backgroud:   %(mean_background).1f\n"
+        prp += "  Mean Background:  %(mean_background).1f\n"
         if self.verbose:
             print prp % rdi
         return rdi, prp
@@ -503,7 +504,7 @@ class XDSLogParser:
   Refined beam position (in pixels):  (%(bpx)9.2f, %(bpy)9.2f)
   Shift in beam position: %(shift_mm)9.2f mm  (%(shift_pixel).1f pixels)
 """
-        prp2 = "  Size of the origine index table: %(origin_n)7d\n" % vars()
+        prp2 = "  Size of the origin index table: %(origin_n)7d\n" % vars()
         ppa, ppb = "\n\tQuality:       ", "\n\tShift (mm):    "
         ppc, ppd = "\n\tShift (pixels):", "\n\tBeam X (mm):   "
         ppe, ppf = "\n\tBeam Y (mm):   ", "\n\tIndex Origin:  "
@@ -813,13 +814,13 @@ class XDS:
                    0.5/sin(atan2(((rx*(float(s[:10])  -xo))**2 +
                                   (ry*(float(s[10:20])-yo))**2)**0.5,D)/2.)
         filtredSpots = [s for s in spots \
-	                  if resolCal(s,D,xo,yo,rx,ry) >= res_cutoff]
+                          if resolCal(s,D,xo,yo,rx,ry) >= res_cutoff]
         #
         newspots.writelines(filtredSpots)
         ni, nf = len(spots), len(filtredSpots)
         if verbose:
             print ">> Selected spots with %.2f resolution cutoff:" % \
-	                                                     (res_cutoff),
+                                                           (res_cutoff),
             print "%d / %d (%.1f%%)" % (nf, ni, nf*100./ni)
         newspots.close()
 
@@ -831,10 +832,12 @@ class XDS:
         self.inpParam["JOB"] = "XYCORR", "INIT"
         i1, i2 = self.inpParam["DATA_RANGE"]
         #if "slow" in self.mode:
-        if SLOW:
-            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+11)
+        # default is min of 3 degrees or 8 images.
+        dPhi = self.inpParam["OSCILLATION_RANGE"]
+        if SLOW or WEAK:
+            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, min(i1+15, int(8./dPhi)))
         else:
-            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, i1+3)
+            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, min(i1+7, int(4./dPhi)))
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
@@ -1037,16 +1040,16 @@ class XDS:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
         "Runs the 2 first steps: DEFPIX and INTEGRATE"
-        if len(image_ranges) == 1:
+        if len(image_ranges) >= 1:
             self.inpParam["JOB"] = "DEFPIX", "INTEGRATE"
             self.run(rsave=True)
             res = XDSLogParser("INTEGRATE.LP", run_dir=self.run_dir, verbose=1)
             self.check_fileout("INTEGRATE.HKL")
-        else:
-            #print "\n Error in the INTEGRATE step:"
-            print "\n Image range:", image_ranges
-            print " Multi-sweep integration not yet implemanted. Sorry.\n"
-            sys.exit(0)
+        #else:
+        #    #print "\n Error in the INTEGRATE step:"
+        #    print "\n Image range:", image_ranges
+        #    print " Multi-sweep integration not yet implemanted. Sorry.\n"
+        #    sys.exit(0)
         return res.results
 
     def run_pre_correct(self):
@@ -1110,7 +1113,7 @@ class XDS:
             print "   ->  New high resolution limit: %.2f Å" % res_cut[1]
             self.inpParam["INCLUDE_RESOLUTION_RANGE"] = res_cut
         if spg_num:
-            print "   ->  Usging spacegroup: %s  #%d" % \
+            print "   ->  Using spacegroup: %s  #%d" % \
                                    (SPGlib[spg_num][1], spg_num)
         lattice = Lattice(self.inpParam["UNIT_CELL_CONSTANTS"],
                           symmetry=spg_num)
@@ -1121,10 +1124,11 @@ class XDS:
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
         s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
-        s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         if not s:
             print "\nERROR while running CORRECT"
             sys.exit()
+        s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
+        s["name"] = os.path.basename(self.inpParam["NAME_TEMPLATE_OF_DATA_FRAMES"])
         print FMT_FINAL_STAT % vars(s)
         if s.absent:
             print FMT_ABSENCES % vars(s)
@@ -1654,7 +1658,7 @@ if __name__ == "__main__":
 
     print FMT_HELLO % vars(newrun.inpParam)
     print "  Selected resolution range:       %.2f - %.2f A" % newPar["INCLUDE_RESOLUTION_RANGE"]
-    print "  Number of processors avialable:    %3d\n" % NUMBER_OF_PROCESSORS
+    print "  Number of processors available:    %3d\n" % NUMBER_OF_PROCESSORS
 
     if WARNING:
         print WARNING

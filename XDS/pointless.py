@@ -57,7 +57,7 @@ def process_pointless_xml():
         pass
     # Looking at systematique extinctions
     if zone_list:
-        print "\n  Systematique extinctions from pointless:"
+        print "\n  Systematic extinctions from pointless:"
         print "  Zone Type            axe len.    #obs     Condition    Prob."
         print "  "+60*"-"
         for node in zone_list.getElementsByTagName('Zone'):
