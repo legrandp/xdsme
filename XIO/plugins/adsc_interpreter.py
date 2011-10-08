@@ -98,7 +98,7 @@ class Interpreter:
     '917':('ESRF','ID23-1','ADSC 315'),
     '918':('ESRF','ID14-4','ADSC 315'),
     '926':('ALS','ALS831','ADSC 315r'),
-    '927':('SOLEIL','PROXIMA1','ADSC 315r'),
+    '927':('SOLEIL','PROXIMA2a','ADSC 315r'),
     }
 
     def __init__(self):
@@ -109,5 +109,5 @@ class Interpreter:
 
         _lis = raw_head[2:].split("}")[0].split(";\n")[:-1]
         self.raw_head_dict = dict([par.split("=") for par in _lis])
-        self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0'}) # Example missing
+        self.raw_head_dict.update({'MESSAGE': '', 'TWOTHETA': '0'}) # Example missing
         return self.raw_head_dict

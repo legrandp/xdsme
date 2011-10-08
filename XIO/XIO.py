@@ -806,6 +806,9 @@ class Collect:
         # their phi_osc range is compatible with their numbering.
         if methode == 0:
             phi_range = self.image.header['PhiWidth']
+            if phi_range == 0:
+                print  "WARNING: Oscillation_Range recorded in image header is null ! Use the -O option to give the true value."
+                return True
             phi_start = self.image.header['PhiStart']
             phi_last = Image(last_image).header['PhiStart']
             num_start = self.imageNumbers[0]
