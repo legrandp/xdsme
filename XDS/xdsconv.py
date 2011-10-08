@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "06-08-2010"
-__copyright__ = "Copyright (c) 2006-2010 Pierre Legrand"
+__date__ = "08-10-2011"
+__copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 # Environemantal variable XDSHOME, if set, defines the place where the xds
@@ -345,6 +345,7 @@ if [[ $# -eq 2 ]];then
    echo $PARTIAL_MODEL_OPTION
 fi
 
+function run_phaser_214() {
 phaser << eof > phaser_auto_${ID}.log
 MODE EP_AUTO
 TITLe SAD phasing of ${ID} with %(num_sites)d %(ha_name)s
@@ -359,7 +360,9 @@ ROOT ${ID}_auto
 ${PARTIAL_MODEL_OPTION}
 ${INVERT_HAND}
 eof
+}
 
+function run_parrot() {
 cparrot \\
 -mtzin-wrk      ${ID}_auto.mtz \\
 -pdbin-wrk-ha   ${ID}_auto.pdb \\
@@ -375,6 +378,11 @@ cparrot \\
 -solvent-content ${solvent_content} \\
 -ncs-average \\
 > cparrot_${ID}_${solvent_content}_${parrot_cycles}.log
+# -ncs-mask-filter-radius radius 22 \\
+}
+
+run_phaser_214
+run_parrot
 
 """
 
@@ -1017,7 +1025,7 @@ if __name__=='__main__':
     import xupy
 
     # Default options
-    __format_out = "CCP4"
+    __format_out = [] #"CCP4"
     __atom_name = ""
     __num_sites = 0
     __xds_input = ""
@@ -1067,8 +1075,8 @@ if __name__=='__main__':
             __force_merge = True
         # Geting output format
         elif arg.upper() in options:
-            __format_out = arg.upper()
-            print argp_fmt %("Export mode:", __format_out)
+            __format_out.append(arg.upper())
+            print argp_fmt %("Export mode:", arg.upper())
         # Geting Atom type
         elif arg.title() in atom_names:
             print argp_fmt % ("atomType:", arg)
@@ -1138,7 +1146,8 @@ if __name__=='__main__':
     XC.lbl = ""
     XC.ha_name = __atom_name
     XC.num_sites = __num_sites
-    XC.mode = __format_out
+    if not __format_out: __format_out = ["CCP4"]
+    XC.modes = __format_out
     #XC.wavelength = 1.5418111
 
     if __force_anom: XC.friedel_out = "FALSE"
@@ -1190,10 +1199,13 @@ if __name__=='__main__':
     print fmt_inp % vars(XC)
 
     #-----------------------------
-    E = DoMode(XC)
-    print fmt_outp % vars(XC)
-    if XC.friedel_in == "FALSE":
-        print fmt_outp_ha % vars(XC)
-    E.run()
-    E.post_run(XC)
+    modes = XC.modes[:]
+    for mode in modes:
+        XC.mode = mode
+        E = DoMode(XC)
+        print fmt_outp % vars(XC)
+        if XC.friedel_in == "FALSE":
+            print fmt_outp_ha % vars(XC)
+        E.run()
+        E.post_run(XC)
 
