@@ -53,6 +53,7 @@ def process_pointless_xml():
     try:
         zone_list = dom.getElementsByTagName('ZoneScoreList')[0]
     except:
+        print "ERROR, here..."
         pass
     # Looking at systematique extinctions
     if zone_list:
@@ -63,7 +64,10 @@ def process_pointless_xml():
             ztype = get_elem(node, 'ZoneType', str)
             nobs = get_elem(node, 'Nobs', int)
             prob = get_elem(node, 'Prob', float)
-            condition = get_elem(node, 'Condition', str)
+            try:
+                condition = get_elem(node, 'Condition', str)
+            except:
+                condition = " "
             axe = init_cell_par[ztype[ztype.index("[")+1:ztype.index("]")]]
             all_dat = (ztype, axe, nobs, condition, prob)
             print "%21s %8.1f Å %6d  %12s  %7.3f" % all_dat
