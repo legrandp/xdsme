@@ -166,8 +166,7 @@ USAGE = """
 
 """ % PROGNAME
 
-FMT_HELLO = "\n    Simplified XDS Processing (xdsme v%s)\n" % __version__
-FMT_HELLO += """
+FMT_HELLO = """
     Diffraction Setup Parameters:\n
   Detector distance:             %(DETECTOR_DISTANCE)8.2f mm
   X-ray wavelength:            %(X_RAY_WAVELENGTH)10.4f A
@@ -305,7 +304,7 @@ class XDSExecError(Exception):
 class XDSLogParser:
     """ Parser for the xds *.LP files.
     """
-    def __init__(self, filename, run_dir="", verbose=False, raiseErrors=True):
+    def __init__(self, filename="", run_dir="", verbose=False, raiseErrors=True):
         self.results = {}
         self.info = "XDS Parser"
         self.fileType = "XDS"
@@ -317,12 +316,15 @@ class XDSLogParser:
         #
         full_filename = os.path.join(self.run_dir, filename)
         #
-        try:
-            fp = open(full_filename, "r")
-            self.lp = fp.read()
-            fp.close()
-        except:
-            raise IOError, "Can't read file: %s" % full_filename
+        if filename:
+            try:
+                fp = open(full_filename, "r")
+                self.lp = fp.read()
+                fp.close()
+            except:
+                raise IOError, "Can't read file: %s" % full_filename
+        else:
+            self.lp = ""
         # Catch Errors:
         _err = self.lp.find(" !!! ERROR !!!" )
         _err_type = None
@@ -369,7 +371,8 @@ class XDSLogParser:
         elif full_filename.count("CORRECT.LP"):
             self.parse_correct()
         else:
-            raise IOError, "Don't know how to parse file: %s" % full_filename
+            if filename:
+                raise IOError, "Don't know how to parse file: %s" % full_filename
 
     def get_par(self, match, limit=75, func=None,
                       multi_line=False, start=0, before=False):
@@ -566,14 +569,17 @@ class XDSLogParser:
             sp1 = self.lp.index("   INPUT DATA SET")
             sp2 = self.lp.index("  INTEGRATE.HKL   ", sp1)
             K1s, K2s = map(float, self.lp[sp1+18: sp2].split())[:2]
-
             rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
-            print "  Upper theoritical limit of I/sigma: %8.3f" % \
-                                                   rdi["IoverSigmaAsympt"]
-            print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
-                                                   (4*K1s, (K2s/4+0.0001))
-        except ValueError:
-            rdi["IoverSigmaAsympt"] =  0.0
+        except:
+            try:
+                    sp1 = self.lp.index("a        b          ISa") + 23
+                    rdi["IoverSigmaAsympt"] = float(self.lp[sp1:sp1+31].split()[2])
+            except:
+                    rdi["IoverSigmaAsympt"] =  0.0
+        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+                                                rdi["IoverSigmaAsympt"]
+        #print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
+        #                                       (4*K1s, (K2s/4+0.0001))
         rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
         rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
         rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
@@ -617,15 +623,25 @@ class XDSLogParser:
         #print "Suggested high resolution cut-off: %.2f" % high_hit
         return high_hit
 
+    def run_exec_str(self, execstr):
+        if sys.version_info <= (2, 4, 0):
+            spot_file = os.popen(execstr)
+            outp = spot_file.read()
+            spot_file.close()
+        else:
+            outp = Popen([execstr], stdout=PIPE, shell=True).communicate()[0]
+        return outp
+
+    def get_xds_version(self):
+        "Get the version of XDS"
+        _execstr = "cd /tmp; xds_par | grep VERSION"
+        wc_out = self.run_exec_str(_execstr)
+        return wc_out.strip()[27:-1]
+
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
         _execstr = "wc -l %s/SPOT.XDS" % self.run_dir
-        if sys.version_info <= (2, 4, 0):
-            spot_file = os.popen(_execstr)
-            wc_out = spot_file.read()
-            spot_file.close()
-        else:
-            wc_out = Popen([_execstr], stdout=PIPE, shell=True).communicate()[0]
+        wc_out = self.run_exec_str(_execstr)
         return int(wc_out.split()[0])
 
 MIN_SPOT_NUMBER = 200
@@ -835,9 +851,10 @@ class XDS:
         # default is min of 3 degrees or 8 images.
         dPhi = self.inpParam["OSCILLATION_RANGE"]
         if SLOW or WEAK:
-            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, min(i1+15, int(8./dPhi)))
+            bkgr =  i1, min(i2, min(i1+15, i1+int(7./dPhi)))
         else:
-            self.inpParam["BACKGROUND_RANGE"] =  i1, min(i2, min(i1+7, int(4./dPhi)))
+            bkgr =  i1, min(i2, min(i1+7, i1+int(3./dPhi)))
+        self.inpParam["BACKGROUND_RANGE"] = bkgr
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
@@ -850,7 +867,7 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = NUMBER_OF_PROCESSORS
         _trial = 0
-        
+
         # DEFAULT=3.2 deg., SLOW=6.4 deg., FAST=1.6 deg.
         dPhi = self.inpParam["OSCILLATION_RANGE"]
         frames_per_colspot_sequence = FRAMES_PER_COLSPOT_SEQUENCE
@@ -1058,7 +1075,7 @@ class XDS:
         """
         def _get_cell(_file):
             return map(float, (open(_file,'r').readlines()[7]).split()[1:])
-            
+
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         # run pointless on INTEGRATE.HKL        
@@ -1642,7 +1659,6 @@ if __name__ == "__main__":
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
     #print newPar
-    
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
     _DELPHI = NUMBER_OF_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
@@ -1656,8 +1672,13 @@ if __name__ == "__main__":
     if WEAK:
         newrun.mode.append("weak")
 
+    #print "XDS env Variable= %s" % XDS_HOME
+    print "\n    Simplified XDS Processing"
+    print "\n        xdsme version: %18s" % __version__
+    print "        xds   version: %18s\n" % XDSLogParser().get_xds_version()
     print FMT_HELLO % vars(newrun.inpParam)
-    print "  Selected resolution range:       %.2f - %.2f A" % newPar["INCLUDE_RESOLUTION_RANGE"]
+    print "  Selected resolution range:       %.2f - %.2f A" %\
+                                           newPar["INCLUDE_RESOLUTION_RANGE"]
     print "  Number of processors available:    %3d\n" % NUMBER_OF_PROCESSORS
 
     if WARNING:
