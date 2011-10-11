@@ -75,10 +75,6 @@ USAGE = """
          -4: DEFPIX + INTEGRATE
          -5: CORRECT
 
-    -i,  --xds-input
-         Give direct XDS Keyword input.
-         For example: -i "DETECTOR_DISTANCE= 167.0 JOB= IDXREF AIR= 0.002"
-
     -a,  --anomal
          Distinguishes Friedel paires for scaling, strategy and completeness
          statistics. Default is no anoulous contribution.
@@ -86,12 +82,6 @@ USAGE = """
     -A,  --Anomal
          Like -a, but also set "STRICT_ABSORPTION_CORRECTION" to True.
          It usualy gives better scaling statistics with redunduncy > 2.
-
-    -r,  --high-resolution
-         Set a high resolution cutoff. Default is 0 (no cutoff).
-
-    -R,  --low-resolution
-         Set a low resolution cutoff. Default is 50 A.
 
     -b,  --beam-center-optimize-i
          Starting from the initial given values, search and optimize the beam
@@ -101,24 +91,31 @@ USAGE = """
     -B,  --beam-center-optimize-z
          Like -b/--beam-center-optimize-i, but best solution is chosen with after
          a z-score ranking.
-    
-    -W   --beam-center-swap
-         Test different conventions to interpret the beam-center recorded in
-         image headers.     
-
-    -d,  --distance
-         Set the detector to crystal distance.
 
     -c,  --cell
          Set the expected cell.
          For example: -c "79 79 38 90 90 90"
 
+    -d,  --distance
+         Set the detector to crystal distance.
+
     -f,  --reference FILE
          Defines a reference data set used during the XPLAN and CORRECT steps.
          For example: -f ../ref/XDS_ASCII.HKL
-    
+
+    -F, --first-frame
+         Specify the first frame to be used in the DATA_RANGE (see also -L)
+
+    -i,  --xds-input
+         Give direct XDS Keyword input.
+         For example: -i "DETECTOR_DISTANCE= 167.0 JOB= IDXREF AIR= 0.002"
+
     -I,  --ice
          Exclude resolution ranges where ice-rings occures.
+
+    -L, --last-frame
+         Specify the last frame to be used in the DATA_RANGE (see also -F).
+         This can be usefull in case of radiation damage.
 
     -O,  --oscillation
          Set frame oscillation range in degree.
@@ -126,7 +123,13 @@ USAGE = """
 
     -p,  --project
          Set the project name. The default is the prefix taken from
-         image names. The working directory will be: xds_process_"project"  
+         image names. The working directory will be: xds_process_"project"
+
+    -r,  --high-resolution
+         Set a high resolution cutoff. Default is 0 (no cutoff).
+
+    -R,  --low-resolution
+         Set a low resolution cutoff. Default is 50 A.
 
     -s,  --spg
          Set the expected space group using either the space group number
@@ -147,10 +150,11 @@ USAGE = """
          ended by "mm", (e.g. -y 106.4mm).
 
     -W,  --beam-center-swap
-         From the header recorded X and Y corrdinate values, try the 8 possible
-         permutations and select the best one by z-score ranking. This very useful
-         if indexing fails, the convention for recording these values may not be
-         identical from one synchrotron to another.
+         From the header recorded X and Y beam-center corrdinate values,
+         try the 8 possible permutations and select the best one based on
+         z-score ranking. This very useful if indexing fails, the convention
+         for recording these values may not be identical from one synchrotron
+         to another.
 
     -v,  --verbose
          Turn on verbose output.
@@ -805,7 +809,7 @@ class XDS:
         #    print "End of XDS run"
         os.chdir(self.init_dir)
         return 1
-        
+
     def run_idxref_optimize(self, number_of_test=4, verbose=False):
         "Run COLSPOT + DXREF with different spot search paramters"
         min_pixels = [4, 7, 10, 15]
@@ -1423,7 +1427,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:i:IO:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:f:F:i:IL:O:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1431,8 +1435,10 @@ if __name__ == "__main__":
                 "ice",
                 "spg=",
                 "strategy",
-                "high-resolution="
-                "low-resolution="
+                "high-resolution=",
+                "low-resolution=",
+                "last-frame",
+                "first-frame",
                 "cell=",
                 "distance",
                 "reference=",
@@ -1474,6 +1480,8 @@ if __name__ == "__main__":
     PROJECT = ""
     WAVELENGTH = 0
     RES_LOW = 50
+    FIRST_FRAME = 0
+    LAST_FRAME = 0
     _reference = False
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
@@ -1512,6 +1520,10 @@ if __name__ == "__main__":
                 print "\n  ERROR: %s is not a regular file." % a
                 print "  STOP!\n"
                 sys.exit()
+        if o in ("-F", "--first-frame"):
+            FIRST_FRAME = int(a)
+        if o in ("-L", "--last-frame"):
+            LAST_FRAME = int(a)
         if o in ("-O", "--oscillation"):
             OSCILLATION = float(a)
         if o in ("-p", "--project"):
@@ -1614,6 +1626,10 @@ if __name__ == "__main__":
         newPar["ORGX"] = BEAM_X
     if BEAM_Y:
         newPar["ORGY"] = BEAM_Y
+    if FIRST_FRAME:
+        newPar["DATA_RANGE"][0] = FIRST_FRAME
+    if LAST_FRAME:
+        newPar["DATA_RANGE"][1] = LAST_FRAME
     if ICE:
         newPar.update(EXCLUDE_ICE_RING)
     if SPG and _cell:
