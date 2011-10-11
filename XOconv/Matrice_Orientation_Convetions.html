@@ -1,0 +1,547 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+	<TITLE>Matrice Orientation Convetions</TITLE>
+	<META NAME="GENERATOR" CONTENT="OpenOffice.org 1.1.1  (Linux)">
+	<META NAME="CREATED" CONTENT="20040817;11541500">
+	<META NAME="CHANGED" CONTENT="20040824;10075200">
+</HEAD>
+<BODY LANG="en-US" DIR="LTR">
+<P><BR><BR>
+</P>
+<H2>Orientation matrices conventions</H2>
+<P>The crystal orientation matrices are defined in reference to a
+particular coordinate system, which is different in Mosflm, Denzo and
+XDS. This document tries to summarize the necessary informations to
+convert matrices from one coordinate system to the other. Note:
+Mosflm and Denzo are using to distinct coordinate systems for the
+gogniosta and the detector (the X and Y axis of the detector are not
+the same that defines the crystal orientation). 
+</P>
+<H3 STYLE="margin-left: 0.42in">MOSFLM</H3>
+<P STYLE="margin-left: 0.79in">The crystal orientation matrix is
+defined relative to the <B>camera</B> (goniosta) coordinate frame.
+See the complete definition at
+<A HREF="http://www.mrc-lmb.cam.ac.uk/harry/mosflm/mosflm_user_guide.html#a3">http://www.mrc-lmb.cam.ac.uk/harry/mosflm/mosflm_user_guide.html#a3</A>.</P>
+<H3 STYLE="margin-left: 0.42in">DENZO</H3>
+<P STYLE="margin-left: 0.79in">Z is parallel to the incident
+radiation beam. X is parallel to the spindle axis, from the crystal
+to the goniometer base. Y is the so-called &quot;vertical&quot; axis
+is perpendicular to the spindle and beam axes.</P>
+<P STYLE="margin-left: 0.79in">In terms of crystal orientation
+rotations: rotz would again denote rotations of the crystal around
+the beam axis, rotx would denote rotations of the crystal about the
+spindle axis and roty would denote rotations about the axis
+perpendicular to the beam and the spindle.</P>
+<H3 STYLE="margin-left: 0.42in">XDS</H3>
+<P STYLE="margin-left: 0.83in; margin-bottom: 0in">In XDS, the
+crystal orientation matrix, the detector cooordinates and the
+goniosta system are defined relative to a <B>laboratory</B>
+coordinate frame. This definition makes it possible to descibe any
+possible experimental setup. The complete description of this
+coordinate system is available here:
+<A HREF="http://www.mpimf-heidelberg.mpg.de/~kabsch/xds/coordinate_systems.html">http://www.mpimf-heidelberg.mpg.de/~kabsch/xds/coordinate_systems.html</A>.
+</P>
+<P STYLE="margin-left: 0.83in; margin-bottom: 0in">However, in the
+distributed XDS input files, the most common orientation for the beam
+is along the Z axis. 
+</P>
+<P><BR><BR>
+</P>
+<H3 STYLE="margin-left: 0.42in">Resuming Table</H3>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<TABLE WIDTH=675 BORDER=0 CELLPADDING=2 CELLSPACING=0>
+	<COL WIDTH=58>
+	<COL WIDTH=80>
+	<COL WIDTH=90>
+	<COL WIDTH=84>
+	<COL WIDTH=343>
+	<TR>
+		<TD WIDTH=58>
+			<P><BR>
+			</P>
+		</TD>
+		<TD WIDTH=80>
+			<P><BR>
+			</P>
+		</TD>
+		<TD WIDTH=90>
+			<P ALIGN=CENTER>MOSFLM</P>
+		</TD>
+		<TD WIDTH=84>
+			<P ALIGN=CENTER>DENZO</P>
+		</TD>
+		<TD WIDTH=343>
+			<P ALIGN=CENTER>XDS</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=58>
+			<P><BR>
+			</P>
+		</TD>
+		<TD WIDTH=80>
+			<P>Beam along</P>
+		</TD>
+		<TD WIDTH=90>
+			<P ALIGN=CENTER><B>X</B></P>
+		</TD>
+		<TD WIDTH=84>
+			<P ALIGN=CENTER><B>Z</B></P>
+		</TD>
+		<TD WIDTH=343>
+			<P ALIGN=CENTER><B>Z</B></P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=58>
+			<P><BR>
+			</P>
+		</TD>
+		<TD WIDTH=80>
+			<P>Rotation axis along</P>
+		</TD>
+		<TD WIDTH=90>
+			<P ALIGN=CENTER><B>Z</B></P>
+		</TD>
+		<TD WIDTH=84>
+			<P ALIGN=CENTER><B>X</B></P>
+		</TD>
+		<TD WIDTH=343>
+			<P ALIGN=CENTER><B>X</B> if the rotation axis is horizontal (most
+			common on synchrotron)<BR>or<BR><B>Y</B> if the rotation axis is
+			vertical</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=58>
+			<P><BR>
+			</P>
+		</TD>
+		<TD WIDTH=80>
+			<P>Third axis</P>
+		</TD>
+		<TD WIDTH=90>
+			<P ALIGN=CENTER><B>Y</B> = Z &times; X</P>
+		</TD>
+		<TD WIDTH=84>
+			<P ALIGN=CENTER><B>Y</B> = Z &times; X</P>
+		</TD>
+		<TD WIDTH=343>
+			<P ALIGN=CENTER><B>Y</B> = Z &times; X<BR>or<BR><B>X</B> = Y &times;
+			Z</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H2>Permutation matrices Q</H2>
+<P>[Q] are permutation matrices to go from one UB matrix to the other
+([UBmos] = [Qdnz2mos] [UBdnz])</P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<TABLE WIDTH=363 BORDER=0 CELLPADDING=2 CELLSPACING=0>
+	<COL WIDTH=119>
+	<COL WIDTH=1>
+	<COL WIDTH=11>
+	<COL WIDTH=11>
+	<COL WIDTH=13>
+	<COL WIDTH=1>
+	<COL WIDTH=119>
+	<COL WIDTH=1>
+	<COL WIDTH=11>
+	<COL WIDTH=11>
+	<COL WIDTH=13>
+	<COL WIDTH=1>
+	<TR>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qdnz2mos&nbsp;&nbsp;&nbsp;&nbsp; =</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=11 SDVAL="0" SDNUM="1033;">
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=13 SDVAL="1" SDNUM="1033;">
+			<P ALIGN=CENTER><B>1</B></P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qmos2dnz&nbsp;&nbsp;&nbsp;&nbsp; =</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11 SDVAL="1" SDNUM="1033;">
+			<P ALIGN=CENTER><B>1</B></P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=13 SDVAL="0" SDNUM="1033;">
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11 SDVAL="0" SDNUM="1033;">
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=11 SDVAL="1" SDNUM="1033;">
+			<P ALIGN=CENTER><B>1</B></P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER><B>0</B></P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=5 WIDTH=54></TD>
+		<TD COLSPAN=5 WIDTH=54></TD>
+	</TR>
+	<TR>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qdnz2xds<FONT SIZE=2><SUP>(1)</SUP></FONT>&nbsp;&nbsp;&nbsp;&nbsp;=</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qxds2dnz<FONT SIZE=2><SUP>(1)</SUP></FONT>&nbsp;&nbsp;&nbsp;&nbsp;
+			=</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=5 WIDTH=54></TD>
+		<TD COLSPAN=5 WIDTH=54></TD>
+	</TR>
+	<TR>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qmos2xds<FONT SIZE=2><SUP>(1)</SUP></FONT>&nbsp;&nbsp;&nbsp;&nbsp;
+			=</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD ROWSPAN=4 WIDTH=119>
+			<P ALIGN=CENTER>Qxds2mos<FONT SIZE=2><SUP>(1)</SUP></FONT> &nbsp;
+			&nbsp; =</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD ROWSPAN=3 WIDTH=1 VALIGN=TOP></TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=11>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=13>
+			<P ALIGN=CENTER>0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=5 WIDTH=54></TD>
+		<TD COLSPAN=5 WIDTH=54></TD>
+	</TR>
+</TABLE>
+<TABLE BORDER=0 CELLPADDING=5 CELLSPACING=0>
+	<TR>
+		<TD>
+			<P ALIGN=LEFT><FONT SIZE=2><SUP>(1)</SUP></FONT> In the case that&nbsp;
+			the rotation&nbsp; axis is horizontal and perpendicular to the
+			beam direction.</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H2>References</H2>
+<OL>
+	<LI><P STYLE="margin-bottom: 0in">&nbsp; 
+	</P>
+	<LI><P STYLE="margin-bottom: 0in">&nbsp; 
+	</P>
+	<LI><P STYLE="margin-bottom: 0in">&nbsp; 
+	</P>
+	<LI><P>&nbsp; 
+	</P>
+</OL>
+<H2>Appendix A. &nbsp;&nbsp; File format for the orientation matrices</H2>
+<P STYLE="margin-left: 0.42in">In all the data processing programs
+the crystal orientations matrices are written with a specific format&nbsp;
+in an ASCII file. These format are described bellow.</P>
+<H3 STYLE="margin-left: 0.42in">MOSFLM</H3>
+<P STYLE="margin-left: 0.83in">The REFIX format used by mosflm is the
+following:</P>
+<DL>
+	<DL>
+		<DL>
+			<DD>
+			<TABLE BORDER=0 CELLPADDING=0 CELLSPACING=0>
+				<TR>
+					<TD>
+						<PRE STYLE="text-align: center"><B>Content</B></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center"><B>Description</B></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center"><B>Fortran Format</B></PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">UB11 UB12 UB13</FONT></PRE>
+					</TD>
+					<TD ROWSPAN=3>
+						<P ALIGN=CENTER>UB = setting matrix</P>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">UB21 UB22 UB23</FONT></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">UB31 UB32 UB33</FONT></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">dummy</FONT></PRE>
+					</TD>
+					<TD>
+						<P><BR>
+						</P>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">Ur11 Ur12 Ur13</FONT></PRE>
+					</TD>
+					<TD ROWSPAN=3>
+						<P ALIGN=CENTER>Ur = reference orientation matrix</P>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">Ur21 Ur22 Ur23</FONT></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">Ur31 Ur32 Ur33</FONT></PRE>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.7</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">cell</FONT></PRE>
+					</TD>
+					<TD>
+						<P ALIGN=CENTER>cell parameters</P>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">6f12.4</PRE>
+					</TD>
+				</TR>
+				<TR>
+					<TD>
+						<PRE><FONT COLOR="#330099">phixyzr</FONT></PRE>
+					</TD>
+					<TD>
+						<P ALIGN=CENTER>(mis)setting angles</P>
+					</TD>
+					<TD>
+						<PRE STYLE="text-align: center">3f12.4</PRE>
+					</TD>
+				</TR>
+			</TABLE>
+		</DL>
+	</DL>
+</DL>
+<P STYLE="margin-left: 1.25in; margin-bottom: 0in"><BR>
+</P>
+<P><BR>Example:</P>
+<PRE STYLE="margin-left: 1.25in"><FONT COLOR="#000099"> -0.02097959 -0.00902253  0.00277554</FONT>
+<FONT COLOR="#000099">  0.01076026 -0.01447723 -0.00303052</FONT>
+<FONT COLOR="#000099">  0.01271281 -0.00263528  0.00714553</FONT>
+<FONT COLOR="#000099">       0.000       0.000       0.000</FONT>
+<FONT COLOR="#000099"> -0.78320117 -0.52269857  0.33672263</FONT>
+<FONT COLOR="#000099">  0.40169735 -0.83873395 -0.36764740</FONT>
+<FONT COLOR="#000099">  0.47458947 -0.15268128  0.86686404</FONT>
+<FONT COLOR="#000099">     36.5750     56.7600    118.8580     90.0000     90.0000     90.0000</FONT>
+<FONT COLOR="#000099">       0.000       0.000       0.000</FONT></PRE><H3 STYLE="margin-left: 0.42in">
+DENZO</H3>
+<P STYLE="margin-left: 0.83in">The *.x file contains in the first
+lines the following informations:<BR><BR><BR>
+</P>
+<H3 STYLE="margin-left: 0.42in">XDS</H3>
+<P STYLE="margin-left: 0.83in"><BR><BR>
+</P>
+<H4 STYLE="margin-left: 0.42in"><BR><BR>
+</H4>
+<P STYLE="margin-left: 0.83in; margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><BR><BR>
+</P>
+</BODY>
+</HTML>

@@ -1,0 +1,11 @@
+xscale2.py:
+   - Final statistics: add the anomalous indicators
+   - Add the possibility to change merging, anomalous... -m, -u, -n, -a...
+
+XDS.py:
+   - Add more unittesting
+   - Fix starting angle/starting frame.
+   - njob/nproc automatic for linux/osx
+   -
+   - test the newest version of pycgtypes (cgkit2.0)
+     http://sourceforge.net/projects/cgkit/files/cgkit/
