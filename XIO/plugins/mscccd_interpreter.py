@@ -1,33 +1,37 @@
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "30-11-2009"
-__copyright__ = "Copyright (c) 2007-2009 Pierre Legrand"
+__date__ = "11-10-2011"
+__copyright__ = "Copyright (c) 2007-2011 Pierre Legrand"
 __license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
 import time
+from math import sin, atan
 
 def _datetime(timestr):
     return time.strptime(timestr)
-    
+
 def _dateseconds(timestr):
     return time.mktime(time.strptime(timestr, "%d-%b-%Y %H:%M:%S"))
 
-def getEdgeResolution(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
-            from math import sin, atan
-            if Distance > 0.0:
-                r = 0.5 * float(PixelX) * int(Width)
-                return float(Wavelength)/sin(atan(r/float(Distance)))
-            else:
-                return 0.
+def getEdgeResolution(DetectorSize, Distance, Wavelength):
+       """Calculate EdgeResolution: Graeme's Method. Rq: doesn't take
+       into account the position of direct-beam and the two_theta
+       angle of the detector."""
+       Distance = float(Distance.split()[-1])
+       radius = float(DetectorSize.split()[-1])/2.
+       Wavelength = float(Wavelength)
+       if Distance > 0.0:
+          return Wavelength/sin(atan(radius/Distance))
+       else:
+          return 0.
 
 def endian(code):
     if code == 'big_endian': return '>'
     else: return '<'
-    
+
 class Interpreter:
-    
+
     HTD = {
     # The adsc Header Translator Dictionary.
     # Potential problems:
@@ -48,6 +52,8 @@ class Interpreter:
     'PhiStart':(['ROTATION'], lambda x: float(x.split()[0])),
     'PhiEnd':(['ROTATION'], lambda x: float(x.split()[1])),
     'PhiWidth':(['ROTATION'], lambda x: float(x.split()[2])),
+    'EdgeResolution':(['CCD_DETECTOR_SIZE','CCD_GONIO_VALUES','SCAN_WAVELENGTH'],
+                                                            getEdgeResolution),
     'HeaderSize':(['HEADER_BYTES'], int),
     'EndianType':(['BYTE_ORDER'], endian),
     # Added keys from Graeme's convention.

@@ -56,7 +56,7 @@ import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
 USAGE = """
-   Running XDS automaticaly...
+   Running XDS automatically...
 
    USAGE:   %s  [OPTION]... FILES
 
@@ -76,12 +76,12 @@ USAGE = """
          -5: CORRECT
 
     -a,  --anomal
-         Distinguishes Friedel paires for scaling, strategy and completeness
-         statistics. Default is no anoulous contribution.
+         Distinguishes Friedel pairs for scaling, strategy and completeness
+         statistics. Default is no anomalous contribution.
 
     -A,  --Anomal
          Like -a, but also set "STRICT_ABSORPTION_CORRECTION" to True.
-         It usualy gives better scaling statistics with redunduncy > 2.
+         It usually gives better scaling statistics with redundancy > 2.
 
     -b,  --beam-center-optimize-i
          Starting from the initial given values, search and optimize the beam
@@ -111,11 +111,12 @@ USAGE = """
          For example: -i "DETECTOR_DISTANCE= 167.0 JOB= IDXREF AIR= 0.002"
 
     -I,  --ice
-         Exclude resolution ranges where ice-rings occures.
+         Exclude resolution ranges where ice-rings occurs (3.897, 3.669,
+         3.441, 2.671, 2.249, 2.249, 1.948, 1.918, 1.883, 1.721 A).
 
     -L, --last-frame
          Specify the last frame to be used in the DATA_RANGE (see also -F).
-         This can be usefull in case of radiation damage.
+         This can be useful in case of radiation damage.
 
     -O,  --oscillation
          Set frame oscillation range in degree.
@@ -150,7 +151,7 @@ USAGE = """
          ended by "mm", (e.g. -y 106.4mm).
 
     -W,  --beam-center-swap
-         From the header recorded X and Y beam-center corrdinate values,
+         From the header recorded X and Y beam-center coordinate values,
          try the 8 possible permutations and select the best one based on
          z-score ranking. This very useful if indexing fails, the convention
          for recording these values may not be identical from one synchrotron
