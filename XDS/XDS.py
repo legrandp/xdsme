@@ -379,8 +379,8 @@ class XDSLogParser:
             if filename:
                 raise IOError, "Don't know how to parse file: %s" % full_filename
 
-    def get_par(self, match, limit=75, func=None,
-                      multi_line=False, start=0, before=False):
+    def get_par(self, match, limit=75, func=None, multi_line=False,
+                      start=0, before=False, match_end=None):
         "Extract parameters from XDS .LP lines."
         try:
             if before:
@@ -390,10 +390,14 @@ class XDSLogParser:
                 start = self.lp.index(match, start) + len(match)
         except Exception, err:
             raise err
-        if multi_line:
-            _raw = self.lp[start:start+limit].split()
+        if match_end:
+            end = self.lp.index(match_end, start + len(match))
         else:
-            _raw = self.lp[start:start+limit].splitlines()[0].split()
+            end = start+limit
+        if multi_line:
+            _raw = self.lp[start:end].split()
+        else:
+            _raw = self.lp[start:end].splitlines()[0].split()
         if not func:
             for var_type in (int, float, str):
                 try:
@@ -498,7 +502,7 @@ class XDSLogParser:
         rdi["bmx"], rdi["bmy"] = rdi["direct_beam_mm"]
         rdi["bpx"], rdi["bpy"] = rdi["direct_beam_pixels"]
 
-        _subtrees = gpa(st6, limit=200, multi_line=True, func=int)
+        _subtrees = gpa(st6, multi_line=True, func=int, match_end="\n ****")
         rdi["substrees"] = [_subtrees[i] for i in range(1,len(_subtrees),2)]
         origin_t = rdi["index_origin_table"]
         origin_n = len(origin_t)
@@ -513,8 +517,7 @@ class XDSLogParser:
   Spot prediction ESD:       %(xy_spot_position_ESD).2f   pixels and  %(z_spot_position_ESD).2f degrees
   Refined beam position (in mm):      (%(bmx)9.3f, %(bmy)9.3f)
   Refined beam position (in pixels):  (%(bpx)9.2f, %(bpy)9.2f)
-  Shift in beam position: %(shift_mm)9.2f mm  (%(shift_pixel).1f pixels)
-"""
+  Shift in beam position: %(shift_mm)9.2f mm  (%(shift_pixel).1f pixels)\n"""
         prp2 = "  Size of the origin index table: %(origin_n)7d\n" % vars()
         ppa, ppb = "\n\tQuality:       ", "\n\tShift (mm):    "
         ppc, ppd = "\n\tShift (pixels):", "\n\tBeam X (mm):   "
