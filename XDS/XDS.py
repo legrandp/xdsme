@@ -481,6 +481,7 @@ class XDSLogParser:
         st3 = "UNIT CELL PARAMETERS"
         st4 = "SPACE GROUP NUMBER"
         st5 = "COORDINATES (PIXELS) OF DIRECT BEAM"
+        st6 = "SUBTREE    POPULATION\n"
         #
         rdi["oscillation_range"] = gpa("OSCILLATION_RANGE=")
         rdi["xy_spot_position_ESD"] = gpa(st1, start=st0)
@@ -497,6 +498,8 @@ class XDSLogParser:
         rdi["bmx"], rdi["bmy"] = rdi["direct_beam_mm"]
         rdi["bpx"], rdi["bpy"] = rdi["direct_beam_pixels"]
 
+        _subtrees = gpa(st6, limit=200, multi_line=True, func=int)
+        rdi["substrees"] = [_subtrees[i] for i in range(1,len(_subtrees),2)]
         origin_t = rdi["index_origin_table"]
         origin_n = len(origin_t)
         quality_t = [x[3] for x in origin_t if x[3] < 2.]
@@ -1608,7 +1611,7 @@ if __name__ == "__main__":
     # This is to correct the starting angle in case first image is not 1.
     newPar["STARTING_ANGLE"] = newPar["STARTING_ANGLE"] - \
               newPar["OSCILLATION_RANGE"]*(newPar["DATA_RANGE"][0] - 1)
-    newPar["STRONG_PIXEL"] = 7
+    newPar["STRONG_PIXEL"] = 6
     newPar["RESOLUTION_SHELLS"] = 15.0, 7.0, newPar["_HIGH_RESOL_LIMIT"]
     newPar["TEST_RESOLUTION_RANGE"] = 20, newPar["_HIGH_RESOL_LIMIT"]+1.5
 
