@@ -1124,10 +1124,22 @@ class XDS:
             spg_choosen = SPG
         else:
             spg_choosen = likely_spg[0][1]
-            if new_cell:
-                lattice = Lattice(new_cell, symmetry=spg_choosen)
-                lattice.idealize()
-                self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
+            # Re-order pointless cell-axes in case of orthorombic SPG.
+            spgSplit = likely_spg[0][0].split()
+            a, b, c, A, B, G = new_cell
+            if spg_choosen == 18:
+                if spgSplit[1] == "2":
+                    new_cell = [b, c, a, A, B, G]
+                elif spgSplit[2] == "2":
+                    new_cell = [a, c, b, A, B, G]
+            elif spg_choosen == 17:
+                if spgSplit[1] == "21":
+                    new_cell = [b, c, a, A, B, G]
+                elif spgSplit[2] == "21":
+                    new_cell = [a, c, b, A, B, G]
+            lattice = Lattice(new_cell, symmetry=spg_choosen)
+            lattice.idealize()
+            self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
             #reidx_mat = likely_spg[0][-1]
             #new_cell = new_reidx_cell(self.inpParam["UNIT_CELL_CONSTANTS"],
         return (L, H), spg_choosen
@@ -1599,8 +1611,6 @@ if __name__ == "__main__":
 
     imgDir = collect.directory
     newPar = collect.export("xds")
-    #for par in newPar: print par, newPar[par]
-    #print newPar["INCLUDE_RESOLUTION_RANGE"]
 
     # Update some default values defined by XIO.export_xds:
     # In case no beam origin is defined, take the detector center.
