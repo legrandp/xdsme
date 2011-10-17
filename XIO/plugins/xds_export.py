@@ -99,7 +99,7 @@ XDS_DETECTOR_DICT = {
     "marccd":   8,
     "adsc":     8,
     "raxis":    8,
-    "minicbf":  4,
+    "minicbf":  3,
     "mscccd":   8,
   },
   "sensor_thickness":{

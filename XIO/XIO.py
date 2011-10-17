@@ -290,7 +290,7 @@ class Image:
             print self.rawHead[:20]
             self.type = "unknown"
             return self.type
-    
+
     def guessDetModel(self):
         if (not "Width" in self.header) or (not "PixelX" in self.header):
             return
@@ -388,7 +388,7 @@ class Image:
         exportDict = {}
         for k in exporter.HTD.keys():
             args, func = exporter.HTD[k]
-            
+
             exportDict[k] = func(*map(self.header.get, args))
         return exportDict
 
