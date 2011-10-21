@@ -391,7 +391,7 @@ class XDSLogParser:
         except Exception, err:
             raise err
         if match_end:
-            end = self.lp.index(match_end, start + len(match))
+            end = self.lp.index(match_end, start + 1)
         else:
             end = start+limit
         if multi_line:
