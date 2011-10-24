@@ -354,6 +354,9 @@ class XDSLogParser:
             elif _err_msg.count("CANNOT INDEX REFLECTIONS"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
                 _err_level = "FATAL"
+            elif _err_msg.count("CANNOT CONTINUE WITH A TWO-DIMENSIONAL"):
+                _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
+                _err_level = "FATAL"                
             else:
                 print "\n %s \n" % (self.lp[_err:-1])
                 sys.exit()
@@ -934,6 +937,8 @@ class XDS:
     def run_idxref(self, beam_center_search=False, ranking_mode="ZSCORE",
                          beam_center_swap=False):
         "Runs the IDXREF step. Can try to search for better beam_center."
+        res = None
+        TestResults = []
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "IDXREF",
@@ -946,9 +951,12 @@ class XDS:
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir, verbose=1)
         except XDSExecError, err:
             print " !!! ERROR in", err[1], "\n"
-            if err[0] == "FATAL":
+            if err[0] == "FATAL" and not (beam_center_swap or beam_center_search):
                 sys.exit()
-
+        except Exception, err:
+            print err
+            sys.exit()
+            
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         dist = self.inpParam["DETECTOR_DISTANCE"]
         det_x = vec3(self.inpParam["DIRECTION_OF_DETECTOR_X-AXIS"])
@@ -959,7 +967,8 @@ class XDS:
         #RD["indexed_percentage"] < 70. or \
         #if beam_center_search or RD["xy_spot_position_ESD"] > 2. or \
         #  RD["z_spot_position_ESD"] > 2*self.inpParam["OSCILLATION_RANGE"]:
-        TestResults = [res.results]
+        if res:
+            TestResults.append(res.results)           
         if beam_center_swap:
             x, y = self.inpParam["ORGX"], self.inpParam["ORGY"]
             mx, my = self.inpParam["NX"] - x, self.inpParam["NY"] - y
