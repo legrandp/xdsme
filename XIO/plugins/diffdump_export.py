@@ -42,7 +42,7 @@ Detector S/N : %(serial)s
 Wavelength : %(wavelength).6f Ang
 Beam center : (%(beamx).6f mm,%(beamy).6f mm)
 Distance to detector : %(distance).6f mm
-Image Size : (%(height)d px, %(width)d px)
+Image Size : (%(width)d px, %(height)d px)
 Pixel Size : (%(pixelx).6f mm, %(pixely).6f mm)
 Oscillation (%(osc_axis)s) : %(osc_start).6f -> %(osc_end).6f deg
 Two Theta value: %(twotheta).6f deg"""

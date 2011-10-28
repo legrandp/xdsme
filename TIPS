@@ -1,0 +1,2 @@
+* Indexing: Sometimes, the -W, -b, -B options are not helping to correctly index diffraction images for a particular source (synchrotron). In such a case, one can try the invers rotation axis:
+    xdsme -a --slow -3 -x 1574 -y 1504 -i "ROTATION_AXIS= -1.0 0.0 0.0"  PLxtal3_4_HRes_1_*.img

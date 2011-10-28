@@ -56,7 +56,6 @@ BEAMY = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[1])\
 
 class Interpreter:
     "Dummy class, container for standard Dict and Function."
-    
     HTD = {
     # The adsc Header Translator Dictionary.
     # Potential problems:
