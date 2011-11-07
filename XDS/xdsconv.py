@@ -194,6 +194,7 @@ SYMMETRY    %(spgn_in)s
 CELL    %(cell_str)s
 LABOUT  H K L FP%(lbl)s SIGFP%(lbl)s %(cinp_ano)s %(free_lbl)s
 CTYPOUT H H H  F   Q   %(cinp_ano2)s   %(free_code)s
+NAME PROJECT %(ID)s CRYSTAL %(ID)s DATASET d%(ID)s
 END
 """
 
@@ -454,7 +455,9 @@ obs_f, obs_sigf, = "fobs", "sigma"
 test_set, test_flag = "test", 1
 """
 
-cad_script = "LABIN FILE 1 ALL\nEND\n"
+cad_script = """LABIN FILE 1 ALL
+DWAVE FILE 1 %(ID)s d%(ID)s %(wavelength).5f\nEND"""
+
 mtzutils_script = "END\n"
 
 mtz2various_script = """#!/bin/bash
@@ -948,7 +951,7 @@ class DoMode:
 
         elif self.mode == "CCP4":
             opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_script % vars(P))
-            opWriteCl("%s/cad.inp" % P.dir_mode, cad_script)
+            opWriteCl("%s/cad.inp" % P.dir_mode, cad_script  % vars(P))
             os.system("cd %s;f2mtz hklout TMP.MTZ<f2mtz.inp >f2mtz.log" % P.dir_mode)
             os.system("cd %s;cad hklin1 TMP.MTZ hklout %s <cad.inp >cad.log"
                           % (P.dir_mode, self.last_name))
