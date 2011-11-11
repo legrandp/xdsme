@@ -904,13 +904,14 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         stat_tg = lp[st10:st10x].splitlines()[4:-3]
         #stat_tg3 = lp[st12:st12x].splitlines()[4:-2]
 
-    stat_wilson = lp[st14+30:st14+75].split()
+    stat_wilson = lp[st14+44:st14+75].split()
+    print stat_wilson
     #
     TG, TG3 = [], []
     for l in stat_tg: TG.append(l.split())
     #for l in stat_tg3: TG3.append(l.split())
 
-    s.wilson_b, s.wilson_corr = stat_wilson[3], stat_wilson[5]
+    s.wilson_b, s.wilson_corr = stat_wilson[0], stat_wilson[2]
     s.reso, s.resoL =       TG[-2][0], TG[-3][0]
     s.compar, s.comparL =   TG[-1][7], TG[-2][7]
     s.total =               TG[-1][1]
