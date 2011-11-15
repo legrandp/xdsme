@@ -25,7 +25,7 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0alpha3"
+__version__ = "0.5.0alpha4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "10-10-2011"
 __copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
@@ -1138,17 +1138,22 @@ class XDS:
             spg_choosen = likely_spg[0][1]
             # Re-order pointless cell-axes in case of orthorombic SPG.
             spgSplit = likely_spg[0][0].split()
-            a, b, c, A, B, G = new_cell
-            if spg_choosen == 18:
-                if spgSplit[1] == "2":
-                    new_cell = [b, c, a, A, B, G]
-                elif spgSplit[2] == "2":
-                    new_cell = [a, c, b, A, B, G]
-            elif spg_choosen == 17:
-                if spgSplit[1] == "21":
-                    new_cell = [b, c, a, A, B, G]
-                elif spgSplit[2] == "21":
-                    new_cell = [a, c, b, A, B, G]
+            # if cell is coming from pointless, it need reordering 
+            # in orthorombic cases
+            if new_cell:
+                a, b, c, A, B, G = new_cell
+                if spg_choosen == 18:
+                    if spgSplit[1] == "2":
+                        new_cell = [b, c, a, A, B, G]
+                    elif spgSplit[2] == "2":
+                        new_cell = [a, c, b, A, B, G]
+                elif spg_choosen == 17:
+                    if spgSplit[1] == "21":
+                        new_cell = [b, c, a, A, B, G]
+                    elif spgSplit[2] == "21":
+                        new_cell = [a, c, b, A, B, G]
+            else:
+                new_cell = self.inpParam["UNIT_CELL_CONSTANTS"]
             lattice = Lattice(new_cell, symmetry=spg_choosen)
             lattice.idealize()
             self.inpParam["UNIT_CELL_CONSTANTS"] = lattice.cell
