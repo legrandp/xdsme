@@ -1677,7 +1677,10 @@ if __name__ == "__main__":
     if DISTANCE:
         newPar["DETECTOR_DISTANCE"] = DISTANCE
     if _reference:
-        newPar["REFERENCE_DATA_SET"] = "../"+_reference
+        if _reference[0] == "/" or _reference[0] == "~":
+            newPar["REFERENCE_DATA_SET"] = _reference
+        else:
+            newPar["REFERENCE_DATA_SET"] = "../"+_reference
     if OSCILLATION:
         newPar["OSCILLATION_RANGE"] = OSCILLATION
     if WAVELENGTH:
