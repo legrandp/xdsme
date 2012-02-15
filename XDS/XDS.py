@@ -1550,7 +1550,7 @@ if __name__ == "__main__":
             if os.path.isfile(a):
                 _reference = str(a)
             else:
-                print "\n  ERROR: %s is not a regular file." % a
+                print "\n  ERROR: Can't open reference file %s." % a
                 print "  STOP!\n"
                 sys.exit()
         if o in ("-F", "--first-frame"):
@@ -1595,10 +1595,14 @@ if __name__ == "__main__":
             print USAGE
             sys.exit()
 
-    if not os.path.isfile(inputf[0]):
-        print "\nERROR. Can't open file: %s\n" % inputf[0] 
+    if not inputf:
+        print "\nFATAL ERROR. No image file specified.\n"
         sys.exit(2)
-    _coll = XIO.Collect(inputf[0])
+    elif not os.path.isfile(inputf[0]):
+        print "\nFATAL ERROR. Image file %s not found.\n" % inputf[0]
+        sys.exit(2)
+    else:
+        _coll = XIO.Collect(inputf[0])
     if not PROJECT:
         newDir = "xds_process_" + _coll.prefix
     else:
