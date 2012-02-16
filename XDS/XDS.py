@@ -25,10 +25,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0alpha4"
+__version__ = "0.5.0-beta1"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "10-10-2011"
-__copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
+__date__ = "16-02-2012"
+__copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -1602,6 +1602,7 @@ if __name__ == "__main__":
         print "\nFATAL ERROR. Image file %s not found.\n" % inputf[0]
         sys.exit(2)
     else:
+        # TODO cycle over input_file with try/except to avoid XIOError
         _coll = XIO.Collect(inputf[0])
     if not PROJECT:
         newDir = "xds_process_" + _coll.prefix

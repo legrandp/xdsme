@@ -1,6 +1,6 @@
 ######################################################################
-XDSME: XDS Made Easy
-Copyright (C) 2007, 2008, 2009
+XDSME: XDS Made Easier
+Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012
           Pierre Legrand.
 License:  New BSD License, see LICENSE file or
           http://www.opensource.org/licenses/bsd-license.php
