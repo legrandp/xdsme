@@ -893,6 +893,7 @@ class XDS:
             frames_per_colspot_sequence = int(round(3.2/dPhi, 0))
         if "weak" in self.mode:
             self.inpParam["STRONG_PIXEL"] = 4.5
+            self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] -= 1
             frames_per_colspot_sequence = int(round(12.8/dPhi, 0))
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
@@ -924,8 +925,9 @@ class XDS:
         res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         while res.results["spot_number"] < MIN_SPOT_NUMBER and _trial < 4:
             _trial += 1
-            self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] -= 1
-            self.inpParam["STRONG_PIXEL"] -= 1.5
+            min_pixels = int(self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"])
+            self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = max(min_pixels-1, 1)
+            self.inpParam["STRONG_PIXEL"] -= 1.
             #self.inpParam["SPOT_MAXIMUM_CENTROID"] += 1
             print "Insuficiant number of spot (minimum set to %d)." % \
                                                          MIN_SPOT_NUMBER
@@ -1750,9 +1752,9 @@ if __name__ == "__main__":
     if STEP <= 2:
         R2 = newrun.run_colspot()
     if STEP <= 3:
-        if SLOW and RES_HIGH:
+        if RES_HIGH:
             print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH
-            #newrun.spots_resolution_cutoff(RES_HIGH)
+            newrun.spots_resolution_cutoff(RES_HIGH, verbose=True)
         R3 = newrun.run_idxref(_beam_center_optimize,
                                _beam_center_ranking,
                                _beam_center_swap)
