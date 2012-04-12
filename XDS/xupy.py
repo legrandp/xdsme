@@ -905,7 +905,6 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         #stat_tg3 = lp[st12:st12x].splitlines()[4:-2]
 
     stat_wilson = lp[st14+44:st14+75].split()
-    print stat_wilson
     #
     TG, TG3 = [], []
     for l in stat_tg: TG.append(l.split())
@@ -935,7 +934,8 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         s.LowestReso, s.HighestReso, s.iosig, s.chi2, s.rsym  = statline[0:5]
     #
     for k in s.keys():
-       if type(s[k]) == str: s[k] = float(s[k].replace("%",""))
+       if type(s[k]) == str:
+           s[k] = float(s[k].replace("%","").replace("*",""))
     #
     if float(s.absent):
         stnabs = lp.index("AVERAGE INTENSITY FOR", st2)
