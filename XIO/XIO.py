@@ -788,7 +788,7 @@ class Collect:
         else: 
             return self.imageRanges
 
-    def isContinuous(self, imagename_list, methode=0, _epsilon=9e-2):
+    def isContinuous(self, imagename_list, methode=0, _epsilon=1.5e-1):
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
         if not self.imageNumbers:
