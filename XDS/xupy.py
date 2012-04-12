@@ -871,7 +871,10 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
     except:
         s.IoverSigmaAsympt =  -99.9
-    st2  = lp.index("  STATISTICS OF S")
+    try:
+        st2  = lp.index("  STATISTICS OF SAVE")
+    except:
+        st2 = lp.rindex("  COMPLETENESS AND QUALITY")
     s.LowestReso = 100
     slowr = lp.index("INCLUDE_RESOLUTION_RANGE=") + 26
     s.LowestReso, s.HighestReso = lp[slowr:slowr+21].split()
