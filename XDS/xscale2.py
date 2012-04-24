@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __author__ = "Pierre Legrand (legrand@emble-grenoble.fr)"
-__date__ = "22-10-2009"
-__copyright__ = "Copyright (c) 2003-2009 Pierre Legrand"
+__date__ = "24-04-2012"
+__copyright__ = "Copyright (c) 2003-2012 Pierre Legrand"
 __license__ = "LGPL"
 
 usage   = """
@@ -31,7 +31,7 @@ import os
 from xupy import exec_prog, resum_scaling
 from XDSReflectionFile import XDSReflectionFile
 
-template_str = """!
+input_head = """!
 !      A single output file is generated from scaling 2 input
 !      files making use of most of XSCALE's input parameters.
 !      To activate an input parameter remove all "!" left of it.
@@ -47,8 +47,12 @@ template_str = """!
 !REFLECTIONS/CORRECTION_FACTOR=50   !minimum #reflections/correction_factor
 !0-DOSE_SIGNIFICANCE_LEVEL=0.10
 
-OUTPUT_FILE= %(hklout)s
-STRICT_ABSORPTION_CORRECTION= TRUE 
+"""
+
+output_str = """OUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
+STRICT_ABSORPTION_CORRECTION= TRUE
+      MERGE=FALSE
+
 """
 
 _fmt_final_stat = """
@@ -109,14 +113,38 @@ refdic = {}
 refdic['cell'] = hklref.header["UNIT_CELL_CONSTANTS"]
 refdic['spg'] = hklref.header["SPACE_GROUP_NUMBER"]
 refdic['hklout'] = "XSCALE.HKL"
+refdic['wavelength'] = float(hklref.header["X-RAY_WAVELENGTH"])
 
 f = open("XSCALE.INP","w")
-f.write(template_str % refdic)
-f.write("    MERGE=FALSE\n\n")
+f.write(input_head % refdic)
+
+hklf_files = []
+wavelengths = []
+muliwavelength = False
 
 for file in xds_input_files:
     hklf = XDSReflectionFile(file)
-    f.write("   INPUT_FILE= %s\n" % file)
+    hklf_files.append(hklf)
+    wavelengths.append(float(hklf.header["X-RAY_WAVELENGTH"]))
+
+w0 = wavelengths[0]
+if len(wavelengths) > 1:
+    for w in wavelengths[1:]:
+        if abs(w - w0) > 0.0001:
+            muliwavelength = True
+            print 1
+            break
+
+if not muliwavelength:
+    f.write(output_str % refdic)
+    
+print "MultiWavelength:", muliwavelength
+for hklf in hklf_files:
+    if muliwavelength:
+        refdic['wavelength'] = float(hklf.header["X-RAY_WAVELENGTH"])
+        refdic['hklout'] = ("XSCALE_%.5fA.HKL" % refdic['wavelength'])
+        f.write(output_str % refdic)
+    f.write("   INPUT_FILE= %s\n" % hklf.fileName)
     f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % hklf.header["INCLUDE_RESOLUTION_RANGE"])
     f.write("      FRIEDEL'S_LAW=            %s\n" % hklf.header["FRIEDEL'S_LAW"])
     f.write("      ! CORRECTIONS= DECAY MODULATION ABSORPTION\n")
