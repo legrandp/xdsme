@@ -872,7 +872,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     except:
         s.IoverSigmaAsympt =  -99.9
     try:
-        st2  = lp.index("  STATISTICS OF SAVE")
+        st2  = lp.index("  STATISTICS OF S")
     except:
         st2 = lp.rindex("  COMPLETENESS AND QUALITY")
     s.LowestReso = 100
