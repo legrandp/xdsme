@@ -23,7 +23,7 @@ atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 'Tb', 'Tc', 'Te', 'Th', 'Ti', 'Tl', 'Tm', 'U', 'V', 'W', 'Xe', 'Y',
 'Yb', 'Zn', 'Zr']
 
-options = ["CCP4","CNS","SHELX","SOLVE","EPMR","CRANK",
+options = ["CCP4","CCP4F","CNS","SHELX","SOLVE","EPMR","CRANK",
            "AMORE","SHARP","PHASER","REPLACE"]
 
 usage   = """
@@ -137,26 +137,20 @@ MIND -3.5 1
 MAXM 2
 EOFC
 
-test $PATS != "yes" && grep -v PATS ${ID}_fa.ins > ${ID}_fa.tmp.ins && \
-mv ${ID}_fa.tmp.ins ${ID}_fa.ins
+if [ $PATS != "yes" ] ; then
+
+grep -v PATS ${ID}_fa.ins > ${ID}_nopats_fa.ins
+cp ${ID}.hkl ${ID}_nopats.hkl
+cp ${ID}_fa.hkl ${ID}_nopats_fa.hkl
+
+shelxd ${ID}_nopats_fa > ${ID}_nopats_shelxd.log
+
+else
 
 shelxd ${ID}_fa > ${ID}_shelxd.log
 
-cat  << EOFS > ${ID}_sitcom.inp
-unit_cell    %(cell_str)s 
-space_group  %(spgn_in)s
-str_name     ${ID}
-deriv_atyp   %(ha_name)s
-#
-#        TAG     WEIGHT   FILE            N(SOL) N(SITES)
-#
-read_set SHELXD1  1.0      ${ID}_fa.lst   10    ${NSITES}
-#read_set SHELXD2  1.0      a4_fa.lst     10    ${nsites}
-#read_sol HYSS    1.0      a3_fa.pdb
-#read_sol SHELXD5  1.0      a2_fa.pdb
-EOFS
+fi
 
-sitcom < ${ID}_sitcom.inp > ${ID}_sitcom.log
 }
 
 id="aaa"
@@ -170,6 +164,91 @@ search_sites_shelx ${id}${res} ${res} ${nsites} ${pats} &
 
 done
 # end of the loop.
+"""
+sitcom_script ="""#!/bin/sh
+
+do_sitcom () {
+ID=$1      # Identifier
+NSITES=$2  # Number of sites
+PATS=$3    # Patterson seeding option
+
+if [ $PATS = "yes" ] ; then
+
+cat  << EOFS > ${ID}_sitcom.inp
+unit_cell    %(cell_str)s 
+space_group  %(spgn_in)s
+str_name     ${ID}
+deriv_atyp   %(ha_name)s
+#
+#        TAG     WEIGHT   FILE            N(SOL) N(SITES)
+#
+read_set ${ID}  1.0      ${ID}_fa.lst   10    ${NSITES}
+#read_set SHELXD2  1.0      a4_fa.lst     10    ${nsites}
+#read_sol HYSS    1.0      a3_fa.pdb
+#read_sol SHELXD5  1.0      a2_fa.pdb
+EOFS
+
+sitcom < ${ID}_sitcom.inp > ${ID}_sitcom.log
+
+cat  << EOFS >> tmp.all_sitcom.inp
+read_sol ${ID}  1.0      ${ID}_fa.pdb   ${NSITES}
+EOFS
+
+else
+
+cat  << EOFS > ${ID}_nopats_sitcom.inp
+unit_cell    %(cell_str)s 
+space_group  %(spgn_in)s
+str_name     ${ID}_nopats
+deriv_atyp   %(ha_name)s
+#
+#        TAG     WEIGHT   FILE            N(SOL) N(SITES)
+#
+read_set ${ID}np  1.0      ${ID}_nopats_fa.lst   10    ${NSITES}
+#read_set SHELXD2  1.0      a4_fa.lst     10    ${nsites}
+#read_sol HYSS    1.0      a3_fa.pdb
+#read_sol SHELXD5  1.0      a2_fa.pdb
+EOFS
+
+sitcom < ${ID}_nopats_sitcom.inp > ${ID}_nopats_sitcom.log
+
+cat  << EOFS >> tmp.all_sitcom.inp
+read_sol ${ID}np  1.0      ${ID}_nopats_fa.pdb   ${NSITES}
+EOFS
+
+fi
+}
+
+id="aaa"
+nsites=%(num_sites)d
+pats="yes"
+
+cat  << EOFS > tmp.all_sitcom.inp
+unit_cell    %(cell_str)s 
+space_group  %(spgn_in)s
+str_name     ${id}
+deriv_atyp   %(ha_name)s
+#
+#        TAG     WEIGHT   FILE            N(SOL) N(SITES)
+#
+EOFS
+
+# loop to start batch process with different resoution limit
+for res in 3.2 3.5 4.0 4.4 ; do
+
+do_sitcom ${id}${res} ${nsites} ${pats}
+
+done
+# end of the loop
+
+# compare all solutions
+if [ $pats = "yes" ] ; then
+mv tmp.all_sitcom.inp ${id}_all_sitcom.inp
+sitcom < ${id}_all_sitcom.inp > ${id}_all_sitcom.log
+else
+mv tmp.all_sitcom.inp ${id}_all_np_sitcom.inp
+sitcom < ${id}_all_np_sitcom.inp > ${id}_all_np_sitcom.log
+fi
 """
 
 xprep_script = """../%(file_name_in)s
@@ -279,18 +358,18 @@ eof-fft
 phaser_script = """#!/bin/bash
 # script written by xdsconv.py (pierre.legrand at synchrotron-soleil.fr)
 
-ID=%(ID)s
-HAND="o"
+label=""
+scat="S"
 PARTIAL_MODEL_OPTION=""
-INVERT_HAND=""
 solvent_content=0.5
 parrot_cycles=5
 parrot_resolution=1.0
 
 function usage () {
   echo
-  echo " $0 [-i] [-s x] ha_sites.pdb  [partial_model.pdb]"
-  echo "    -i, --invert                 invert hand for ha sites"
+  echo " $0 [-s x] ha_sites.pdb  [partial_model.pdb]"
+  echo "    -l label, --label            mtz columns label"
+  echo "    -a, --anom                   anomalous scatterer"
   echo "    -s solvc,   --solvent solvc  set the solvent content"
   echo "    -n ncycles, --parrot_cycles  number of parrot cycles"
   echo "    -r resol,   --resolution     parrot resolution cutoff"
@@ -298,22 +377,18 @@ function usage () {
   echo
 }
 
-function invert_hand (){
-cat $1|awk '{if($1=="ATOM"||$1=="HETATM")\\
-{printf("%%30s%%8.3f%%8.3f%%8.3f%%s\n",substr($0,0,31),-1*substr($0,31,8),\\
--1*substr($0,39,8),-1*substr($0,47,8),substr($0,55))}else{print}}'
-}
-
 while [ $# -gt 0 ]; do
   case "$1" in
     -h | --help | -help )
       usage
       exit 0 ;;
-    -i | --invert )
-      echo "INFO:  Inverting hand of heavy atom sites"
-      INVERT_HAND="HAND ON"
-      HAND="i"
-      shift  ;;
+    -l | --label )
+      label="_$2"
+      shift ; shift  ;;
+    -a | --anom )
+      scat=$2
+      echo "INFO:  Using anomalous scatterer: $scat"
+      shift; shift ;;
     -s | --solvent )
       solvent_content=$2
       echo "INFO:  Using a solvent fraction of: $solvent_content"
@@ -328,17 +403,10 @@ while [ $# -gt 0 ]; do
       shift; shift ;;
     * )
       hatom_pdb=$1
+      ID=`basename $hatom_pdb .pdb`
       break ;;
   esac
 done
-ID=${ID}_${HAND}
-
-#if [[ $HAND = "i" ]]; then
-#      invert_hand $1 > inverted_sites.pdb
-#      hatom_pdb="inverted_sites.pdb"
-#else
-      hatom_pdb=$1
-#fi
 
 if [[ $# -eq 2 ]];then
    echo "Using partial model: $2"
@@ -346,31 +414,39 @@ if [[ $# -eq 2 ]];then
    echo $PARTIAL_MODEL_OPTION
 fi
 
-function run_phaser_214() {
+function run_phaser() {
 phaser << eof > phaser_auto_${ID}.log
 MODE EP_AUTO
-TITLe SAD phasing of ${ID} with %(num_sites)d %(ha_name)s
+TITLe SAD phasing of ${ID} with %(num_sites)d ${scat}
 HKLIn %(last_name)s
 #COMPosition PROTein SEQ PROT.seq NUM 2
-COMPosition SOLVent  $solvent_content
-CRYStal ${ID} DATAset sad LABIn F+=F(+) SIG+=SIGF(+) F-=F(-) SIG-=SIGF(-)
-CRYStal ${ID} DATAset sad SCATtering WAVElength %(wavelength)f # default, change if necessary
-LLGComplete CRYStal ${ID} COMPLETE ON SCATtering ELEMent %(ha_name)s # CLASH DISTAN 4
-ATOM CRYStal ${ID} PDB $hatom_pdb
+COMPosition BY SOLVent  
+COMPosition PERCentage $solvent_content
+CRYStal ${ID} DATAset sad LABIn F+=F(+)${label} SIG+=SIGF(+)${label} F-=F(-)${label} SIG-=SIGF(-)${label}
+WAVElength %(wavelength)f
+LLGComplete COMPLETE ON 
+ATOM CRYStal ${ID} PDB $hatom_pdb SCATtering ${scat}
+ATOM CHANge SCATterer ${scat}
 ROOT ${ID}_auto
 ${PARTIAL_MODEL_OPTION}
-${INVERT_HAND}
 eof
 }
 
 function run_parrot() {
+hand=$1
+if [ $hand = "ori" ] ; then 
+parrID=${ID}_auto
+elif [ $hand = "inv" ] ; then 
+parrID=${ID}_auto.hand
+fi
 cparrot \\
--mtzin-wrk      ${ID}_auto.mtz \\
--pdbin-wrk-ha   ${ID}_auto.pdb \\
--colin-wrk-fo   "/*/*/[FP,SIGFP]" \\
+-mtzin-wrk      ${parrID}.mtz \\
+-pdbin-wrk-ha   ${parrID}.pdb \\
+-colin-wrk-fo   "/*/*/[FP${label},SIGFP${label}]" \\
 -colin-wrk-hl   "/*/*/[HLA,HLB,HLC,HLD]" \\
 -colin-wrk-fc   "/*/*/[FWT,PHWT]" \\
--mtzout         ${ID}_parrot_${solvent_content}_${parrot_cycles}.mtz \\
+-colin-wrk-free "/*/*/[FreeR_flag]" \\
+-mtzout         ${parrID}_parrot_${solvent_content}_${parrot_cycles}.mtz \\
 -colout         parrot \\
 -solvent-flatten \\
 -histogram-match \\
@@ -378,12 +454,13 @@ cparrot \\
 -resolution     ${parrot_resolution} \\
 -solvent-content ${solvent_content} \\
 -ncs-average \\
-> cparrot_${ID}_${solvent_content}_${parrot_cycles}.log
-# -ncs-mask-filter-radius radius 22 \\
+> cparrot_${parrID}_${solvent_content}_${parrot_cycles}.log
+# -ncs-mask-filter-radius 22 \\
 }
 
-run_phaser_214
-run_parrot
+run_phaser
+run_parrot ori
+run_parrot inv
 
 """
 
@@ -457,6 +534,9 @@ test_set, test_flag = "test", 1
 
 cad_script = """LABIN FILE 1 ALL
 DWAVE FILE 1 %(ID)s d%(ID)s %(wavelength).5f\nEND"""
+cad2_script = """LABIN FILE 1 ALL
+LABIN FILE 2 %(cad_ano)s 
+DWAVE FILE 2 %(ID)s d%(ID)s %(wavelength).5f\nEND"""
 
 mtzutils_script = "END\n"
 
@@ -890,6 +970,28 @@ class DoMode:
             else: P.cinp_ano = P.cinp_ano2 = ""
             P.merge_out = "TRUE"
 
+        elif self.mode == "CCP4F":
+            self.name_ext = ".mtz"
+            P.mode_out = "CCP4"
+            if P.friedel_out == "FALSE":
+                P.cinp_ano = "DANO%(lbl)s SIGDANO%(lbl)s ISYM%(lbl)s" \
+                    % vars(P)
+                P.cad_ano = "E1=DANO%(lbl)s E2=SIGDANO%(lbl)s E3=ISYM%(lbl)s" \
+                    % vars(P)
+                P.cinp_ano2 = "D   Q   Y"
+            else: P.cinp_ano = P.cad_ano = P.cinp_ano2 = ""
+            P.merge_out = "TRUE"
+            P.file_name_out = "F2MTZ.HKL.TMP2"
+            opWriteCl("XDSCONV2.INP", xdsconv_script % vars(P) + P.free_out)
+            opWriteCl("f2mtz.inp2", f2mtz_script % vars(P))
+            P.mode_out = "CCP4_F"
+            if P.friedel_out == "FALSE":
+                P.cinp_ano = "F(+)%(lbl)s SIGF(+)%(lbl)s F(-)%(lbl)s SIGF(-)%(lbl)s" \
+                              % vars(P)
+                P.cinp_ano2 = "G  L  G  L"
+            else: P.cinp_ano = P.cinp_ano2 = ""
+            P.merge_out = "TRUE"
+
 # LABOUT  H K L FP SIGFP F(+) SIGF(+) F(-) SIGF(-) FreeRflag
 # CTYPOUT H H H  F   Q    G     L      G     L         X
         elif self.mode == "PHASER":
@@ -914,14 +1016,15 @@ class DoMode:
         P.ident = ".".join(P.file_name_in.split(".")[:-1])
         #P.file_name_out = P.ident+"_"+P.ha_name+self.name_ext
         P.file_name_out = P.ident + self.name_ext
-        if self.mode == "CCP4" or self.mode == "CRANK" or \
-           self.mode == "SHARP" or self.mode == "PHASER" :
+        if self.mode == "CCP4" or self.mode == "CCP4F" or \
+           self.mode == "CRANK" or self.mode == "SHARP" or self.mode == "PHASER" :
             self.last_name = P.file_name_out
             P.file_name_out = "F2MTZ.HKL.TMP"
             P.last_name = self.last_name
 
         if self.mode != "SOLVE":
             opWriteCl("XDSCONV.INP", xdsconv_script % vars(P) + P.free_out)
+
 
     def run(self):
         ls = os.listdir(".")
@@ -931,6 +1034,12 @@ class DoMode:
         if self.mode not in ("SOLVE",):
             toexec = os.path.join(xupy.XDSHOME,"xdsconv")
             xupy.exec_prog(toexec, stdout="xdsconv.log")
+            if self.mode == "CCP4F":
+                os.system("mv XDSCONV2.INP XDSCONV.INP")
+                os.system("mv f2mtz.inp2 %s" % self.dir_mode)
+                toexec = os.path.join(xupy.XDSHOME,"xdsconv")
+                xupy.exec_prog(toexec, stdout="xdsconv_dano.log")
+
 
     def post_run(self, P):
         if self.mode == "SHELX":
@@ -940,6 +1049,8 @@ class DoMode:
             opWriteCl("%s/shelxc.inp" % P.dir_mode, shelxc_script % vars(P))
             opWriteCl("%s/run_shelx.sh" % P.dir_mode, shelxall_script % vars(P))
             os.system("chmod a+x %s/run_shelx.sh" % P.dir_mode)
+            opWriteCl("%s/run_sitcom.sh" % P.dir_mode, sitcom_script % vars(P))
+            os.system("chmod a+x %s/run_sitcom.sh" % P.dir_mode)
             #os.system("cd %s;xprep<xprep.inp>xprep.log" % P.dir_mode)
             os.system("cd %s;shelxc XX1 <shelxc.inp>shelxc.log" % P.dir_mode)
 
@@ -951,11 +1062,20 @@ class DoMode:
 
         elif self.mode == "CCP4":
             opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_script % vars(P))
-            opWriteCl("%s/cad.inp" % P.dir_mode, cad_script  % vars(P))
+            opWriteCl("%s/cad.inp" % P.dir_mode, cad_script % vars(P))
             os.system("cd %s;f2mtz hklout TMP.MTZ<f2mtz.inp >f2mtz.log" % P.dir_mode)
             os.system("cd %s;cad hklin1 TMP.MTZ hklout %s <cad.inp >cad.log"
                           % (P.dir_mode, self.last_name))
             os.system("rm -f F2MTZ.INP ccp4/TMP.MTZ ccp4/F2MTZ.HKL.TMP")
+
+        elif self.mode == "CCP4F":
+           opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_script % vars(P))
+           opWriteCl("%s/cad.inp" % P.dir_mode, cad2_script % vars(P))
+           os.system("cd %s;f2mtz hklout TMP.MTZ<f2mtz.inp >f2mtz.log" % P.dir_mode)
+           os.system("cd %s;f2mtz hklout TMP2.MTZ<f2mtz.inp2 >f2mtz2.log" % P.dir_mode)
+           os.system("cd %s;cad hklin1 TMP.MTZ hklin2 TMP2.MTZ hklout %s <cad.inp >cad.log"
+                         % (P.dir_mode, self.last_name))
+           os.system("rm -f F2MTZ.INP ccp4f/TMP*.MTZ ccp4f/F2MTZ.HKL.TMP*")
 
         elif self.mode == "CRANK":
             #opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_script % vars(P))
