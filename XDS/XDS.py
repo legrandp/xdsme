@@ -25,9 +25,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0-beta1"
+__version__ = "0.5.0-beta2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "16-02-2012"
+__date__ = "7-05-2012"
 __copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -121,6 +121,10 @@ USAGE = """
     -O,  --oscillation
          Set frame oscillation range in degree.
          For example: -c 0.5 
+
+    -M,  --orientation-matrix
+         Input crystal orientation matrix.
+         For example: -M XPARM.XDS 
 
     -p,  --project
          Set the project name. The default is the prefix taken from
@@ -224,6 +228,12 @@ rrf, rri = r"[\ ]+([0-9\.]+)", r"[\ ]+([\d]+) "
 SCALE_RE = re.compile(r" "+rri+r"  (\d)"+rrf+r"  ....... "+4*rri+2*rrf)
 
 XDS_HOME = os.getenv('XDS')
+
+def _get_omatrix(_file):
+    omat = []
+    for line in open(_file,'r').readlines()[8:]:
+        omat.append(map(float, line.split()))
+    return omat
 
 def unpack_latticefit2(lattice_string):
     "From lattice_string to Lattice object."
@@ -1462,7 +1472,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:F:i:IL:O:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:f:F:i:IL:O:M:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1478,6 +1488,7 @@ if __name__ == "__main__":
                 "distance",
                 "reference=",
                 "oscillation",
+                "orientation-matrix=",
                 "project",
                 "beam-center-optimize-i",
                 "beam-center-optimize-z",
@@ -1512,6 +1523,7 @@ if __name__ == "__main__":
     RES_HIGH = 0
     DISTANCE = 0
     OSCILLATION = 0
+    ORIENTATION_MATRIX = False
     PROJECT = ""
     WAVELENGTH = 0
     RES_LOW = 50
@@ -1561,6 +1573,13 @@ if __name__ == "__main__":
             LAST_FRAME = int(a)
         if o in ("-O", "--oscillation"):
             OSCILLATION = float(a)
+        if o in ("-M", "--orientation-matrix"):
+            if os.path.isfile(a):
+                ORIENTATION_MATRIX = str(a)
+            else:
+                print "\n  ERROR: Can't open orientation matrix file %s." % a
+                print "  STOP!\n"
+                sys.exit()
         if o in ("-p", "--project"):
             PROJECT = str(a)
         if o in ("-S", "--strategy"):
@@ -1690,6 +1709,16 @@ if __name__ == "__main__":
             newPar["REFERENCE_DATA_SET"] = "../"+_reference
     if OSCILLATION:
         newPar["OSCILLATION_RANGE"] = OSCILLATION
+    if ORIENTATION_MATRIX:
+        try:
+            omat = _get_omatrix(ORIENTATION_MATRIX)
+            newPar["UNIT_CELL_A_AXIS"] = omat[0]
+            newPar["UNIT_CELL_B_AXIS"] = omat[1]
+            newPar["UNIT_CELL_C_AXIS"] = omat[2]
+        except:
+            print "\nERROR Can't import orientation matrix from: %s" % \
+                                  ORIENTATION_MATRIX
+            sys.exit()
     if WAVELENGTH:
         newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
     #if XDS_INPUT:
