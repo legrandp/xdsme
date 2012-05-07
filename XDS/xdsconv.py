@@ -287,6 +287,47 @@ CTYPOUT H H H  F   Q    G     L      G     L %(free_code)s
 END
 """
 
+scala_script = """#!/bin/bash 
+
+function run_scala() {
+pointless XDSIN XDS_ASCII.HKL \\
+          HKLOUT XDS_pointless_correct.mtz > XDS_pointless_correct.log
+scala hklin XDS_pointless_correct.mtz hklout XDS_scala_correct.mtz \\
+      scales     SCALA.scales \\
+      rogues     SCALA.rogues \\
+      rogueplot  SCALA.rogueplot \\
+      correlplot SCALA.correlplot \\
+      normplot   SCALA.norm \\
+      anomplot   SCALA.anom \\
+> XDS_scala.log << eof-1
+cycles 0
+bin 12
+scales constant    # batch scaling is generally poorer than smoothed 
+anomalous on 
+eof-1
+}
+
+function run_aimless() {
+pointless XDSIN XDS_ASCII.HKL \\
+          HKLOUT XDS_pointless_correct.mtz > XDS_pointless_correct.log
+aimless hklin XDS_pointless_correct.mtz hklout XDS_aimless_correct.mtz \\
+      scales     AIMLESS.scales \\
+      rogues     AIMLESS.rogues \\
+      rogueplot  AIMLESS.rogueplot \\
+      correlplot AIMLESS.correlplot \\
+      normplot   AIMLESS.norm \\
+      anomplot   AIMLESS.anom \\
+> XDS_aimless.log << eof-2
+cycles 0
+bin 12
+scales constant    # batch scaling is generally poorer than smoothed 
+eof-2
+}
+
+#run_scala
+run_aimless
+"""
+
 cad_crank_script = """
  cad HKLIN1 temp.mtz HKLOUT output_file_name.mtz<<EOF
  LABIN FILE 1 ALL
@@ -984,6 +1025,7 @@ class DoMode:
             P.file_name_out = "F2MTZ.HKL.TMP2"
             opWriteCl("XDSCONV2.INP", xdsconv_script % vars(P) + P.free_out)
             opWriteCl("f2mtz.inp2", f2mtz_script % vars(P))
+            opWriteCl("run_simple_scale.sh", scala_script)
             P.mode_out = "CCP4_F"
             if P.friedel_out == "FALSE":
                 P.cinp_ano = "F(+)%(lbl)s SIGF(+)%(lbl)s F(-)%(lbl)s SIGF(-)%(lbl)s" \
