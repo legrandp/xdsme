@@ -1075,7 +1075,7 @@ class XDS:
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
         if "slow" in self.mode:
-            self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA/BETA"] = 13
+            self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA_BETA"] = 13
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
         "Runs the 2 first steps: DEFPIX and INTEGRATE"
