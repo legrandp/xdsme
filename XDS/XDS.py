@@ -231,9 +231,13 @@ XDS_HOME = os.getenv('XDS')
 
 def _get_omatrix(_file):
     omat = []
-    for line in open(_file,'r').readlines()[8:]:
+    xparm = open(_file,'r').readlines()
+    spgcell = xparm[7].split()
+    spgn = int(spgcell[0])
+    cell = map(float, spgcell[1:])
+    for line in xparm[8:]:
         omat.append(map(float, line.split()))
-    return omat
+    return spgn, cell, omat
 
 def unpack_latticefit2(lattice_string):
     "From lattice_string to Lattice object."
@@ -762,7 +766,7 @@ class XDS:
                 os.chdir(self.run_dir)
                 if self.link_to_images:  
                     if not os.path.exists(self.link_name_to_image):
-                        os.system("ln -sf %s %s" % (self.collect_dir, \
+                        os.system("ln -sf '%s' %s" % (self.collect_dir, \
                                                     self.link_name_to_image))
                         #os.system("ln -sf .. %s" % (self.link_name_to_image))
                     #else:
@@ -1533,7 +1537,7 @@ if __name__ == "__main__":
     _beam_center_optimize = False
     _beam_center_ranking = "ZSCORE"
     _beam_center_swap = False
-    _cell = ""
+    CELL = ""
     XDS_INPUT = ""
     _beam_in_mm = False
     SLOW = False
@@ -1557,7 +1561,7 @@ if __name__ == "__main__":
         if o in ("-i", "--xds-input"):
             XDS_INPUT = a
         if o in ("-c", "--cell"):
-            _cell = a
+            CELL = a
         if o in ("-d", "--distance"):
             DISTANCE = float(a)
         if o in ("-f", "--reference"):
@@ -1689,17 +1693,17 @@ if __name__ == "__main__":
         newPar["DATA_RANGE"][1] = LAST_FRAME
     if ICE:
         newPar.update(EXCLUDE_ICE_RING)
-    if SPG and _cell:
+    if SPG and CELL:
         newPar["SPACE_GROUP_NUMBER"] = SPG
-        newPar["UNIT_CELL_CONSTANTS"] = _cell
-    elif SPG and not _cell:
+        newPar["UNIT_CELL_CONSTANTS"] = CELL
+    elif SPG and not CELL:
         WARNING = "  WARNING: Spacegroup is defined but not cell."
         WARNING += " Waiting for indexation for setting cell."
-    elif _cell and not SPG:
+    elif CELL and not SPG:
         WARNING = "  WARNING: Cell is defined but not spacegroup,"
         WARNING += " setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
-        newPar["UNIT_CELL_CONSTANTS"] = _cell
+        newPar["UNIT_CELL_CONSTANTS"] = CELL
     if DISTANCE:
         newPar["DETECTOR_DISTANCE"] = DISTANCE
     if _reference:
@@ -1711,7 +1715,10 @@ if __name__ == "__main__":
         newPar["OSCILLATION_RANGE"] = OSCILLATION
     if ORIENTATION_MATRIX:
         try:
-            omat = _get_omatrix(ORIENTATION_MATRIX)
+            _spg, cell, omat = _get_omatrix(ORIENTATION_MATRIX)
+	    SPG, _spg_info, _spg_str = parse_spacegroup(_spg)
+            newPar["SPACE_GROUP_NUMBER"] = SPG
+            newPar["UNIT_CELL_CONSTANTS"] = cell
             newPar["UNIT_CELL_A_AXIS"] = omat[0]
             newPar["UNIT_CELL_B_AXIS"] = omat[1]
             newPar["UNIT_CELL_C_AXIS"] = omat[2]
