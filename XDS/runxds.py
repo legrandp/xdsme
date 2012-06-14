@@ -4,10 +4,10 @@
 """ Little utility that help automate tests and optimization with XDS.
 """
 
-__version__ = "0.4.4"
-__date__ = "18-11-2009"
-__author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__copyright__ = "Copyright (c) 2004 Pierre Legrand"
+__version__ = "0.4.5"
+__date__ = "12-06-2012"
+__author__ = "Pierre Legrand (pierre.legrand _at_ synchrotron-soleil.fr)"
+__copyright__ = "Copyright (c) 2004-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
@@ -33,6 +33,8 @@ if __name__ == '__main__':
         sys.argv.remove('-a')
         xp.update(getProfilRefPar())
         xp["JOB"] = "DEFPIX", "INTEGRATE", "CORRECT"
+        xp["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA_BETA"] = 15
+        xp["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 15
         xp["REFINE_INTEGRATE"] = "ORIENTATION", "BEAM", "CELL" #"DISTANCE",
         shutil.copyfile("GXPARM.XDS","XPARM.XDS")
     if "-i" in sys.argv:
