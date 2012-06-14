@@ -618,7 +618,7 @@ class XDSLogParser:
         sp1 = self.lp.index("RESOLUTION RANGE  I/Sigma")
         sp2 = self.lp.index(10*"-", sp1)
         _table = self.lp[sp1:sp2].splitlines()[3:-1]
-        _table = [ map(float, l.split()[1:3]) for l in _table ]
+        _table = [ map(float, l[:26].split()[1:3]) for l in _table ]
         rdi["HighResCutoff"] = self.get_proper_resolition_range(_table)
         prp = ""
         if rdi["Mosaicity"]:
@@ -1199,6 +1199,7 @@ class XDS:
             sys.exit()
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         s["name"] = os.path.basename(self.inpParam["NAME_TEMPLATE_OF_DATA_FRAMES"])
+        print s.last_table
         print FMT_FINAL_STAT % vars(s)
         if s.absent:
             print FMT_ABSENCES % vars(s)
