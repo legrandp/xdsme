@@ -889,6 +889,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         s.misfit, tmp = get_num(lp[st3-24:st6].split(),(0,-1))
         s.absent = "0"
     #
+    st9  = lp.index(" RESOLUTION\n RESOLUTION " ,st2)+12
     st10 = lp.index("    Corr\n\n" ,st2)+10
     st11 = lp.index("\n\n",st10)
     #st12 = lp.index("NOISE >=  3.0" ,st11)
@@ -897,6 +898,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     #
     if correct:
         stat_tg = lp[st10:st11].splitlines()
+        s.last_table = lp[st9:st11]
         #stat_tg = lp[st10:st11].splitlines()[4:-2]
         #stat_tg3 = lp[st12:st13].splitlines()[4:-2]
     else:
@@ -938,7 +940,10 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     #
     for k in s.keys():
        if type(s[k]) == str:
-           s[k] = float(s[k].replace("%","").replace("*",""))
+           try:
+               s[k] = float(s[k].replace("%","").replace("*",""))
+           except:
+               pass
     #
     if float(s.absent):
         stnabs = lp.index("AVERAGE INTENSITY FOR", st2)
