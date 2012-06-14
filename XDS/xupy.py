@@ -877,7 +877,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
         st2 = lp.rindex("  COMPLETENESS AND QUALITY")
     s.LowestReso = 100
     slowr = lp.index("INCLUDE_RESOLUTION_RANGE=") + 26
-    s.LowestReso, s.HighestReso = lp[slowr:slowr+21].split()
+    s.LowestReso, s.HighestReso = lp[slowr:slowr+80].splitlines()[0].split()
     if correct:
         st3 = lp.index("NUMBER OF REJECTED MISFITS ",st2)
         st6 = lp.index("NUMBER OF UNIQUE ACCEPTED REFLECTIONS " ,st2)
