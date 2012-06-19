@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __author__ = "Pierre Legrand (legrand@emble-grenoble.fr)"
-__date__ = "24-04-2012"
+__date__ = "19-06-2012"
 __copyright__ = "Copyright (c) 2003-2012 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -49,7 +49,7 @@ input_head = """!
 
 """
 
-output_str = """OUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
+output_str = """\nOUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
 STRICT_ABSORPTION_CORRECTION= TRUE
       MERGE=FALSE
 
@@ -91,14 +91,12 @@ print "File selected for scaling:\n"
 for arg in sys.argv[1:]:
     try:
         if os.path.isfile(arg):
-            print "for %s: " % arg
             f = open(arg)
             flines = f.readlines()
             f.close()
             if ("FORMAT=XDS_ASCII" in flines[0]) and \
                ("!END_OF_DATA" in flines[-1]):
                 xds_input_files.append(arg)
-                print arg
     except:
         pass
 
@@ -113,8 +111,13 @@ refdic = {}
 refdic['cell'] = hklref.header["UNIT_CELL_CONSTANTS"]
 refdic['spg'] = hklref.header["SPACE_GROUP_NUMBER"]
 refdic['hklout'] = "XSCALE.HKL"
-refdic['wavelength'] = float(hklref.header["X-RAY_WAVELENGTH"])
 
+try:
+    # work for XDS_ASCII from XDS
+    refdic['wavelength'] = float(hklref.header["X-RAY_WAVELENGTH"])
+except:
+    refdic['wavelength'] = float(hklref.header["ISET_1"])
+    
 f = open("XSCALE.INP","w")
 f.write(input_head % refdic)
 
@@ -122,10 +125,15 @@ hklf_files = []
 wavelengths = []
 muliwavelength = False
 
-for file in xds_input_files:
-    hklf = XDSReflectionFile(file)
+for _file in xds_input_files:
+    hklf = XDSReflectionFile(_file)
     hklf_files.append(hklf)
-    wavelengths.append(float(hklf.header["X-RAY_WAVELENGTH"]))
+    try:
+        wavelength = float(hklf.header["X-RAY_WAVELENGTH"])
+    except:
+        wavelength = float(hklf.header["ISET_1"])
+    wavelengths.append(wavelength)
+    print "INPUT: %s    WAVELENGTH: %.4f" % (_file, wavelength)
 
 w0 = wavelengths[0]
 if len(wavelengths) > 1:
@@ -137,18 +145,24 @@ if len(wavelengths) > 1:
 
 if not muliwavelength:
     f.write(output_str % refdic)
-    
+
+mad_fnames = []
 print "MultiWavelength:", muliwavelength
 for hklf in hklf_files:
     if muliwavelength:
         refdic['wavelength'] = float(hklf.header["X-RAY_WAVELENGTH"])
-        refdic['hklout'] = ("XSCALE_%.5fA.HKL" % refdic['wavelength'])
-        f.write(output_str % refdic)
+        fname = "XSCALE_%.4fA.HKL" % refdic['wavelength']
+        refdic['hklout'] = (fname)
+        print fname, mad_fnames
+        if fname not in mad_fnames:
+            f.write(output_str % refdic)
+            mad_fnames.append(fname)
     f.write("   INPUT_FILE= %s\n" % hklf.fileName)
-    f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % hklf.header["INCLUDE_RESOLUTION_RANGE"])
-    f.write("      FRIEDEL'S_LAW=            %s\n" % hklf.header["FRIEDEL'S_LAW"])
+    if "INCLUDE_RESOLUTION_RANGE" in hklf.header:
+        f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % \
+                hklf.header["INCLUDE_RESOLUTION_RANGE"])
+    f.write("      FRIEDEL'S_LAW=        %s\n" % hklf.header["FRIEDEL'S_LAW"])
     f.write("      ! CORRECTIONS= DECAY MODULATION ABSORPTION\n")
-
 f.close()
 
 
