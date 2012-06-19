@@ -781,11 +781,12 @@ def UB_to_cellParam(UB):
     return (Ar.length(), Br.length(), Cr.length(),
             Br.angle(Cr)*r2d, Cr.angle(Ar)*r2d, Ar.angle(Br)*r2d)
 
-def is_orthogonal(R, epsilon=5e-6, debug=True):
+def is_orthogonal(R, epsilon=5e-6, debug=False):
     """Check if a tensor is orthogonal:R.transpose() = R.inverse()
        Usefull to check proper caclculation of U orientation matrices."""
     Mdiff = diffMAT(R.transpose(), R.inverse())
-    print "==debug:  Mdiff= %.2e    abs(1-det)= %.2e" % \
+    if debug:
+        print "==debug:  Mdiff= %.2e    abs(1-det)= %.2e" % \
                                       (Mdiff, abs(1-R.determinant()))
     #print "\n Rotation error =====>> %7.1e\n" % Mdiff
     if Mdiff < epsilon:

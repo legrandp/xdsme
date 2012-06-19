@@ -10,10 +10,10 @@
 """
 
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "22-09-2010"
+__date__ = "19-06-2012"
 __copyright__ = "Copyright (c) 2010  Pierre Legrand"
 __license__ = "New BSD License"
-__version__ = "0.0.2"
+__version__ = "0.0.4"
 
 
 import sys
@@ -49,6 +49,7 @@ _usage = """
 
 """ % _progname
 
+FMT_AXE = 3*"%15.6f"
 
 def PARS_xds2mos(xdsPar):
     "Convert XDS output parameters to Mosflm input parameters."
@@ -137,9 +138,9 @@ if __name__=='__main__':
                 break
         if not gotcha:
             raise Exception, "Can't parse inputted orientation matrix file: %s"\
-                              % inputf[0]
+                              % inpf
 
-        print "\n %s used to read input file: %s" % (XOparser.info, inputf[0])
+        print "\n %s used to read input file: %s" % (XOparser.info, inpf)
         XOfileType = XOparser.fileType
 
         if not spgn:
@@ -172,13 +173,16 @@ if __name__=='__main__':
         elif XOparser.fileType == "XDS":
             UBmos = XOparser.UBxds_to_mos()/ XOparser.dict["wavelength"]
             Umos = (UBmos) * Bmos.inverse()
+            #for a in "A", "B", "C":
+            #    print a, FMT_AXE % tuple(XOparser.dict[a])
             A = vec3(XOparser.dict["A"])
             B = vec3(XOparser.dict["B"])
             C = vec3(XOparser.dict["C"])
+
             UBR = mat3(A, B, C).transpose()
             printmat(UBR, '\n   UBR',  "%12.6f")
 
-        is_orthogonal(Umos)
+        is_orthogonal(Umos, debug=_debug)
         printmat( Umos,'\n   U',  "%12.6f")
         printmat( Bmos,'\n   B',  "%12.6f")
         printmat( UBmos,'\n  UB', "%12.6f")
@@ -189,10 +193,10 @@ if __name__=='__main__':
     Udiff = XOmat[0] * XOmat[1].inverse()
     printmat(Udiff, '\n   U*U-1',  "%12.6f")
     axis, angle = axis_and_angle(Udiff)
-    print "\n>>> DIFFERENCE_1:\n"
-    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
-    print "Angle_i: %10.5f degree" % (angle*R2D)
-
+    #print "\n>>> DIFFERENCE_1:\n"
+    #print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
+    #print "Angle_i: %10.5f degree" % (angle*R2D)
+        
 #    axis, angle = axis_and_angle(Udiff)
 #    print "\n>>> DIFFERENCE_3:\n"
 #    print "Axis_i:  %9.5f%9.5f%9.5f" % tuple(axis),
