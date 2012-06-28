@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "08-10-2011"
-__copyright__ = "Copyright (c) 2006-2011 Pierre Legrand"
+__date__ = "26-06-2012"
+__copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 # Environemantal variable XDSHOME, if set, defines the place where the xds
@@ -134,12 +134,13 @@ FIND  ${NSITES}
 SFAC %(ha_name)s
 ESEL 1.4
 MIND -3.5 1
-MAXM 2
+MAXM 4
 EOFC
 
 if [ $PATS != "yes" ] ; then
 
-grep -v PATS ${ID}_fa.ins > ${ID}_nopats_fa.ins
+#grep -v PATS ${ID}_fa.ins > ${ID}_nopats_fa.ins
+sed -e 's/^PATS/WEED 0.3\\nSKIP 0.5/'  ${ID}_fa.ins > ${ID}_nopats_fa.ins
 cp ${ID}.hkl ${ID}_nopats.hkl
 cp ${ID}_fa.hkl ${ID}_nopats_fa.hkl
 
@@ -400,7 +401,7 @@ phaser_script = """#!/bin/bash
 # script written by xdsconv.py (pierre.legrand at synchrotron-soleil.fr)
 
 label=""
-scat="S"
+scat="%(ha_name)s"
 PARTIAL_MODEL_OPTION=""
 solvent_content=0.5
 parrot_cycles=5
@@ -465,7 +466,7 @@ COMPosition BY SOLVent
 COMPosition PERCentage $solvent_content
 CRYStal ${ID} DATAset sad LABIn F+=F(+)${label} SIG+=SIGF(+)${label} F-=F(-)${label} SIG-=SIGF(-)${label}
 WAVElength %(wavelength)f
-LLGComplete COMPLETE ON 
+LLGComplete COMPLETE ON # CLASH 3.8
 ATOM CRYStal ${ID} PDB $hatom_pdb SCATtering ${scat}
 ATOM CHANge SCATterer ${scat}
 ROOT ${ID}_auto
