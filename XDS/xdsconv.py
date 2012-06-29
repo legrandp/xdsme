@@ -502,7 +502,7 @@ cparrot \\
 
 run_phaser
 run_parrot ori
-run_parrot inv
+test -f ${ID}_auto.hand.mtz && run_parrot inv
 
 """
 
