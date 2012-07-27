@@ -20,9 +20,9 @@ import shutil
 import fnmatch
 from time import time, sleep
 
-__version__ = "0.7.8"
+__version__ = "0.7.10"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "10-10-2011"
+__date__ = "27-07-2012"
 __copyright__ = "Copyright (c) 2006-2011  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -863,12 +863,14 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
             #print AB6[-6:]
             #sp1 = lp.index("      b          ISa")
             #sp2 = lp.index("  INTEGRATE.HKL   ", sp1)
-            s.K1s, s.K2s = map(float, AB6[-3:-1])
+            s.K1s, s.K2s, s.IoverSigmaAsympt = map(float, AB6[-3:])
         else:
             #print AB6[-50:-6]
             sp1 = lp.index("ISa0   INPUT DATA SET")
-            #sp2 = lp.index("  XDS_ASCII.HKL   ", sp1)
-        s.IoverSigmaAsympt =  1/((s.K1s*(s.K2s+0.0004))**0.5)
+            sp2 = lp.index("\n", sp1+30)
+            s.K1s, s.K2s, s.IoverSigmaAsympt = map(float, \
+                                      lp[sp1:sp2].split()[-5:-2])
+            #s.IoverSigmaAsympt = 1/((s.K1s*(s.K2s+0.0004))**0.5)
     except:
         s.IoverSigmaAsympt =  -99.9
     try:
@@ -1051,13 +1053,19 @@ def read_xdsascii_head(file_name_in):
     head["friedels_law"] = ""
     head["wavelength"] = 0
     head["template_name"] = ""
+    head["include_resolution"] = 1000, 0
     if not os.path.exists(file_name_in):
         print "ERROR! Can't find file %s.\nSTOP.\n" % (file_name_in)
         sys.exit()
     raw = open(file_name_in)
     line = raw.readline()
     while line[0] == "!":
-        if line.count("NAME and FORMAT") :
+        if line.count("MERGE=") == 1:
+            head["merge"] = line[line.index("MERGE=")+6:-1].split()[0].strip()
+        if line.count("FRIEDEL'S_LAW="):
+            head["friedels_law"] = \
+                     line[line.index("FRIEDEL'S_LAW=")+14:-1].strip()
+        if line.count("NAME and FORMAT"):
             line = raw.readline()
             head["inputfile_name"] = line.split()[2]
             head["inputfile_type"] = line.split()[3]
@@ -1065,20 +1073,17 @@ def read_xdsascii_head(file_name_in):
             line = raw.readline()
             head["inputfile_name"] = line.split("INPUT_FILE=")[1].strip()
             head["inputfile_type"] = "XDS_ASCII"
-        #
         if line.count("UNIT_CELL_CONSTANTS="):
             head["cell"] = line[line.index("=")+1:-1].strip()
-        if line.count("SPACE_GROUP_NUMBER="):
+        elif line.count("INCLUDE_RESOLUTION_RANGE="):
+            head["include_resolution"] = map(float, \
+                      line[line.index("=")+1:-1].strip().split())
+        elif line.count("SPACE_GROUP_NUMBER="):
             head["sym"] = line[line.index("=")+1:-1].strip()
-        if line.count("X-RAY_WAVELENGTH="):
+        elif line.count("X-RAY_WAVELENGTH="):
             iw = line.index("WAVELENGTH=")+11
             head["wavelength"] = float(line[iw:iw+10].strip())
-        if line.count("MERGE=") == 1:
-            head["merge"] = line[line.index("MERGE=")+6:-1].split()[0].strip()
-        if line.count("FRIEDEL'S_LAW="):
-            head["friedels_law"] = \
-                     line[line.index("FRIEDEL'S_LAW=")+14:-1].strip()
-        if line.count("NAME_TEMPLATE_OF_DATA_FRAMES="):
+        elif line.count("NAME_TEMPLATE_OF_DATA_FRAMES="):
             head["template_name"] = line[line.index("=")+1:].strip().split("??")[0].split("/")[-1]
             if head["template_name"][-1] == "_":
                 head["template_name"] == head["template_name"][:-1]
