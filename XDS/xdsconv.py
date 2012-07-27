@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "26-06-2012"
+__date__ = "27-07-2012"
 __copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -81,7 +81,7 @@ fmt_inp = """
 <<< Cell parameters:         %(cell_str)s
 <<< Friedel's law:           %(friedel_in)s
 <<< Merge:                   %(merge_in)s
-<<< Dirname:                 %(dirname)s
+<<< Template:                %(ID)s
 <<< Wavelength               %(wavelength).4f
 """
 
@@ -928,17 +928,16 @@ class DoMode:
         self.dir_mode = self.mode.lower()+"/"
         P.dir_mode = self.dir_mode
         P.spg_name = (xupy.SPGlib[int(P.spgn_in)][0]).lower()
-        try:
-            # It will fail herre in case Numeric is not installed
-            # Or for old version of XDS
-            from xdsHKLinfos import get_info
-            infos = get_info(P.file_name_in)
-            P.res_high =  infos["res_high"]
-            P.res_low = infos["res_low"]
-        except: 
-            P.res_high = 1.1
-            P.res_low = 30
-
+        if P.res_high == 0.0:
+            try:
+                # It will fail herre in case Numeric is not installed
+                # Or for old version of XDS
+                from xdsHKLinfos import get_info
+                infos = get_info(P.file_name_in)
+                P.res_high =  infos["res_high"]
+                P.res_low = infos["res_low"]
+            except: 
+                pass
         if P.wavelength:
             self.wavelength = P.wavelength
         else:
@@ -1058,7 +1057,8 @@ class DoMode:
 
         P.ident = ".".join(P.file_name_in.split(".")[:-1])
         #P.file_name_out = P.ident+"_"+P.ha_name+self.name_ext
-        P.file_name_out = P.ident + self.name_ext
+        #P.file_name_out = P.ident + self.name_ext
+        P.file_name_out = P.ID + self.name_ext
         if self.mode == "CCP4" or self.mode == "CCP4F" or \
            self.mode == "CRANK" or self.mode == "SHARP" or self.mode == "PHASER" :
             self.last_name = P.file_name_out
@@ -1342,9 +1342,12 @@ if __name__=='__main__':
     XC.merge_in = H["merge"]
     if H["template_name"]:
         XC.ID = H["template_name"]
+        while XC.ID[-1] == "_":
+            XC.ID = XC.ID[:-1]
     else:
         XC.ID = "XDSa"
-
+    XC.res_high = H["include_resolution"][1]
+    XC.res_low = H["include_resolution"][0]
     if not H["wavelength"]:
     # Try to catch the wavelength from 
         if H["inputfile_name"] \
@@ -1352,7 +1355,8 @@ if __name__=='__main__':
            and H["inputfile_type"] == "XDS_ASCII":
                _h = xupy.read_xdsascii_head(H["inputfile_name"])
                if _h["wavelength"] : XC.wavelength = _h["wavelength"]
-    else: XC.wavelength = H["wavelength"]
+    else:
+        XC.wavelength = H["wavelength"]
     if H["friedels_law"] == "TRUE" and XC.friedel_out == "FALSE":
         print "\n>>> WARNING!  The input file does not contain Friedel's mate."
     if H["merge"] == "TRUE" and XC.merge_out == "FALSE":
