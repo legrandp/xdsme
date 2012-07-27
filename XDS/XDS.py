@@ -27,7 +27,7 @@
 
 __version__ = "0.5.0-beta2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "7-05-2012"
+__date__ = "24-07-2012"
 __copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -172,6 +172,9 @@ USAGE = """
 
     --weak,
          Set parameters to index in case of weak spots.
+
+    --brute,
+         Try hard to index. To be used in resistant cases.
 
 """ % PROGNAME
 
@@ -880,6 +883,8 @@ class XDS:
         dPhi = self.inpParam["OSCILLATION_RANGE"]
         if SLOW or WEAK:
             bkgr =  i1, min(i2, min(i1+15, i1+int(7./dPhi)))
+        elif BRUTE:
+            bkgr =  i1, i1+40
         else:
             bkgr =  i1, min(i2, min(i1+7, i1+int(3./dPhi)))
         self.inpParam["BACKGROUND_RANGE"] = bkgr
@@ -903,6 +908,11 @@ class XDS:
             frames_per_colspot_sequence = int(round(6.4/dPhi, 0))
         elif "fast" in self.mode:
             frames_per_colspot_sequence = int(round(1.6/dPhi, 0))
+        elif BRUTE:
+            frames_per_colspot_sequence = int(round(60./dPhi, 0))
+            self.inpParam["VALUE_RANGE_FOR_TRUSTED_DETECTOR_PIXELS"] = \
+                 5000, 30000
+            self.inpParam["STRONG_PIXEL"] = 4.5
         else:
             frames_per_colspot_sequence = int(round(3.2/dPhi, 0))
         if "weak" in self.mode:
@@ -1088,7 +1098,7 @@ class XDS:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
         self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
-        if "slow" in self.mode:
+        if ("slow" in self.mode) or BRUTE:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA_BETA"] = 13
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
@@ -1378,7 +1388,7 @@ def parse_spacegroup(spginp):
 
 def select_strategy(idxref_results, xds_par):
     "Interactive session to select strategy parameters."
-    sel_spgn = xds_par["SPACE_GROUP_NUMBER"]
+    sel_spgn = SPG #xds_par["SPACE_GROUP_NUMBER"]
     sel_ano =  xds_par["FRIEDEL'S_LAW"]
     #print xds_par["UNIT_CELL_CONSTANTS"] 
     valid_inp = False
@@ -1501,7 +1511,7 @@ if __name__ == "__main__":
                 "xds-input=",
                 "verbose",
                 "wavelength=",
-                "slow", "weak"]
+                "slow", "weak", "brute"]
 
     if len(sys.argv) == 1:
         print USAGE
@@ -1543,6 +1553,7 @@ if __name__ == "__main__":
     _beam_in_mm = False
     SLOW = False
     FAST = False
+    BRUTE = False
     STEP = 1
 
     for o, a in opts:
@@ -1615,6 +1626,8 @@ if __name__ == "__main__":
             _beam_center_swap = True
         if o in ("--slow"):
             SLOW = True
+        if o in ("--brute"):
+            BRUTE = True
         if o in ("--weak"):
             WEAK = True
         if o in ("-h", "--help"):
