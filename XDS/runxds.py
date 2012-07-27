@@ -37,6 +37,13 @@ if __name__ == '__main__':
         xp["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 15
         xp["REFINE_INTEGRATE"] = "ORIENTATION", "BEAM", "CELL" #"DISTANCE",
         shutil.copyfile("GXPARM.XDS","XPARM.XDS")
+    if "-p" in sys.argv:
+        sys.argv.remove('-p')
+        xp.update(getProfilRefPar())
+        xp["JOB"] = "DEFPIX", "INTEGRATE", "CORRECT"
+        xp["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA_BETA"] = 15
+        xp["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 15
+        xp["REFINE_INTEGRATE"] = "ORIENTATION", "BEAM", "CELL" #"DISTANCE",
     if "-i" in sys.argv:
         optid = sys.argv.index("-i")
         _xds_input = sys.argv[optid+1]
