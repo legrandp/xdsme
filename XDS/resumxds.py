@@ -27,7 +27,7 @@ facteur_repr = [['LowR','LowestReso',"%5.1f"],
                 ['AnoS','anoSig',"%5.2f"],
                 ['Abs','absent',"%4d"],
                 ['IAbs','AbsIav',"%5.1f"],
-                ['Io6asy','IoverSigmaAsympt','%6.2f']]
+                ['ISa','IoverSigmaAsympt','%6.2f']]
 
 #                ['Total3','total3',"%6d"],
 #                ['Cmpl3','compl3',"%5.1f"],
