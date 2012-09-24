@@ -220,7 +220,7 @@ TEMPLATE += """
 #
 #def TEST(x):
 #  print x, type(x)
-#  return round(x*1.02,2)
+#  return round(x,2)
 
 HTD = {
 'X_RAY_WAVELENGTH':(['Wavelength'], float),
@@ -238,7 +238,7 @@ HTD = {
 'DELPHI':(['PhiWidth'], lambda x: 16*x),
 'DIRECTION_OF_DETECTOR_X-AXIS':(['TwoTheta','ImageType'], det_axis_x),
 'DIRECTION_OF_DETECTOR_Y-AXIS':(['TwoTheta','ImageType'], det_axis_y),
-'_HIGH_RESOL_LIMIT':(['EdgeResolution'], lambda x: round(x*1.02,2)),
+'_HIGH_RESOL_LIMIT':(['EdgeResolution'], lambda x: round(x,2)),
 }
 
 #     Collect Translator Dictionary.

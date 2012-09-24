@@ -3,10 +3,10 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "02-05-2011"
-__copyright__ = "Copyright (c) 2009-2011 Pierre Legrand"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2009-2012 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -32,9 +32,9 @@ def date_seconds(timestr):
 def get_edge_resolution(pixel_x, width, distance, wavelength):
     "Calculate EdgeResolution"
     from math import sin, atan
-    if distance > 0.0:
+    if abs(DISTANCE(distance)) > 0.0:
         rad = 0.5 * float(FLOAT2(pixel_x)) * int(width)
-        return FLOAT1(wavelength)/sin(atan(rad/DISTANCE(distance)))
+        return FLOAT1(wavelength)/(2*sin(0.5*atan(rad/DISTANCE(distance))))
     else:
         return 0.
 
@@ -47,7 +47,7 @@ def DISTANCE(inp):
         if args[1] == "m": return float(args[0])*1e3
     except:
         return float(args[0])
-  
+
 
 BEAMX = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[0])\
                                                                *FLOAT2(y)

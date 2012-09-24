@@ -3,10 +3,10 @@
 """ XIO plugin for the ADSC image format.
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "30-11-2009"
-__copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2005-2012 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -28,11 +28,12 @@ def date_seconds(time_str):
         return time.time()
 
 def get_edge_resolution(pixel_x, width, distance, wavelength):
-    "Calculate EdgeResolution: Graeme's Method"
+    "Calculate EdgeResolution."
     from math import sin, atan
-    if distance > 0.0:
+    distance=float(distance)
+    if abs(distance) > 0.0:
         rad = 0.5 * float(pixel_x) * int(width)
-        return float(wavelength)/sin(atan(rad/float(distance)))
+        return float(wavelength)/(2*sin(0.5*atan(rad/distance)))
     else:
         return 0.
 

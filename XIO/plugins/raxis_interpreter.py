@@ -2,22 +2,22 @@
 # FIXME: serial number...
 # reading the data: unpack the data using the ratio.
 
-__version__ = "0.1"
+__version__ = "0.1.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "18-04-2005"
-__copyright__ = "Copyright (c) 2005 Pierre Legrand"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2005-2012 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
 import struct
 
-    
+
 def getEdgeResolutionRAXIS(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
+            "Calculate EdgeResolution"
             from math import sin, atan
-            if Distance > 0.0:
+            if abs(float(Distance)) > 0.0:
                 r = 0.5 * float(PixelX) * int(Width)
-                return float(Wavelength)/sin(atan(r/float(Distance)))
+                return float(Wavelength)/(2*sin(0.5*atan(r/float(Distance))))
             else:
                 return 0.
 

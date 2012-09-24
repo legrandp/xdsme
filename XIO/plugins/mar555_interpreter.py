@@ -1,9 +1,9 @@
 
-__version__ = "0.2"
+__version__ = "0.2.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "12-04-2005"
-__copyright__ = "Copyright (c) 2005 Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2005-2012 Pierre Legrand"
+__license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
 import struct
@@ -12,11 +12,11 @@ import struct
 divE3 = lambda x: float(x)/1e3
     
 def getEdgeResolutionMAR345(PixelX, Width, Distance, Wavelength):
-            "Calculate EdgeResolution: Graeme's Method"
+            "Calculate EdgeResolution."
             from math import sin, atan
             if Distance > 0.0:
                 r = 0.5 * PixelX/1.e3 * Width
-                return Wavelength/sin(atan(r/Distance))
+                return Wavelength/(2*sin(0.5*atan(r/Distance)))
             else:
                 return 0.
 
