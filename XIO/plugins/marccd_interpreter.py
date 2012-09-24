@@ -3,10 +3,10 @@
 """ XIO plugin for the MarCCD image format.
 """
 
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "30-11-2009"
-__copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2005-2012 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -52,12 +52,12 @@ def get_serial(comment):
 
 def get_edge_resolution_marccd(pixel_x, width, distance,
                                     start_distance, wavelength):
-    "Calculate EdgeResolution: Graeme's Method"
+    "Calculate EdgeResolution"
     from math import sin, atan
     distance = distance or start_distance
-    if distance > 0.0:
+    if abs(float(distance)) > 0.0:
         rad = 0.5 * float(pixel_x)/1e6 * int(width)
-        return float(wavelength/1e5)/sin(atan(rad/float(distance)*1e3))
+        return float(wavelength/1e5)/(2*sin(0.5*atan(rad/float(distance)*1e3)))
     else:
         return 0.
 

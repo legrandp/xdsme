@@ -1,8 +1,8 @@
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "11-10-2011"
-__copyright__ = "Copyright (c) 2007-2011 Pierre Legrand"
+__date__ = "23-09-2012"
+__copyright__ = "Copyright (c) 2007-2012 Pierre Legrand"
 __license__ = "New BSD License http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -15,14 +15,14 @@ def _dateseconds(timestr):
     return time.mktime(time.strptime(timestr, "%d-%b-%Y %H:%M:%S"))
 
 def getEdgeResolution(DetectorSize, Distance, Wavelength):
-       """Calculate EdgeResolution: Graeme's Method. Rq: doesn't take
+       """Calculate EdgeResolution. Rq: doesn't take
        into account the position of direct-beam and the two_theta
        angle of the detector."""
        Distance = float(Distance.split()[-1])
        radius = float(DetectorSize.split()[-1])/2.
        Wavelength = float(Wavelength)
-       if Distance > 0.0:
-          return Wavelength/sin(atan(radius/Distance))
+       if abs(Distance) > 0.0:
+          return Wavelength/(2*sin(0.5*atan(radius/Distance)))
        else:
           return 0.
 
