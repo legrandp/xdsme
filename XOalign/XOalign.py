@@ -28,11 +28,11 @@
 #  - Verify the datum function with fortran gonset (gonion inversAxesOrder???)
 #  - more tests...
 
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 __author__ = "Pierre Legrand (pierre legrand \at synchrotron-soleil fr)"
-__date__ = "27-09-2006"
-__copyright__ = "Copyright (c) 2004-2006 Pierre Legrand"
-__license__ = "LGPL"
+__date__ = "01-11-2012"
+__copyright__ = "Copyright (c) 2004-2012 Pierre Legrand"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
@@ -839,7 +839,13 @@ if __name__ == '__main__':
                 print "\n  Error. Unknown mode option.\n"
                 print _usage
                 sys.exit(2)
-        
+     
+    if  _space_group_numb in [143, 144, 145, 149, 150, 151, 152, 153, 154, 168,
+          169, 170, 171, 172, 173, 177, 178, 179, 180, 181, 182, 146, 155]:
+        print "WARNING: The symmetry permutation option is not yet working for"
+	print "         the Trigonal and Hexagonal space groups."
+	_do_PG_permutations = False
+	
     if _debug and sys.version_info[:3] > (2,2,0):
         _test0()
 	
