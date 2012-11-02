@@ -1,21 +1,32 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Copyright (C) 2005, Pierre Legrand
+# Copyright (C) 2012, Pierre Legrand
+# All rights reserved.
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
+# Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+# Neither the name of the <ORGANIZATION> nor the names of its contributors may
+# be used to endorse or promote products derived from this software without
+# specific prior written permission.
 #
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-# Place, Suite 330, Boston, MA 02111-1307 USA
-
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
 
 # 25th April 2005
 # Original fortran code written by:
@@ -37,41 +48,45 @@ __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 import os
 import sys
 import getopt
+import math
+
+from pycgtypes import vec3, mat3
+from ThreeAxisRotation2 import ThreeAxisRotation2
 
 _progname = os.path.split(sys.argv[0])[1]
 _usage = """
-   
+
    XOalign - Calculate possible 3-axis goniometer settings
              to realigne crystal axes.\n
-   
+
    USAGE:   %s  [OPTION]... FILE
-    
+
       FILE is the file containing the crystal orientation information.
             Supported types are:
-                 
+
                  - Denzo dot.x reflection file.
                  - Mosflm matrix files (.umat or .mat).
                  - XDS output files (CORRECT.LP, IDXREF.LP, XPARM.XDS)
-             
+
              NOTE:
                  The Mosflm matrix file does not contain the space groupe
                  information. In that case, when using the -p otion, for
                  adding point group permutations, one need to specify the
                  crystal symmetry using the -s option.
-          
+
    OPTIONS:
-                     
+
     -d
     --debug
          Turn on debug mode.
-             
+
     -D angle1,angle2,angle3
     --datum angle1,angle2,angle3
          Specify the goniometer "datum" (setting) corresponding to the
          inputted crystal orientation. The three angles are given in degree.
          For exemple: -D -15.4,121.55,0
          Default datum is 0,0,0.
-             
+
     -h
     --help
          Print this help message.
@@ -83,16 +98,16 @@ _usage = """
          crystal orientation file, or given by the -s option), the equivalent
          crystal orientations are used to calculate all possible goniometers
          settings. This is the default.
-    
+
     -n
     --no-pg-permutations
          Do not use the allowed point group permutations.
-    
+
     -m mode_name
     --mode mode_name
          Specify the crystal frame to laboratory frame alignement mode.
          There are at present two possible mode:
-             
+
              Mode "MAIN": Crystal vector 1 is aligned along the first
                           goniometer axis (Omega). Crystal vector 2
                           is placed in the plane containing the beam and
@@ -102,10 +117,10 @@ _usage = """
                           goniometer axis (Omega). Crystal vector 2
                           is placed in the plane containing crystal vector 1
                           and the first goniometer axis.
-         
+
          Default mode is "MAIN"
-         Exemple: -m maine or -m cusp         
-    
+         Exemple: -m maine or -m cusp
+
     -s name_or_number
     --space-group name_or_number
          Specify the crystal space group. The space group name or number
@@ -115,17 +130,17 @@ _usage = """
     --aligned-crystal-vector-1 crystal_vector1
          Specify the first crystal vector to be aligned. The "gonset"
          notation is used to define these vectors:
-             
+
              These may be given as a principle axis:
                  "a", "b", "c", "a*", "b*", or "c*"
              or as a reciprocal space vector enclosed in brackets:
                  "(h k l)",
              or a real space vector in square brackets:
                  "[a b c]"
-                 
+
          For exemple: -V a or -V "a*" or -V "[1 0 0]" or -V "(0 1 1)"
          Default first angle is: "a*"
-    
+
     -W crystal_vector2
     --aligned-crystal-vector-2 crystal_vector2
          Specify the second crystal vector to be aligned.
@@ -138,7 +153,7 @@ _usage = """
          to the "Omega" axis on a "Kappa" goniometer.
          It is important that there is no space between comas.
          For exemple: -O 0.,0.,1 (this is the default).
-         
+
     -K  xk,yk,zk
     --rotation-axis-2  xk,yk,zk
          Specify the second rotation axis of the goniometer, corresponding
@@ -146,14 +161,14 @@ _usage = """
          It is important that there is no space between comas.
          For exemple: -K -0.76604444311897801,0.,0.64278760968653936
           (this is the default, which correspond to an 50deg alpha angle).
-         
+
     -P  xp,yp,zp
     --rotation-axis-3  xp,yp,zp
          Specify the third rotation axis of the goniometer, corresponding
          to the "Phi" axis on a "Kappa" goniometer.
          It is important that there is no space between comas.
          For exemple: -P 0.,0.,1 (this is the default).
-    
+
    AUTHORS
        Python version:
            Pierre Legrand  Proxima1 SOLEIL
@@ -163,8 +178,13 @@ _usage = """
 
 """ % _progname
 
-from XOconv import *
+from XOconv import mat3T, printmat, is_orthogonal, spg_num2symb, BusingLevy, \
+                   SPGlib, map_r2d, PGequiv, openWriteClose, openReadClose,  \
+                   rootSquareSum, random_3axes, kappaVector, SPGlib2
+from XOconv import MosflmParser, DenzoParser, XDSParser
 
+VERBOSE = True
+r2d = 180/math.pi
 radian2degree = lambda a: a*r2d
 degree2radian = lambda a: a/r2d
 
@@ -174,10 +194,10 @@ Qdnz2mos = mat3T(ez, ex, ey)
 
 class CrystalVector(vec3):
     """ Define a crystal vector to represent reciprocal or direct space vectors
-    
+
     NOTE that it can accept fractional coordinates like
          CrystalVector("(1.2 1.22 4.9)")
-    
+
     NOTE that as it inherit from the Vector class, CrystalVectors support the
     usual arithmetic operations ('v1', 'v2': vectors, 's': scalar):
 
@@ -186,9 +206,9 @@ class CrystalVector(vec3):
     -  'v1*v2'           (scalar product)
     -  's*v1', 'v1*s'    (multiplication with a scalar)
     -  'v1/s'            (division by a scalar)
-    
+
     BUT: after these arithmetic operations, a standard Vector is returned.
-    
+
     >>> print CrystalVector("a*")
     ( 1  0  0 )
     >>> print CrystalVector("c")
@@ -205,21 +225,21 @@ class CrystalVector(vec3):
     >>> assert xv+xv == vec3(2.0,2.0,8.0)
     >>> assert xv*4 == vec3(4.0,4.0,16.0)
     """
-    
+
     def __init__(self, initStr, printPrecision=0):
         "CrystalVector Constructor."
-        
+
         if not type(initStr) == type(""):
             raise ValueError, 'A string value is needed.'
-        
+
         axesVectors = {'a':ex, 'b':ey, 'c':ez}
-        
+
         initStr = initStr.strip()
         vect = initStr[1:-1].split()
         nval = len(vect)
         axeN = initStr[0].lower()
         axeOK = axeN == 'a' or axeN == 'b' or axeN == 'c'
-        
+
         if initStr[0] == "[" and initStr[-1] == "]" and nval == 3:
             self.space = 'dir'
             self.x, self.y, self.z = map(float, vect)
@@ -234,22 +254,22 @@ class CrystalVector(vec3):
             self.x, self.y, self.z = axesVectors[axeN]
         else:
             raise ValueError, 'Unrecognised string constructor: %s' % initStr
-        
+
         if  self.space == 'dir':
             self.inverse_space = 'rec'
             self.space_name = 'real space'
         elif self.space == 'rec':
             self.inverse_space = 'dir'
             self.space_name = 'reciprocal space'
-        
+
         self.setPrintPrecision(printPrecision)
-        
+
     def __str__(self):
         return self.prt_fmt % (self.x, self.y, self.z)
-    
+
     def __repr__(self):
         return ('<' + self.__class__.__name__ + ' ' + str(self) + '>')
-    
+
     def setPrintPrecision(self, printPrecision):
         if type(printPrecision) == type(1):
             self.printPrecision = printPrecision
@@ -260,19 +280,19 @@ class CrystalVector(vec3):
                 self.prt_fmt = '(%s)' % fmt1
         else:
             raise ValueError, 'A int value is needed.'
-        
+
 def gnsmod(mode, beamVector, Goniometer):
     """Set laboratory frame mode.
     mode           = 'MAIN' or'CUSP'
     beamVector     = Vector of the beam
     Goniometer     = ThreeAxisRotation2 object
-    
+
 
     return 2 laboratory frame Vectors l1, l2
     If mode = 'MAIN', then l1 = e1, l2 = beamVector
     If mode = 'CUSP'  then l1 = e1 x beamVector, l2 = e1
     """
-    
+
     if _mode == 'MAIN':
         return Goniometer.e1, beamVector
     elif _mode == 'CUSP':
@@ -282,13 +302,13 @@ def gnsmod(mode, beamVector, Goniometer):
 
 def gnsnow(orthogMatrices, U0mos, Goniometer, beamVector):
     """ Calculate various angles from current setting.
-    
+
     orthogMatrices = {'rec':B, 'dir':Bm1t}
     B      Cell orthogonalization matrix B (multiplies h)
     Bm1t   To orthogonalize real space vector (B**-1)T
     U0mos  True orthogonalization matrix, at zero goniostat angles
     D      Datum matrix D: current orientation matrix U = D U0mos
-    
+
     Returns:
     Angles (in degrees) at current datum between:
          /  crystal axes in reciprocal (a*,b*,c*), real space (a,b,c)
@@ -297,72 +317,74 @@ def gnsnow(orthogMatrices, U0mos, Goniometer, beamVector):
     e1, e2, e3 = Goniometer.rotationAxes
     angles_XtalAxis = {'rec':{'e3':[], 'beamVector':[], 'e1':[]},
                        'dir':{'e3':[], 'beamVector':[], 'e1':[]}}
-        
-    
+
+
     # angleD: Calculate the angle between v1 and v2 in degree
     # Different results than the Vector associated method: v1.angle(v2)
     # (because of the use of abs(v1*v2)?)
     # Return the result in degree.
     angleD = lambda v1,v2: math.acos(abs(v1*v2))*r2d
-    
+
     # Loop abc axes (real & reciprocal)
     for space in orthogMatrices.keys():
         for axe in ex, ey, ez:
-        
+
             # Orthogonalize (w1 = B*axe) and then
             # rotate by true setting matrix U0 + Normalize
             # Normalize needed: to avoid math.acos exception:
             #    ValueError: math domain error
-            
+
             v = U0mos*(orthogMatrices[space]*axe).normalize()
-            
+
             # Angle between vector & spindle (e3) = acos(v . e3)
             angles_XtalAxis[space]['e3'].append(angleD(v,e3))
-        
+
             # v rotated by curent datum
-            
+
             Dv = Goniometer.tensor * v
-            
+
             # Angle between Dv and beam beamVector
             angles_XtalAxis[space]['beamVector'].append(angleD(Dv,beamVector))
-            
+
             # Angle between Dv and e1
-            
+
             angles_XtalAxis[space]['e1'].append(angleD(Dv,e1))
-                
+
     return angles_XtalAxis
 
-def now(cell, Umos, U0mos, phi123, orthogMatrices, Goniometer, beamVector, \
-                                                        datum, desiredSetting):
+def now(cell, Umos, U0mos, phi123, orthogMatrices, Goniometer, beamVector,
+                                                   datum, desiredSetting):
 
     AXES_NAME = {'dir':['a', 'b', 'c'], 'rec':['a*', 'b*', 'c*']}
-
-    print (" Cell dimensions: " + 3*"%8.3f" + 3*"%8.2f") % tuple(cell)
-    print (" Setting matrix at current Datum [U]:\n" + 
+    if VERBOSE:
+        print (" Cell dimensions: " + 3*"%8.3f" + 3*"%8.2f") % tuple(cell)
+        print (" Setting matrix at current Datum [U]:\n" +
                   3*("  ( "+3*"%9.5f"+" )\n")) % tuple(Umos.mlist)
-    print " Setting angles Phix, Phiy, Phiz : %8.3f%8.3f%8.3f" % tuple(phi123)
-    
+        print " Setting angles Phix, Phiy, Phiz : %8.3f%8.3f%8.3f" % \
+                              tuple(phi123)
+
     res = gnsnow(orthogMatrices, U0mos, Goniometer, beamVector)
-    
-    fmt = "\n "+3*"%8.3f"+"   Relative zero position (Datum)  Omega  Kappa  Phi"
-    print fmt % tuple(datum)
-    space = 'rec'
-    for key in camAxesKeys:
-        axesAngles = res[space][key]
-        nearest = AXES_NAME[space][axesAngles.index(min(axesAngles))]
-        print (23*" "+"%s   Reciprocal axis nearest to %s") % \
+    if VERBOSE:
+        fmt = "\n "+3*"%8.3f"+"   Relative zero position (Datum)"+\
+              "  Omega  Kappa  Phi"
+        print fmt % tuple(datum)
+        space = 'rec'
+        for key in camAxesKeys:
+            axesAngles = res[space][key]
+            nearest = AXES_NAME[space][axesAngles.index(min(axesAngles))]
+            print (23*" "+"%s   Reciprocal axis nearest to %s") % \
                                                 (nearest,camAxes[key])
-    
-    fmt1 = '  Angles between crystal axes and'
-    fmt2 = '    "       "       "      "  and'
-    fmt = {'e3':fmt1, 'beamVector':fmt2, 'e1':fmt2}
-    for space in "rec", "dir":
-        print
-        print (3*"      %-2s") % tuple(AXES_NAME[space])
-        for axe in camAxesKeys:
-            print " "+3*"%8.3f" % tuple(res[space][axe]),
-            print fmt[axe],camAxes[axe]
-    
+
+        fmt1 = '  Angles between crystal axes and'
+        fmt2 = '    "       "       "      "  and'
+        fmt = {'e3':fmt1, 'beamVector':fmt2, 'e1':fmt2}
+        for space in "rec", "dir":
+            print
+            print (3*"      %-2s") % tuple(AXES_NAME[space])
+            for axe in camAxesKeys:
+                print " "+3*"%8.3f" % tuple(res[space][axe]),
+                print fmt[axe],camAxes[axe]
+
     print "\n\n Desired setting:"
     for vi in 0, 1:
         print " %s Crystal vector %d, %s (v%d)" % \
@@ -370,18 +392,19 @@ def now(cell, Umos, U0mos, phi123, orthogMatrices, Goniometer, beamVector, \
     #<<<<<<<<<<<<<<<<< NOW <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer, PG_permutions=[[X,Y,Z]]):
+def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer,
+                              PG_permutions=[[X,Y,Z]]):
     """ Solve for datum position
     Uses:
         VL              Laboratory vectors to match
         orthogMatrices  Dict containing {'rec':Bm1t, 'dir':B}
         desiredSetting  List of the two vectors defining the desired setting
         U0              Zero-angle setting matrix
-        PG_permutions        Point group permutations
-        
+        PG_permutions   Point group permutations
+
     Return:
         datumSolutions (list of datum solutions in degrees)
-    
+
     Local variables
         U0m1    [U0]**-1
         C       base vectors in crystal frame
@@ -390,48 +413,48 @@ def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer, PG_permutions=[[X,
         SL      L matrix with permuted signs
         CU      [C]**-1 [U0]**-1
     """
-    
+
     # Orthogonalize crystal vectors h -> yv
     # YV crystal frame vectors defining desired setting (orthogonalized)
-    
+
     YV = []
     for vi in 0, 1:
         # if reciproc: B*vi.vector elif direct: B1mt*vi.vector
         B = orthogMatrices[desiredSetting[vi].space]
         YV.append(B*desiredSetting[vi])
-    
+
     #  referential_permutations sign permutations for four permutations of
     #        parallel/antiparallel (rotation axis & beam)
     #    y1 // e1, y2 // beamVector;  y1 anti// e1, y2 // beamVector
     #    y1 // e1, y2 anti// beamVector;  y1 anti// e1, y2 anti// beamVector
-    
+
     referential_permutations = [ ex,  ey,  ez], \
                                [-ex, -ey,  ez], \
                                [ ex, -ey, -ez], \
                                [-ex,  ey, -ez]
-    
+
     # Construct orthogonal frame in crystal space defined by vectors
     # y1 = yv(,1) and y2 = yv(,2). The base vectors form the COLUMNS
     # of matrix C
     #  - 1st vector along YV1
     #  - 3rd vector perpendicular to YV1 & YV2
     #  - 2nd vector completes the RH set
-    
+
     C1 = YV[0].normalize()
     C3 = YV[0].cross(YV[1]).normalize()
     C2 = C3.cross(C1).normalize()
     C = mat3(C1, C2, C3)
-    
+
     # Similarly, construct laboratory frame matrix defined by VL1, VL2
     #  1st vector along VL1
     #  3rd vector perpendicular to VL1 & VL2
     #  2nd vector completes the RH set
-    
+
     L1 = VL[0].normalize()
     L3 = VL[0].cross(VL[1]).normalize()
     L2 = L3.cross(L1).normalize()
     L = mat3(L1, L2, L3)
-    
+
     # The matrix which superimposes the two frames is L C**-1. This
     # is then the orientation matrix DU, including the required datum
     # position D.  The datum matrix is then  D = L C**-1 U**-1
@@ -439,52 +462,53 @@ def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer, PG_permutions=[[X,
     # corresponding to y1 parallel & antiparallel to vl1, and y2
     # parallel & antiparallel to vl2. To get these, we change
     # the signs of l1 & l2, or l2 & l3, or both, as set out in array LS.
-    
+
     datumSolutions = []
     independentSolution = []
-    
+
     # Loop four solutions for D, each with possibly two sets of goniostat
     # angles
 
     Cm1 = C.inverse()
     B = orthogMatrices['rec']
     UB0 = U0 * B
-    
+
     # Loop for introducing Point Group permutations:
     for PG_operator in PG_permutions:
         # We use the operator in reciprocal space so it need a transposition.
         PG_operator = mat3T(PG_operator)
         # printmat(B.dot(PG_operator),'B.dot(PG_operator)')
-       
+
         # The PG operator is applied on the UB0 matrix
         U0perm = UB0 * PG_operator * B.inverse()
         if _debug:
-	    print
+            print
             printmat(PG_operator, 'PG_operator', "%12.6f")
             printmat(U0, 'U0', "%12.6f")
             printmat(U0perm, 'U0perm', "%12.6f")
-            
+
         if not is_orthogonal(U0perm):
             print "!!!!!!!!!!!!!!! ERROR: Improper U0perm matrice!!"
-       
+
         #  CU = C**-1 . U**-1
         CU = Cm1 * U0perm.inverse()
         for referential_permut in referential_permutations:
-           
+
             SL = L * mat3T(referential_permut)
             _DM = SL * CU
-	    
+
             # angles: there are zero or two possible sets of goniostat angles
             # which correspond to D, although one or both may be inaccessible
 
             try:
-                _2s = ThreeAxisRotation2(_DM.mlist, \
-                                        Goniometer.rotationAxes, inversAxesOrder=0).getAngles()
-		twoSolutions = (_2s[0][2],_2s[0][1],_2s[0][0]), \
-		               (_2s[1][2],_2s[1][1],_2s[1][0])
-		
+                _2s = ThreeAxisRotation2(_DM.mlist,
+                                        Goniometer.rotationAxes,
+                                        inversAxesOrder=0).getAngles()
+                twoSolutions = (_2s[0][2],_2s[0][1],_2s[0][0]), \
+                               (_2s[1][2],_2s[1][1],_2s[1][0])
+
                 for oneSolution in twoSolutions:
-		    
+
                     solutionKey = "%6.2f%6.2f%6.2f" % tuple(oneSolution)
                     if solutionKey not in independentSolution:
                         independentSolution.append(solutionKey)
@@ -496,7 +520,7 @@ def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer, PG_permutions=[[X,
                             print ">>>>>>>>> Redundant solution"
             except ValueError:
                 pass
-    
+
 
     print "\n Independent Solutions for possible Datum positions:\n"
     print 20*" "+"Omega     Kappa       Phi"
@@ -512,26 +536,27 @@ def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer, PG_permutions=[[X,
 def _test0():
     import doctest
     doctest.testmod()
-    
+
 
 def main(GoniometerAxes, inputFile, mode, v1, v2, datum, beam, spgn=None):
-    
+
     global XOfileType
 
     # The goniostat consists of axes e1 carrying e2 carrying e3
     # (eg Omega, Kappa, Phi). GoniometerAxes = e1, e2, e3
     # gnsdtm calculate D from datum and GoniometerAxes.
     # D == Goniometer.tensor == datum matrix
-    Goniometer = ThreeAxisRotation2((0.,0.,0.), GoniometerAxes, inversAxesOrder=0)
-    
+    Goniometer = ThreeAxisRotation2((0.,0.,0.), GoniometerAxes,
+                                                inversAxesOrder=0)
+
     # DATUM definition in degree.
     setDatum = tuple(datum) # in degree
     Goniometer.setAngles(map(degree2radian,setDatum))
-    
+
     # MODE = 'CUSP' or 'MAIN'
     VL = gnsmod(mode, beam, Goniometer)
-    
-    # V1/V2 
+
+    # V1/V2
     V1 = CrystalVector(v1, printPrecision=4)
     V2 = CrystalVector(v2, printPrecision=4)
     if "%s" % V1  != "%s" % V2:
@@ -539,89 +564,99 @@ def main(GoniometerAxes, inputFile, mode, v1, v2, datum, beam, spgn=None):
     else:
         print "ERROR: The two crystal aligned vector can't be identical!"
         sys.exit(2)
-    
-    gotcha = False
-    for parser in (DenzoParser, XDSParser, MosflmParser):
-        try:
-            XOparser = parser(inputf[0])
-            gotcha = True
-        except :
-            pass
-        if gotcha:
-            break
-    if not gotcha:
-        raise Exception, "Can't parse inputted orientation matrix file: %s" % inputf[0]
-    
-    print "\n %s used to read input file: %s" % (XOparser.info, inputf[0])
+
+    if type(inputf[0]) == str:
+        gotcha = False
+        for parser in (DenzoParser, XDSParser, MosflmParser):
+            try:
+                XOparser = parser(inputf[0])
+                gotcha = True
+            except :
+                pass
+            if gotcha:
+                break
+        if not gotcha:
+            raise Exception, "Can't parse input orientation matrix file: %s" %\
+                inputf[0]
+    elif hasattr(inputf, "fileType"):
+        XOparser = inputf
+
+
+    if VERBOSE:
+        print "\n %s used to read input file: %s" % (XOparser.info, inputf[0])
     XOfileType = XOparser.fileType
-    
+
     if not spgn:
         spgn = XOparser.spaceGroupNumber
         spg = XOparser.spaceGroupName
     else:
         spg = spg_num2symb[spgn]
-            
+
     pointGroup = SPGlib[spgn][-1]
-    print  "\n Space group symbol: %s,  Number: %d,  Point Group: %s" % \
+    if VERBOSE:
+        print  "\n Space group symbol: %s,  Number: %d,  Point Group: %s" % \
                                             (spg.upper(),spgn, pointGroup)
-    print ("\n       Real cell: "+3*"%10.3f"+3*"%8.2f") % tuple(XOparser.cell)
-    print (" Reciprocal cell: "+3*"%10.6f"+3*"%8.2f") % tuple(XOparser.cell_r)
+        print ("\n       Real cell: "+3*"%10.3f"+3*"%8.2f") % \
+                                                       tuple(XOparser.cell)
+        print (" Reciprocal cell: "+3*"%10.6f"+3*"%8.2f") % \
+                                                       tuple(XOparser.cell_r)
 
     Bmos = BusingLevy(XOparser.cell_r)
-    
+
     # Umos =     setting matrix at current datum
     # Getting Mosflm XO
     if XOparser.fileType == "Mosflm":
         UBmos =  XOparser.U * Bmos # whitout wavelength scaling
         Umos = XOparser.U
         # XOparser.UB = UBmos * wavelength
-    
+
     # Converting Denzo XO to Mosflm convention
     elif XOparser.fileType == "Denzo":
         UBmos = Qdnz2mos * XOparser.UB
         Umos = (UBmos) * Bmos.inverse()
-    
+
     # Converting XDS XO to Mosflm convention
     elif XOparser.fileType == "XDS":
         UBmos = XOparser.UBxds_to_mos()/ XOparser.dict["wavelength"]
         Umos = (UBmos) * Bmos.inverse()
-    
+
     is_orthogonal(Umos)
-    printmat( Umos,'\n   U',  "%12.6f")
-    printmat( Bmos,'\n   B',  "%12.6f")
-    printmat( UBmos,'\n  UB', "%12.6f")
+    if VERBOSE:
+        printmat( Umos,'\n   U',  "%12.6f")
+        printmat( Bmos,'\n   B',  "%12.6f")
+        printmat( UBmos,'\n  UB', "%12.6f")
 
     Bm1t = Bmos.inverse().transpose()
     orthogMatrices = {'rec':Bmos, 'dir':Bm1t}
-    
-    # There are two way to write the crystal orientation in mosflm:
+
+    # There are two ways to write the crystal orientation in mosflm:
     # using the U matrix or the phi1, phi2, phi3 misseting angles (in degree).
     # == gnspxg: decompose Umos into 3 "missetting" angles phi123
     phi123r = ThreeAxisRotation2(Umos.mlist, inversAxesOrder=1).getAngles()
     # keep only the first solution and convert it in degre.
     phi123 = map_r2d(phi123r[0])
-    
+
     # This new Umos def - equivalent to the previous - is needed to
     # stay exactly compatible with gonset.
     # Umos2 = ThreeAxisRotation(phi123r[0], inversAxesOrder=1).tensor
     # printmat(Umos2, 'Umos2')
     # print "\nDiff Umos/Umos2 =======>> %8.1e" %  diffMAT(Umos2,Umos)
-    
+
     # U0mos =    zero-angle setting matrix
     #           [U] = [D] [U0] so [U0] = [D]**-1 [U]
-    U0mos = Goniometer.tensor.inverse() * Umos # == gnsszr    
-    
-    print ("\n phixyz: "+3*"%8.2f"+"\n") % tuple(phi123)
+    U0mos = Goniometer.tensor.inverse() * Umos # == gnsszr
+    if VERBOSE:
+        print ("\n phixyz: "+3*"%8.2f"+"\n") % tuple(phi123)
     now(XOparser.cell, Umos, U0mos, phi123, orthogMatrices, Goniometer,
                              beam, setDatum, desiredSetting)
-    
+
     PG_permutions = [[X,Y,Z]]
     if _do_PG_permutations:
         PG_permutions.extend(PGequiv[pointGroup])
-    
-    datumSolutions = solve(desiredSetting, VL, orthogMatrices, 
-                              U0mos, Goniometer, PG_permutions)    
-        
+
+    datumSolutions = solve(desiredSetting, VL, orthogMatrices,
+                              U0mos, Goniometer, PG_permutions)
+
     # Ajouter la verification directement au moment du calcul
     # Permutation of the UB matrix... (U matrix) only?
     # How the permutation is handled for hexagonal.
@@ -632,24 +667,25 @@ def main(GoniometerAxes, inputFile, mode, v1, v2, datum, beam, spgn=None):
         for newdatum in datumSolutions:
             n += 1
             Goniometer.setAngles(map(degree2radian, newdatum))
-            
+
             newUmos = Goniometer.tensor * U0mos
-            printmat(newUmos, "\nNew Umos matrix. Solution numb. %3d" % n,"%12.6f")
-            phi123 = ThreeAxisRotation2(newUmos.mlist, inversAxesOrder=1).getAngles()
+            printmat(newUmos, "\nNew Umos matrix. Solution numb. %3d" % n,\
+                       "%12.6f")
+            phi123 = ThreeAxisRotation2(newUmos.mlist,
+                                        inversAxesOrder=1).getAngles()
             phi123 = map_r2d(phi123[0])
-            
+
             print ("\n phixyz: "+3*"%8.2f"+"\n") % tuple(phi123)
-    
-                
+
     return datumSolutions
-    
+
 def run_gonset(gonioAxes, inputFile, mode, v1, v2, datum, beamVect, fileType):
-    
+
     if fileType not in ("Mosflm", "Denzo"):
          print "\nSorry, gonset is unable to accept "
          print "orientation file of the %s type!\n" % fileType
          sys.exit(2)
-         
+
     # write "GNSDEF" file, containing the goniometer rotation axes vectors
     axesName = "Omega", "Kappa", "Phi"
     gnsdef = "# Source:\n %10.5f%10.5f%10.5f\n" % tuple(beamVect)
@@ -658,7 +694,7 @@ def run_gonset(gonioAxes, inputFile, mode, v1, v2, datum, beamVect, fileType):
         gnsdef += "%-10s" % axesName[i]
         gnsdef += "%10.5f%10.5f%10.5f\n" % tuple(gonioAxes[i])
     openWriteClose("GNSDEF",gnsdef)
-    
+
     # Write gonset input file:
     gonsetinp = "now\nmode %s\n"% (mode)
     if fileType == "Denzo":
@@ -668,26 +704,26 @@ def run_gonset(gonioAxes, inputFile, mode, v1, v2, datum, beamVect, fileType):
     gonsetinp += "datum %10.4f%10.4f%10.4f\n" % tuple(datum)
     gonsetinp += "v1 %s\nv2 %s\nnow\nsolve\nend\n" % (v1, v2)
     openWriteClose("gonset.inp",gonsetinp)
-    
+
     # Run gonset
     #os.system("gonset_pl < gonset.inp > gonset_pl.log")
     os.system("gonset < gonset.inp > gonset.log")
-    
+
     # Extract gonset results
-    gonsetlog = openReadClose("gonset.log")    
+    gonsetlog = openReadClose("gonset.log")
     try:
         idx1 = gonsetlog.index(" Omega     Kappa       Phi")+27
     except:
         print " *** No solutions for gonset ***"
-	sys.exit()
-	
+        sys.exit()
+
     idx2 = gonsetlog.index("Data line--- end") - 2
     line2sol = lambda s: map(float, s.split()[1:])
     solutions = map(line2sol, gonsetlog[idx1:idx2].splitlines())
-    
+
     return solutions
 
-def compareSolutions(solutions1, solutions2, _epsilon=0.1):       
+def compareSolutions(solutions1, solutions2, _epsilon=0.1):
     "Check if both solution matchs, with a tolerated difference of _epsilon."
     l = 0
     allMatchs = True
@@ -698,13 +734,13 @@ def compareSolutions(solutions1, solutions2, _epsilon=0.1):
             l += 1
             vecDiff =  vec3(s1[2],s1[1],s1[0]) - vec3(s2)
             RMSdiff = rootSquareSum(vecDiff)/3.
-	    #print vecDiff, RMSdiff
-	    
+            #print vecDiff, RMSdiff
+
 	    if RMSdiff < minRMSdiff:
 	        minRMSdiff = RMSdiff
-            
+
 	    if RMSdiff < _epsilon:
-            
+
                 match = True
                 break
 	if match:
@@ -713,9 +749,9 @@ def compareSolutions(solutions1, solutions2, _epsilon=0.1):
             print " Minimum RMSdiff = %.3f" % minRMSdiff
             #pass
         else:
-    
+
             allMatchs = False
-            print "Warning: no match for solution: %9.3f%9.3f%9.3f" % tuple(s1),
+            print "Warning: no match for solution: %9.3f%9.3f%9.3f" %tuple(s1),
             print " Minimum RMSdiff = %.3f" % minRMSdiff
     print l
     return allMatchs
@@ -733,7 +769,7 @@ def _random_crystal_axes():
 
 def _random_gonioAxes():
     _randomGoniometerAxes = random_3axes()
-    print " Testing Goniometer Axes" 
+    print " Testing Goniometer Axes"
     return _randomGoniometerAxes
 
 def _random_mode():
@@ -747,11 +783,11 @@ def _random_datum():
              random.uniform(-180.,180.)
     print " Testing Datum : %7.1f%7.1f%7.1f" % _randomDatum
     return _randomDatum
-    
-    
+
+
 if __name__ == '__main__':
-    
-    camAxes = {'e3':'Phi axis', 'beamVector':'BEAM at Datum', 'e1':'Omega axis'}
+
+    camAxes = {'e3':'Phi axis','beamVector':'BEAM at Datum','e1':'Omega axis'}
     camAxesKeys = 'e3', 'beamVector', 'e1'
 
     # StandardAxes = ex, ey, ez
@@ -764,32 +800,35 @@ if __name__ == '__main__':
     _debug = False
     _test = False
     _verbose = False
+    VERBOSE = True
+
     _do_PG_permutations = True
     _space_group_numb = 0
-    
+
     # Definition equivalent to GNSDEF
-    _goniometer_axes = CrystalLogicKappaAxes 
+    _goniometer_axes = CrystalLogicKappaAxes
     _beam_vector = ex
 
     # Default orientation
-    _v1, _v2 = "a*", "b*"
+    #_v1, _v2 = "a*", "b*"
+    _v1, _v2 = "", ""
     _mode = 'MAIN'
     _datum = (0,0,0) # in degree
-    
+
     XOfileType = "Denzo"
-    
+
     short_opt =  "dD:hnm:O:K:P:ps:tvV:W:"
     long_opt = ["debug", "test", "datum=", "help", "no-pg-permutations",
                 "pg-permutations", "mode=", "space-group="
                 "aligned-crystal-vector-1=", "aligned-crystal-vector-2=",
                 "rotation-axis-1=","rotation-axis-2=","rotation-axis-3="]
-    
+
     try:
         opts, inputf = getopt.getopt(sys.argv[1:], short_opt, long_opt)
     except getopt.GetoptError:
         print _usage
         sys.exit(2)
-    
+
     for o, a in opts:
         if o == "-v":
             _verbose = True
@@ -819,7 +858,7 @@ if __name__ == '__main__':
             if not _space_group_numb:
                 print "\n  Error. Can't unknown space group.\n"
                 print _usage
-                sys.exit(2)                    
+                sys.exit(2)
         elif o in ("-V","--aligned-crystal-vector-1"):
             _v1 = a
         elif o in ("-W","--aligned-crystal-vector-2"):
@@ -839,31 +878,63 @@ if __name__ == '__main__':
                 print "\n  Error. Unknown mode option.\n"
                 print _usage
                 sys.exit(2)
-     
+
+    gotcha = False
+    for parser in (DenzoParser, XDSParser, MosflmParser):
+        try:
+            XOparser = parser(inputf[0])
+            gotcha = True
+        except :
+            pass
+        if gotcha:
+            break
+    if not gotcha:
+        raise Exception, "Can't parse input orientation matrix file: %s" %\
+            inputf[0]
+    if not _space_group_numb:
+        _space_group_numb = XOparser.spaceGroupNumber
+
     if  _space_group_numb in [143, 144, 145, 149, 150, 151, 152, 153, 154, 168,
           169, 170, 171, 172, 173, 177, 178, 179, 180, 181, 182, 146, 155]:
         print "WARNING: The symmetry permutation option is not yet working for"
-	print "         the Trigonal and Hexagonal space groups."
-	_do_PG_permutations = False
-	
+        print "         the Trigonal and Hexagonal space groups."
+        _do_PG_permutations = False
+
     if _debug and sys.version_info[:3] > (2,2,0):
         _test0()
-	
+
     if _test:
         _datum = _random_datum()
         _goniometer_axes = _random_gonioAxes()
         _v1, _v2 =  _random_crystal_axes()
         _mode =_random_mode()
-	
-    XOSolutions = main(_goniometer_axes, inputf[0], _mode, _v1, _v2, _datum,
-                            _beam_vector, _space_group_numb)
-    
-    # Compare results of Gonset and XOalign
-    if _debug or _test:
-        print
-        GonsetSolutions = run_gonset(_goniometer_axes, inputf[0], _mode,
-                                     _v1, _v2, _datum, _beam_vector, XOfileType)
-        allMatchs = compareSolutions(GonsetSolutions, XOSolutions, 0.02)    
-                                
-        if not allMatchs:
-            print "Error !!! Results do not comape well with gonset!!!!!!!"
+    all_solutions = {}
+    if _v1 and _v2:
+        allSet = ((_v1, _v2),)
+    elif _v1 == "a*":
+        allSet = (("a*", "b*"), ("a*", "c*"))
+    elif _v1 == "b*":
+        allSet = (("b*", "a*"), ("b*", "c*"))
+    elif _v1 == "c*":
+        allSet = (("c*", "a*"), ("c*", "b*"))
+    else:
+        allSet = (("a*", "b*"), ("a*", "c*"),
+                  ("b*", "a*"), ("b*", "c*"),
+                  ("c*", "a*"), ("c*", "b*"))
+
+    for v1v2 in allSet:
+        _v1, _v2 = v1v2
+        all_solutions[v1v2] = main(_goniometer_axes, inputf[0], _mode, _v1,
+                              _v2, _datum, _beam_vector, _space_group_numb)
+        VERBOSE = False
+        # Compare results of Gonset and XOalign
+        if _debug or _test:
+            print
+            GonsetSolutions = run_gonset(_goniometer_axes, inputf[0], _mode,
+                                         _v1, _v2, _datum, _beam_vector,
+                                         XOfileType)
+            allMatchs = compareSolutions(GonsetSolutions,
+                                         all_solutions[v1v2], 0.02)
+
+            if not allMatchs:
+                print "Error !!! Results do not comape well with gonset!!!!!!!"
