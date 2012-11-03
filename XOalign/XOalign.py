@@ -39,9 +39,9 @@
 #  - Verify the datum function with fortran gonset (gonion inversAxesOrder???)
 #  - more tests...
 
-__version__ = "0.2.6"
+__version__ = "0.2.9"
 __author__ = "Pierre Legrand (pierre legrand \at synchrotron-soleil fr)"
-__date__ = "01-11-2012"
+__date__ = "03-11-2012"
 __copyright__ = "Copyright (c) 2004-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -262,6 +262,7 @@ class CrystalVector(vec3):
             self.inverse_space = 'dir'
             self.space_name = 'reciprocal space'
 
+        self.init_name = initStr
         self.setPrintPrecision(printPrecision)
 
     def __str__(self):
@@ -354,36 +355,36 @@ def gnsnow(orthogMatrices, U0mos, Goniometer, beamVector):
 
 def now(cell, Umos, U0mos, phi123, orthogMatrices, Goniometer, beamVector,
                                                    datum, desiredSetting):
-
+    """now() prints out various information on the input orientation and
+       desired settings.
+    """
     AXES_NAME = {'dir':['a', 'b', 'c'], 'rec':['a*', 'b*', 'c*']}
-    if VERBOSE:
-        print (" Cell dimensions: " + 3*"%8.3f" + 3*"%8.2f") % tuple(cell)
-        print (" Setting matrix at current Datum [U]:\n" +
-                  3*("  ( "+3*"%9.5f"+" )\n")) % tuple(Umos.mlist)
-        print " Setting angles Phix, Phiy, Phiz : %8.3f%8.3f%8.3f" % \
-                              tuple(phi123)
+    print (" Cell dimensions: " + 3*"%8.3f" + 3*"%8.2f") % tuple(cell)
+    print (" Setting matrix at current Datum [U]:\n" +
+              3*("  ( "+3*"%9.5f"+" )\n")) % tuple(Umos.mlist)
+    print " Setting angles Phix, Phiy, Phiz : %8.3f%8.3f%8.3f" % \
+                          tuple(phi123)
 
     res = gnsnow(orthogMatrices, U0mos, Goniometer, beamVector)
-    if VERBOSE:
-        fmt = "\n "+3*"%8.3f"+"   Relative zero position (Datum)"+\
-              "  Omega  Kappa  Phi"
-        print fmt % tuple(datum)
-        space = 'rec'
-        for key in camAxesKeys:
-            axesAngles = res[space][key]
-            nearest = AXES_NAME[space][axesAngles.index(min(axesAngles))]
-            print (23*" "+"%s   Reciprocal axis nearest to %s") % \
-                                                (nearest,camAxes[key])
+    fmt = "\n "+3*"%8.3f"+"   Relative zero position (Datum)"+\
+          "  Omega  Kappa  Phi"
+    print fmt % tuple(datum)
+    space = 'rec'
+    for key in camAxesKeys:
+        axesAngles = res[space][key]
+        nearest = AXES_NAME[space][axesAngles.index(min(axesAngles))]
+        print (23*" "+"%s   Reciprocal axis nearest to %s") % \
+                                            (nearest,camAxes[key])
 
-        fmt1 = '  Angles between crystal axes and'
-        fmt2 = '    "       "       "      "  and'
-        fmt = {'e3':fmt1, 'beamVector':fmt2, 'e1':fmt2}
-        for space in "rec", "dir":
-            print
-            print (3*"      %-2s") % tuple(AXES_NAME[space])
-            for axe in camAxesKeys:
-                print " "+3*"%8.3f" % tuple(res[space][axe]),
-                print fmt[axe],camAxes[axe]
+    fmt1 = '  Angles between crystal axes and'
+    fmt2 = '    "       "       "      "  and'
+    fmt = {'e3':fmt1, 'beamVector':fmt2, 'e1':fmt2}
+    for space in "rec", "dir":
+        print
+        print (3*"      %-2s") % tuple(AXES_NAME[space])
+        for axe in camAxesKeys:
+            print " "+3*"%8.3f" % tuple(res[space][axe]),
+            print fmt[axe],camAxes[axe]
 
     print "\n\n Desired setting:"
     for vi in 0, 1:
@@ -521,17 +522,20 @@ def solve(desiredSetting, VL, orthogMatrices, U0, Goniometer,
             except ValueError:
                 pass
 
+    return datumSolutions
 
-    print "\n Independent Solutions for possible Datum positions:\n"
-    print 20*" "+"Omega     Kappa       Phi"
+def print_solutions(datumSolutions, v1v2, axes_names=("Omega","Kappa","Phi")):
+    print "\n Solutions for Datum positions:  %s,  %s\n" % v1v2
+    print (15*" "+3*"%10s") % axes_names
+
     if datumSolutions:
         nsol = 1
         for sol in datumSolutions:
             print "%10d    " % nsol,
             print 3*"%10.3f" % (sol[2], sol[1], sol[0])
             nsol += 1
-    else: print ' *** No solutions found ***'
-    return datumSolutions
+    else:
+        print ' *** No solutions found ***'
 
 def _test0():
     import doctest
@@ -647,7 +651,7 @@ def main(GoniometerAxes, inputFile, mode, v1, v2, datum, beam, spgn=None):
     U0mos = Goniometer.tensor.inverse() * Umos # == gnsszr
     if VERBOSE:
         print ("\n phixyz: "+3*"%8.2f"+"\n") % tuple(phi123)
-    now(XOparser.cell, Umos, U0mos, phi123, orthogMatrices, Goniometer,
+        now(XOparser.cell, Umos, U0mos, phi123, orthogMatrices, Goniometer,
                              beam, setDatum, desiredSetting)
 
     PG_permutions = [[X,Y,Z]]
@@ -807,6 +811,7 @@ if __name__ == '__main__':
 
     # Definition equivalent to GNSDEF
     _goniometer_axes = CrystalLogicKappaAxes
+    _goniometer_axes_names = ("Omega","Kappa","Phi")
     _beam_vector = ex
 
     # Default orientation
@@ -910,23 +915,25 @@ if __name__ == '__main__':
         _mode =_random_mode()
     all_solutions = {}
     if _v1 and _v2:
-        allSet = ((_v1, _v2),)
+        allSets = ((_v1, _v2),)
     elif _v1 == "a*":
-        allSet = (("a*", "b*"), ("a*", "c*"))
+        allSets = (("a*", "b*"), ("a*", "c*"))
     elif _v1 == "b*":
-        allSet = (("b*", "a*"), ("b*", "c*"))
+        allSets = (("b*", "a*"), ("b*", "c*"))
     elif _v1 == "c*":
-        allSet = (("c*", "a*"), ("c*", "b*"))
+        allSets = (("c*", "a*"), ("c*", "b*"))
     else:
-        allSet = (("a*", "b*"), ("a*", "c*"),
-                  ("b*", "a*"), ("b*", "c*"),
-                  ("c*", "a*"), ("c*", "b*"))
+        allSets = (("a*", "b*"), ("a*", "c*"),
+                   ("b*", "a*"), ("b*", "c*"),
+                   ("c*", "a*"), ("c*", "b*"))
 
-    for v1v2 in allSet:
+    for v1v2 in allSets:
         _v1, _v2 = v1v2
         all_solutions[v1v2] = main(_goniometer_axes, inputf[0], _mode, _v1,
                               _v2, _datum, _beam_vector, _space_group_numb)
-        VERBOSE = False
+        print_solutions(all_solutions[v1v2], v1v2, _goniometer_axes_names)
+        if not _verbose:
+            VERBOSE = False
         # Compare results of Gonset and XOalign
         if _debug or _test:
             print
@@ -937,4 +944,19 @@ if __name__ == '__main__':
                                          all_solutions[v1v2], 0.02)
 
             if not allMatchs:
-                print "Error !!! Results do not comape well with gonset!!!!!!!"
+                print "Error !!! Results do not comape well with gonset!!!!!"
+    independant_solutions = {}
+    for sols in all_solutions:
+        for sol in all_solutions[sols]:
+            key = "%9.3f%9.3f" % (sol[1],sol[0])
+            if key not in independant_solutions:
+                independant_solutions[key] = [sols]
+            else:
+                if sols not in independant_solutions[key]:
+                    independant_solutions[key].append(sols)
+    n = 1
+    print "\n\n Independent Solutions:\n"
+    print "       %9s%9s      Settings" % _goniometer_axes_names[1:3]
+    for isol in independant_solutions:
+            print "%4d   %s   %s" % (n, isol, independant_solutions[isol])
+            n += 1
