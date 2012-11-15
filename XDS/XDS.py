@@ -120,7 +120,12 @@ USAGE = """
 
     -O,  --oscillation
          Set frame oscillation range in degree.
-         For example: -c 0.5 
+         For example: -c 0.5
+         
+    -n, --nthreads
+         Set the maximum number of threads to use. Default is to use the
+         maximum available.
+         For example: -n 4
 
     -M,  --orientation-matrix
          Input crystal orientation matrix.
@@ -1487,7 +1492,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:F:i:IL:O:M:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1504,6 +1509,7 @@ if __name__ == "__main__":
                 "reference=",
                 "oscillation",
                 "orientation-matrix=",
+                "nthreads=",
                 "project",
                 "beam-center-optimize-i",
                 "beam-center-optimize-z",
@@ -1596,6 +1602,8 @@ if __name__ == "__main__":
                 print "\n  ERROR: Can't open orientation matrix file %s." % a
                 print "  STOP!\n"
                 sys.exit()
+        if o in ("-n","--nthreads"):
+            NUMBER_OF_PROCESSORS = int(a)
         if o in ("-p", "--project"):
             PROJECT = str(a)
         if o in ("-S", "--strategy"):
