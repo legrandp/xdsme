@@ -328,14 +328,14 @@ def gnsnow(orthogMatrices, U0mos, Goniometer, beamVector):
 
     # Loop abc axes (real & reciprocal)
     for space in orthogMatrices.keys():
-        for axe in ex, ey, ez:
+        for axis in ex, ey, ez:
 
-            # Orthogonalize (w1 = B*axe) and then
+            # Orthogonalize (w1 = B*axis) and then
             # rotate by true setting matrix U0 + Normalize
             # Normalize needed: to avoid math.acos exception:
             #    ValueError: math domain error
 
-            v = U0mos*(orthogMatrices[space]*axe).normalize()
+            v = U0mos*(orthogMatrices[space]*axis).normalize()
 
             # Angle between vector & spindle (e3) = acos(v . e3)
             angles_XtalAxis[space]['e3'].append(angleD(v,e3))
@@ -382,9 +382,9 @@ def now(cell, Umos, U0mos, phi123, orthogMatrices, Goniometer, beamVector,
     for space in "rec", "dir":
         print
         print (3*"      %-2s") % tuple(AXES_NAME[space])
-        for axe in camAxesKeys:
-            print " "+3*"%8.3f" % tuple(res[space][axe]),
-            print fmt[axe],camAxes[axe]
+        for axis in camAxesKeys:
+            print " "+3*"%8.3f" % tuple(res[space][axis]),
+            print fmt[axis],camAxes[axis]
 
     print "\n\n Desired setting:"
     for vi in 0, 1:
@@ -811,10 +811,9 @@ if __name__ == '__main__':
     print "realigne crystal axes."
     print " Version: %s\n" % (__version__)
     print "   Goniometer definition used (from XOalign_sitedef.py): "
-    print "     Name: %s" % GONIOMETER_NAME
-    print "     Axes: "
-    for name, axe in zip(GONIOMETER_AXES_NAMES, GONIOMETER_AXES):
-        print "%14s:   %8.5f%8.5f%8.5f" % tuple([name]+list(axe))
+    print "     Name: %s\nAxes:" % GONIOMETER_NAME
+    for name, axis in zip(GONIOMETER_AXES_NAMES, GONIOMETER_AXES):
+        print "%14s:   %8.5f%8.5f%8.5f" % tuple([name]+list(axis))
     print "     Datum:  %8.2f%8.2f%8.2f  (in degree)" % GONIOMETER_DATUM
     # Default parameters
     _debug = False
