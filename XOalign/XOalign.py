@@ -41,7 +41,7 @@
 
 __version__ = "0.2.9"
 __author__ = "Pierre Legrand (pierre legrand \at synchrotron-soleil fr)"
-__date__ = "03-11-2012"
+__date__ = "16-11-2012"
 __copyright__ = "Copyright (c) 2004-2012 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -740,20 +740,17 @@ def compareSolutions(solutions1, solutions2, _epsilon=0.1):
             RMSdiff = rootSquareSum(vecDiff)/3.
             #print vecDiff, RMSdiff
 
-	    if RMSdiff < minRMSdiff:
-	        minRMSdiff = RMSdiff
+        if RMSdiff < minRMSdiff:
+            minRMSdiff = RMSdiff
 
-	    if RMSdiff < _epsilon:
-
+        if RMSdiff < _epsilon:
                 match = True
                 break
-	if match:
+    if match:
             solutions2.remove(s2)
             print "Good match for solution: %9.3f%9.3f%9.3f" % tuple(s1),
             print " Minimum RMSdiff = %.3f" % minRMSdiff
-            #pass
-        else:
-
+    else:
             allMatchs = False
             print "Warning: no match for solution: %9.3f%9.3f%9.3f" %tuple(s1),
             print " Minimum RMSdiff = %.3f" % minRMSdiff
@@ -794,12 +791,31 @@ if __name__ == '__main__':
     camAxes = {'e3':'Phi axis','beamVector':'BEAM at Datum','e1':'Omega axis'}
     camAxesKeys = 'e3', 'beamVector', 'e1'
 
+    # Definition equivalent to GNSDEF
     # StandardAxes = ex, ey, ez
     NoniusKappaAxes = [ez, kappaVector(50./r2d), ez]
     CrystalLogicKappaAxes = [ez, kappaVector(49.64/r2d), ez]
-    EMBLminiKappaAxes = [ez, kappaVector(-20/r2d), ez]
+    EMBLminiKappaAxes = [ez, kappaVector(-24/r2d), ez]
     EulerAxes = [ez, ex, ez]
 
+    from XOalign_sitedef import GONIOMETER_AXES, GONIOMETER_AXES_NAMES, \
+                                    GONIOMETER_DATUM, GONIOMETER_NAME
+
+    # Definitions:
+    #    GONIOMETER_NAME = "SOLEIL PROXIMA-1 CrystalLogic"
+    #    GONIOMETER_AXES = CrystalLogicKappaAxes
+    #    GONIOMETER_AXES_NAMES = ("Omega","Kappa","Phi")
+    #    GONIOMETER_DATUM = (0,0,0)  # in degree
+    
+    print "\n XOalign: Calculate possible 3-axis goniometer settings to",
+    print "realigne crystal axes."
+    print " Version: %s\n" % (__version__)
+    print "   Goniometer definition used (from XOalign_sitedef.py): "
+    print "     Name: %s" % GONIOMETER_NAME
+    print "     Axes: "
+    for name, axe in zip(GONIOMETER_AXES_NAMES, GONIOMETER_AXES):
+        print "%14s:   %8.5f%8.5f%8.5f" % tuple([name]+list(axe))
+    print "     Datum:  %8.2f%8.2f%8.2f  (in degree)" % GONIOMETER_DATUM
     # Default parameters
     _debug = False
     _test = False
@@ -810,15 +826,11 @@ if __name__ == '__main__':
     _space_group_numb = 0
 
     # Definition equivalent to GNSDEF
-    _goniometer_axes = CrystalLogicKappaAxes
-    _goniometer_axes_names = ("Omega","Kappa","Phi")
     _beam_vector = ex
 
     # Default orientation
-    #_v1, _v2 = "a*", "b*"
     _v1, _v2 = "", ""
     _mode = 'MAIN'
-    _datum = (0,0,0) # in degree
 
     XOfileType = "Denzo"
 
@@ -869,13 +881,13 @@ if __name__ == '__main__':
         elif o in ("-W","--aligned-crystal-vector-2"):
             _v2 = a
         elif o in ("-O","--rotation-axis-1"):
-            _goniometer_axes[0] = vec3(map(float, a.split(","))).normalize()
+            GONIOMETER_AXES[0] = vec3(map(float, a.split(","))).normalize()
         elif o in ("-K","--rotation-axis-2"):
-            _goniometer_axes[1] = vec3(map(float, a.split(","))).normalize()
+            GONIOMETER_AXES[1] = vec3(map(float, a.split(","))).normalize()
         elif o in ("-P","--rotation-axis-3"):
-            _goniometer_axes[2] = vec3(map(float, a.split(","))).normalize()
+            GONIOMETER_AXES[2] = vec3(map(float, a.split(","))).normalize()
         elif o in ("-D","--datum"):
-            _datum = map(float, a.split(","))
+            GONIOMETER_DATUM = map(float, a.split(","))
         elif o in ("-m","--mode"):
             if a.upper() in ["MAIN", "CUSP"]:
                 _mode = a.upper()
@@ -909,8 +921,8 @@ if __name__ == '__main__':
         _test0()
 
     if _test:
-        _datum = _random_datum()
-        _goniometer_axes = _random_gonioAxes()
+        GONIOMETER_DATUM = _random_datum()
+        GONIOMETER_AXES = _random_gonioAxes()
         _v1, _v2 =  _random_crystal_axes()
         _mode =_random_mode()
     all_solutions = {}
@@ -929,16 +941,16 @@ if __name__ == '__main__':
 
     for v1v2 in allSets:
         _v1, _v2 = v1v2
-        all_solutions[v1v2] = main(_goniometer_axes, inputf[0], _mode, _v1,
-                              _v2, _datum, _beam_vector, _space_group_numb)
-        print_solutions(all_solutions[v1v2], v1v2, _goniometer_axes_names)
+        all_solutions[v1v2] = main(GONIOMETER_AXES, inputf[0], _mode, _v1,
+                              _v2, GONIOMETER_DATUM, _beam_vector, _space_group_numb)
+        print_solutions(all_solutions[v1v2], v1v2, GONIOMETER_AXES_NAMES)
         if not _verbose:
             VERBOSE = False
         # Compare results of Gonset and XOalign
         if _debug or _test:
             print
-            GonsetSolutions = run_gonset(_goniometer_axes, inputf[0], _mode,
-                                         _v1, _v2, _datum, _beam_vector,
+            GonsetSolutions = run_gonset(GONIOMETER_AXES, inputf[0], _mode,
+                                         _v1, _v2, GONIOMETER_DATUM, _beam_vector,
                                          XOfileType)
             allMatchs = compareSolutions(GonsetSolutions,
                                          all_solutions[v1v2], 0.02)
@@ -955,8 +967,8 @@ if __name__ == '__main__':
                 if sols not in independant_solutions[key]:
                     independant_solutions[key].append(sols)
     n = 1
-    print "\n\n Independent Solutions:\n"
-    print "       %9s%9s      Settings" % _goniometer_axes_names[1:3]
+    print "\n\n Independent Solutions for %s goniometer:\n" % GONIOMETER_NAME
+    print "       %9s%9s      Settings" % GONIOMETER_AXES_NAMES[1:3]
     for isol in independant_solutions:
             print "%4d   %s   %s" % (n, isol, independant_solutions[isol])
             n += 1
