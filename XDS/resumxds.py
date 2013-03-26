@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-02/04/03 legrand@embl-grenoble.fr
-23/06/09 pierre.legrand@synchrotron-soleil.fr
-
+Initial version 02/04/03 legrand@embl-grenoble.fr
 """
+
+__version__ = "0.3.1"
+__author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
+__date__ = "26-03-2013"
+__copyright__ = "Copyright (c) 2006-2013  Pierre Legrand"
+__license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
+
 import sys
 import os
 import fnmatch
@@ -23,6 +28,7 @@ facteur_repr = [['LowR','LowestReso',"%5.1f"],
                 ['Isig','isig',"%5.1f"],
                 ['IsigL', 'isigL',"%5.1f"],
                 ['Misfit','misfit',"%6d"],
+                ['CC1/2L','cchalfL',"%6.1f"],
                 ['AnoC','anoCorr',"%4.f"],
                 ['AnoS','anoSig',"%5.2f"],
                 ['Abs','absent',"%4d"],
