@@ -17,13 +17,12 @@ import os
 import re
 import commands
 import shutil
-import fnmatch
 from time import time, sleep
 
-__version__ = "0.7.10"
+__version__ = "0.7.12"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "27-07-2012"
-__copyright__ = "Copyright (c) 2006-2011  Pierre Legrand"
+__date__ = "26-03-2013"
+__copyright__ = "Copyright (c) 2006-2013  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 
@@ -51,7 +50,8 @@ LP_names = ["COLSPOT.LP","CORRECT.LP","DEFPIX.LP","IDXREF.LP","XSCALE.LP",
 multiple_keys = ("SPOT_RANGE",
                  "EXCLUDE_RESOLUTION_RANGE",
                  "PROFILE_RANGE",
-                 "UNTRUSTED_RECTANGLE")
+                 "UNTRUSTED_RECTANGLE",
+		 "UNTRUSTED_ELLIPSE")
 
 modified_keys = {
   "DIRECTION_OF_DETECTOR_Y-AXIS": "DIRECTION_OF_DETECTOR_Y_AXIS",
@@ -70,7 +70,7 @@ modified_keys = {
   "UNIT_CELL_B-AXIS": "UNIT_CELL_B_AXIS",
   "UNIT_CELL_C-AXIS": "UNIT_CELL_C_AXIS",
   "REFLECTIONS/CORRECTION_FACTOR": "REFLECTIONS_CORRECTION_FACTOR",
-  "MINIMUM_I/SIGMA": "MINIMUM_I/SIGMA",
+  "MINIMUM_I/SIGMA": "MINIMUM_I_SIGMA",
   "REFINE(IDXREF)": "REFINE_IDXREF",
   "REFINE(INTEGRATE)": "REFINE_INTEGRATE",
   "REFINE(CORRECT)": "REFINE_CORRECT",
@@ -927,7 +927,8 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     s.isig, s.isigL =       TG[-1][8], TG[-2][8]
     s.anoNum, s.anoNumL  =  TG[-1][-1], TG[-2][-1]
     s.anoSig, s.anoSigL  =  TG[-1][-2], TG[-2][-2]
-    s.anoCorr,s.anoCorrL =  TG[-1][-3], TG[-2][-3]
+    s.anoCorr, s.anoCorrL =  TG[-1][-3], TG[-2][-3]
+    s.cchalf, s.cchalfL =    TG[-1][-4], TG[-2][-4]
     s.unique =              TG[-1][2]
     #s.rsym3, s.rsym3L =     TG3[-1][5], TG3[-2][5]
     #s.rmeas3, s.rmeas3L =   TG3[-1][9], TG3[-2][9]
@@ -1019,7 +1020,7 @@ def opReadCl(filename):
 
 def opWriteCl(filename, _str):
     f = open(filename,"w")
-    r = f.write(_str)
+    f.write(_str)
     f.close()
 
 _add = lambda x,y: x+y
@@ -1053,6 +1054,7 @@ def read_xdsascii_head(file_name_in):
     head["friedels_law"] = ""
     head["wavelength"] = 0
     head["template_name"] = ""
+    head["i_set"] = []
     head["include_resolution"] = 1000, 0
     if not os.path.exists(file_name_in):
         print "ERROR! Can't find file %s.\nSTOP.\n" % (file_name_in)
@@ -1087,7 +1089,12 @@ def read_xdsascii_head(file_name_in):
             head["template_name"] = line[line.index("=")+1:].strip().split("??")[0].split("/")[-1]
             if head["template_name"][-1] == "_":
                 head["template_name"] == head["template_name"][:-1]
+        elif line.count("INPUT_FILE="):
+	    head["i_set"] += [line[line.index("LE=")+3:].strip().split("??")[0].split("/")[-1],]
         line = raw.readline()
+    if head["i_set"]:
+        print "ISETs=", head["i_set"]
+        head["template_name"] = os.path.commonprefix(head["i_set"])
     return head
 
 def get_resmax_limit():
