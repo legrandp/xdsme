@@ -1345,7 +1345,7 @@ if __name__=='__main__':
         while XC.ID[-1] == "_":
             XC.ID = XC.ID[:-1]
     else:
-        XC.ID = "XDSa"
+        XC.ID = "XSCALEa"
     XC.res_high = H["include_resolution"][1]
     XC.res_low = H["include_resolution"][0]
     if not H["wavelength"]:
