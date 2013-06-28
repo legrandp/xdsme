@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.4"
+__version__ = "0.8.5"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "27-07-2012"
-__copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
+__date__ = "28-06-2013"
+__copyright__ = "Copyright (c) 2006-2013 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 # Environemantal variable XDSHOME, if set, defines the place where the xds
@@ -584,8 +584,12 @@ mtzutils_script = "END\n"
 
 mtz2various_script = """#!/bin/bash
 rm -f free_refl_shelx_F3.tmp
+labelF=$(mtzdmp $1 | grep "   F  " | head -1 | awk '{print $12 }')
+labelSIGF=$(mtzdmp $1 | grep "   Q  " | head -1 | awk '{print $12 }')
+labelFREE=$(mtzdmp $1 | grep "   I  " | head -1 | awk '{print $12 }')
+echo "using labels \\"$labelF $labelSIGF $labelFREE\\""
 mtz2various hklin $1 hklout free_refl_shelx_F3.tmp << eof > mtz2shelx.log
-LABIN FP=FP SIGFP=SIGFP FREE=FreeR_flag
+LABIN FP=$labelF SIGFP=$labelSIGF FREE=FreeR_flag
 OUTPUT SHELX
 eof
 grep -v "  0   0   0" free_refl_shelx_F3.tmp > free_refl_shelx_F3.hkl
