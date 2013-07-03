@@ -527,7 +527,7 @@ class XDSLogParser:
         rdi["bmx"], rdi["bmy"] = rdi["direct_beam_mm"]
         rdi["bpx"], rdi["bpy"] = rdi["direct_beam_pixels"]
 
-        _subtrees = gpa(st6, multi_line=True, func=int, match_end="\n\n")
+        _subtrees = gpa(st6, multi_line=True, func=int, match_end="\n\n ")
         rdi["substrees"] = [_subtrees[i] for i in range(1,len(_subtrees),2)]
         origin_t = rdi["index_origin_table"]
         origin_n = len(origin_t)
@@ -1793,8 +1793,8 @@ if __name__ == "__main__":
 
     #print "XDS env Variable= %s" % XDS_HOME
     print "\n    Simplified XDS Processing"
-    print "\n        xdsme version: %18s" % __version__
-    print "        xds   version: %18s\n" % XDSLogParser().get_xds_version()
+    print "\n      xds   version: %18s\n" % XDSLogParser().get_xds_version()
+    print "        xdsme version: %18s" % __version__
     print FMT_HELLO % vars(newrun.inpParam)
     print "  Selected resolution range:       %.2f - %.2f A" %\
                                            newPar["INCLUDE_RESOLUTION_RANGE"]
@@ -1816,7 +1816,8 @@ if __name__ == "__main__":
     if STEP <= 3:
         if RES_HIGH:
             print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH
-            newrun.spots_resolution_cutoff(RES_HIGH, verbose=True)
+            # July 2013: spot resolution cutoff is now included in xds
+            #newrun.spots_resolution_cutoff(RES_HIGH, verbose=True)
         R3 = newrun.run_idxref(_beam_center_optimize,
                                _beam_center_ranking,
                                _beam_center_swap)
