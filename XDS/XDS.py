@@ -25,7 +25,7 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0-beta2"
+__version__ = "0.5.0.1"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "24-07-2012"
 __copyright__ = "Copyright (c) 2006-2012 Pierre Legrand"
@@ -228,7 +228,7 @@ FMT_ANOMAL = """
       Anomalous Correlation      %(anoCorr)10.1f%%   (%(anoCorrL).1f%%)
 """
 
-STEPMARK = re.compile(r"^( [*]{5} (\w{4,}) [*]{5}  )")
+STEPMARK = re.compile(r"^( [*]{5} (\w{4,}) [*]{5} )")
 INTEGRATE_STEP_RE = re.compile(r" PROCESSING OF IMAGES ")
 INTEGRATE_MOSAICITY_RE = re.compile(r"CRYSTAL MOSAICITY \(DEGREES\)")
 INTEGRATE_STRONG_RE = re.compile(r"REFLECTIONS ACCEPTED FOR REFINEMENT")
@@ -527,7 +527,7 @@ class XDSLogParser:
         rdi["bmx"], rdi["bmy"] = rdi["direct_beam_mm"]
         rdi["bpx"], rdi["bpy"] = rdi["direct_beam_pixels"]
 
-        _subtrees = gpa(st6, multi_line=True, func=int, match_end="\n ****")
+        _subtrees = gpa(st6, multi_line=True, func=int, match_end="\n\n")
         rdi["substrees"] = [_subtrees[i] for i in range(1,len(_subtrees),2)]
         origin_t = rdi["index_origin_table"]
         origin_n = len(origin_t)
@@ -672,7 +672,7 @@ class XDSLogParser:
         "Get the version of XDS"
         _execstr = "cd /tmp; xds_par | grep VERSION"
         wc_out = self.run_exec_str(_execstr)
-        return wc_out.strip()[27:-1]
+        return wc_out.strip()[24:-10].replace(")","")
 
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
@@ -1125,7 +1125,11 @@ class XDS:
            point group.
         """
         def _get_cell(_file):
-            return map(float, (open(_file,'r').readlines()[7]).split()[1:])
+	    _txt_file = open(_file,'r').readlines()
+	    if "XPARM.XDS" in _txt_file[0]:
+	       return map(float, (_txt_file[3]).split()[1:])
+            else:
+	       return map(float, (_txt_file[7]).split()[1:])
 
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
