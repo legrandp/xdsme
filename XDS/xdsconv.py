@@ -589,7 +589,7 @@ labelSIGF=$(mtzdmp $1 | grep "   Q  " | head -1 | awk '{print $12 }')
 labelFREE=$(mtzdmp $1 | grep "   I  " | head -1 | awk '{print $12 }')
 echo "using labels \\"$labelF $labelSIGF $labelFREE\\""
 mtz2various hklin $1 hklout free_refl_shelx_F3.tmp << eof > mtz2shelx.log
-LABIN FP=$labelF SIGFP=$labelSIGF FREE=FreeR_flag
+LABIN FP=$labelF SIGFP=$labelSIGF FREE=$labelFREE
 OUTPUT SHELX
 eof
 grep -v "  0   0   0" free_refl_shelx_F3.tmp > free_refl_shelx_F3.hkl
