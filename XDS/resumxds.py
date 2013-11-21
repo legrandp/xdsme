@@ -66,10 +66,11 @@ if __name__ == '__main__':
         file_list = sys.argv[1:]
     else:
         file_list = list_lp("CORRECT.LP"+digit_template)
+        file_list+= list_lp("XSCALE.LP"+digit_template)
     #print "   "+len(facteur_names)*"%7s" % tuple(facteur_names)
     for lp in file_list:
         stat = xupy.resum_scaling(lpf=lp)
-        print "%3s" % (lp.split(".")[-1]),
+        print "%1s%3s" % (lp[0],lp.split(".")[-1]),
         if not stat: print "Error in CORRECT."; continue
         for k in facteur_repr:
             print k[2] % stat[k[1]],
