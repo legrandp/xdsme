@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __author__ = "Pierre Legrand (legrand@emble-grenoble.fr)"
-__date__ = "19-06-2012"
+__date__ = "21-11-2013"
 __copyright__ = "Copyright (c) 2003-2012 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -18,8 +18,11 @@ usage   = """
                  -n: Set Friedel's law as "TRUE"
                     (default is to read this information in the reflection
                      file header)
-      -n nbins   Number of resolution bins for printing statistics.
-                   (default is 12)
+      -r   FLOAT Set the high resolution limit to FLOAT value.
+      -S0        Scaling schem: 0 = No correction.
+                 
+      -n   INT   Number of resolution bins for printing statistics set
+                 INT value (default is 20)
 
 >>>   Cell parameters and space group number are taken either from the
       "XDS_ASCII.HKL", "GXPARM.XDS" or "XPARM.XDS" file.
@@ -87,6 +90,17 @@ else:
 
 xds_input_files = []
 print "File selected for scaling:\n"
+
+resolution = None
+scale = None
+
+if sys.argv.count("-S0"):
+    sys.argv.remove("-S0")
+    scale = 0
+if sys.argv.count("-r"):
+    p = sys.argv.index("-r")
+    sys.argv.remove("-r")
+    resolution = float(sys.argv[p])
 
 for arg in sys.argv[1:]:
     try:
@@ -158,11 +172,17 @@ for hklf in hklf_files:
             f.write(output_str % refdic)
             mad_fnames.append(fname)
     f.write("   INPUT_FILE= %s\n" % hklf.fileName)
-    if "INCLUDE_RESOLUTION_RANGE" in hklf.header:
+    if resolution:
+        res_range= "100 %.3f" % (resolution)
+        f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % res_range)
+    elif "INCLUDE_RESOLUTION_RANGE" in hklf.header:
         f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % \
                 hklf.header["INCLUDE_RESOLUTION_RANGE"])
     f.write("      FRIEDEL'S_LAW=        %s\n" % hklf.header["FRIEDEL'S_LAW"])
-    f.write("      ! CORRECTIONS= DECAY MODULATION ABSORPTION\n")
+    if scale == 0:
+        f.write("      CORRECTIONS= NONE\n")      
+    else:
+        f.write("      ! CORRECTIONS= DECAY MODULATION ABSORPTION\n")
 f.close()
 
 
