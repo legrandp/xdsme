@@ -653,17 +653,11 @@ class MosflmParser:
             self.spaceGroupName = 'P1'
 
     def parse_umat(self, infname):
+        rawFile = open(infname).read()
         try:
-            rawFile = open(infname).read()
-            mosFile = map(float,rawFile.split())
+            mosFile = map(float,rawFile.split()[:30])
         except:
-            try:
-                mat = ""
-                for li in rawFile.split("\n"):
-                    mat += "%s %s %s" %(li[:12], li[12:24], li[24:])
-                mosFile = map(float,mat.split())
-            except:
-                raise Exception, "Error! Can't parse Mosflm matrices file."
+            raise Exception, "Error! Can't parse Mosflm matrices file."
         
         self.UB = mat3(mosFile[:9])
         self.Ur = mat3(mosFile[12:21])
