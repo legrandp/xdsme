@@ -1533,7 +1533,8 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
-    NUMBER_OF_PROCESSORS = get_number_of_processors()
+    NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
+    # Use a maximum of 32 proc. by job. Change it if you whant another limit.
     WARNING = ""
     VERBOSE = False
     DEBUG = False
@@ -1684,7 +1685,8 @@ if __name__ == "__main__":
 
     imgDir = collect.directory
     newPar = collect.export("xds")
-
+    #import pprint
+    #pprint.pprint(newPar)
     # Update some default values defined by XIO.export_xds:
     # In case no beam origin is defined, take the detector center.
     if newPar["ORGX"] == 0:
