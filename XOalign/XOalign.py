@@ -174,7 +174,7 @@ _usage = """
            Pierre Legrand  Proxima1 SOLEIL
            E-mail: pierre legrand \at synchrotron-soleil fr
        Original fortran version:
-           Phil Evansc MRC LMB, Cambridge
+           Phil Evans MRC LMB, Cambridge
 
 """ % _progname
 
