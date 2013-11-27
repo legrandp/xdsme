@@ -94,6 +94,7 @@ def run_pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     # from its xmlout file.
     cmline = "pointless XDSIN %s XMLOUT XDS_pointless.xml"
     cmline += " HKLOUT XDS_pointless.mtz > XDS_pointless.log"
+    cmline += " <<EOF \nSETTING C2\nEOF"
     os.chdir(dir_name)
     os.system(cmline % hklinp)
 
