@@ -96,10 +96,12 @@ class Interpreter:
     '428':('ESRF','ID14-2','ADSC Q4'),
     '444':('ESRF','ID29 or ID14-1','ADSC Q210'),
     '445':('USA?','UNKN','ADSC 210'),
+    '457':('AS','MX1','ADSC Q210r'),
     '917':('ESRF','ID23-1','ADSC 315'),
     '918':('ESRF','ID14-4','ADSC 315'),
     '926':('ALS','ALS831','ADSC 315r'),
     '927':('SOLEIL','PROXIMA2a','ADSC 315r'),
+    '928':('AS','MX2','ADSC Q315r'),
     }
 
     def __init__(self):
