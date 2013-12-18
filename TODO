@@ -4,8 +4,5 @@ xscale2.py:
 
 XDS.py:
    - Add more unittesting
-   - Fix starting angle/starting frame.
-   - njob/nproc automatic for linux/osx
-   -
    - test the newest version of pycgtypes (cgkit2.0)
      http://sourceforge.net/projects/cgkit/files/cgkit/
