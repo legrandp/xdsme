@@ -448,7 +448,7 @@ class XDSLogParser:
         rdi["mean_gain"] = gpa("MEAN GAIN VALUE")
         rdi["min_gain"] = gpa("MINIMUM GAIN VALUE IN TABLE")
         rdi["max_gain"] = gpa("MAXIMUM GAIN VALUE IN TABLE")
-        rdi["mean_background"] = gpa("BACKGROUND COUNTS IN A DATA IMAGE PIX")
+        rdi["mean_background"] = gpa("KGROUND COUNTS IN A DATA IMAGE PIXEL")
         #
         prp =  "  Looking at images %(background_range)s\n"
         prp += "  Mean Gain:        %(mean_gain).1f\n"
