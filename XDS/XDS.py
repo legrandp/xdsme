@@ -660,7 +660,7 @@ class XDSLogParser:
         "Get the version of XDS"
         _execstr = "cd /tmp; xds_par | grep VERSION"
         wc_out = self.run_exec_str(_execstr)
-        return wc_out.strip()[24:-10].replace(")","")
+        return wc_out.strip()[24:-12].replace(")","")
 
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
@@ -1790,8 +1790,8 @@ if __name__ == "__main__":
 
     #print "XDS env Variable= %s" % XDS_HOME
     print "\n    Simplified XDS Processing"
-    print "\n      xds   version: %18s\n" % XDSLogParser().get_xds_version()
-    print "        xdsme version: %18s" % __version__
+    print "\n      xds   version: %18s" % XDSLogParser().get_xds_version()
+    print "      xdsme version: %18s" % __version__
     print FMT_HELLO % vars(newrun.inpParam)
     print "  Selected resolution range:       %.2f - %.2f A" % \
                                            newPar["INCLUDE_RESOLUTION_RANGE"]
