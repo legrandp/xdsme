@@ -113,7 +113,7 @@ USAGE = """
 
     -M,  --orientation-matrix
          Input crystal orientation matrix.
-         For example: -M XPARM.XDS 
+         For example: -M XPARM.XDS
 
     -p,  --project
          Set the project name. The default is the prefix taken from
@@ -176,7 +176,7 @@ FMT_HELLO = """
                   Y:             %(ORGY)8.1f pixel
   Image range:                %(DATA_RANGE)11s
 """
-  
+
 FMT_FINAL_STAT = """
       Refined Parameters and Scaling Statistics
       =========================================\n
@@ -339,7 +339,7 @@ class XDSLogParser:
         else:
             self.lp = ""
         # Catch Errors:
-        _err = self.lp.find(" !!! ERROR !!!" )
+        _err = self.lp.find(" !!! ERROR " )
         _err_type = None
         _err_level = None
         if _err != -1:
@@ -350,9 +350,15 @@ class XDSLogParser:
             # IDXREF ERROR Messages:
             elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
                 _err_type = "IDXREF. Percentage of indexed"
-                _err_type += " reflections bellow 50%.\n"
+                _err_type += " reflections bellow limit.\n"
                 _err_level = "WARNING"
-            # IDXREF ERROR Messages:
+            elif _err_msg.count("ERROR IN REFINE !!! RETURN"):
+                _err_type = "IDXREF. Can't refine cell paramters."
+                _err_level = "FATAL"
+            elif _err_msg.count("USELESS DATA SET"):
+                _err_type = "INTEGRATE:  USELESS DATA SET."
+                _err_type += " Not enough images or bad diffraction ?"
+                _err_level = "FATAL"
             elif _err_msg.count("SOLUTION IS INACCURATE"):
                 _err_type = "IDXREF. Solution is inaccurate.\n"
                 _err_level = "WARNING"
@@ -364,7 +370,7 @@ class XDSLogParser:
                 _err_level = "FATAL"
             elif _err_msg.count("CANNOT CONTINUE WITH A TWO-DIMENSIONAL"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = "FATAL"                
+                _err_level = "FATAL"
             else:
                 print "\n %s \n" % (self.lp[_err:-1])
                 sys.exit()
@@ -382,6 +388,8 @@ class XDSLogParser:
             self.parse_idxref()
         elif full_filename.count("XPLAN.LP"):
             self.parse_xplan()
+        elif full_filename.count("DEFPIX.LP"):
+            self.parse_defpix()
         elif full_filename.count("INTEGRATE.LP"):
             self.parse_integrate()
         elif full_filename.count("CORRECT.LP"):
@@ -552,6 +560,15 @@ class XDSLogParser:
             print prp % rdi
         return rdi, prp
 
+    def parse_defpix(self):
+        "Parse DEFPIX.LP"
+        rdi, gpa = self.results, self.get_par
+        rdi["value_range"] = gpa("TRUSTED_DETECTOR_PIXELS= ")
+        prp = "  Value range for trusted detector pixels: %(value_range)s"
+        if self.verbose:
+            print prp % rdi
+        return rdi, prp
+
     def parse_integrate(self):
         "Parse INTEGRATE.LP"
         rdi, gpa = self.results, self.get_par
@@ -624,8 +641,8 @@ class XDSLogParser:
         prp += "  Rsym:                             %(Rsym)9.1f\n"
         prp += "  I/sigma:                          %(I_sigma)9.1f\n"
         if rdi["HighResCutoff"]:
-            prp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f\n"
-        prp += "  Compared reflections:                 %(Compared)d\n"
+            prp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f"
+        prp += "\n  Compared reflections:                 %(Compared)d\n"
         prp += "  Total number of measures:             %(Total)d\n"
         if self.verbose:
             print prp % rdi
@@ -717,7 +734,7 @@ class XDS:
             return Popen3(_execstr)
         else:
             self.wait_value = None
-            return Popen(_execstr, stdin=PIPE, stdout=PIPE, 
+            return Popen(_execstr, stdin=PIPE, stdout=PIPE,
                               stderr=PIPE, bufsize=1, close_fds=True,
                               universal_newlines=True)
 
@@ -760,7 +777,7 @@ class XDS:
                                                               self.run_dir)
             if os.path.isdir(self.run_dir):
                 os.chdir(self.run_dir)
-                if self.link_to_images:  
+                if self.link_to_images:
                     if not os.path.exists(self.link_name_to_image):
                         os.system("ln -sf '%s' %s" % (self.collect_dir, \
                                                     self.link_name_to_image))
@@ -771,12 +788,12 @@ class XDS:
                     #     % (self.link_name_to_image, self.run_dir)
         opWriteCl("XDS.INP", "%s" % self.inpParam)
         #
-        # self.running_processes 
+        # self.running_processes
         xdsProcess = self._creat_process(self.__execfile)
         _init_parse = True
         overloaded_spots = 0
         while self.running:
-            self.status = xdsProcess.poll() 
+            self.status = xdsProcess.poll()
             if self.status != self.wait_value:
                 self.running = 0
                 break
@@ -830,10 +847,10 @@ class XDS:
         os.chdir(self.init_dir)
         return 1
 
-    def run_idxref_optimize(self, number_of_test=4, verbose=False):
-        "Run COLSPOT + DXREF with different spot search paramters"
-        min_pixels = [4, 7, 10, 15]
-        strong_pixel = [11, 9, 7, 5]
+    #def run_idxref_optimize(self, number_of_test=4, verbose=False):
+    #    "Run COLSPOT + DXREF with different spot search paramters"
+    #    min_pixels = [4, 7, 10, 15]
+    #    strong_pixel = [11, 9, 7, 5]
 
     def spots_resolution_cutoff(self, res_cutoff, verbose=False):
         "Read the SPOT.XDS file and filter spots using a resolution cutoff."
@@ -875,7 +892,7 @@ class XDS:
         # default is min of 3 degrees or 8 images.
         dPhi = self.inpParam["OSCILLATION_RANGE"]
         if BRUTE:
-            bkgr =  i1, i1+40	
+            bkgr =  i1, i1+40
         elif SLOW or WEAK:
             bkgr =  i1, min(i2, min(i1+15, i1+int(7./dPhi)))
         else:
@@ -918,7 +935,7 @@ class XDS:
         cfo = XIO.Collect("foo_001.bar")
         cfo.imageNumbers = cfo._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
         #
-        min_fn, max_fn = self.inpParam["DATA_RANGE"] 
+        min_fn, max_fn = self.inpParam["DATA_RANGE"]
         _fpcs = frames_per_colspot_sequence
         _2fpcs = 1 + 2 * frames_per_colspot_sequence
 
@@ -1025,12 +1042,12 @@ class XDS:
                 #print "DEBUG:  %7.1f %7.1f  - %7.1f %7.1f" % \
                 #  (coorx, coory, self.inpParam["ORGX"], self.inpParam["ORGY"])
                 print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
-                                           (origin[5]*qx, origin[6]*qy), 
+                                           (origin[5]*qx, origin[6]*qy),
                 print "  %.1f, %.1f" % (origin[5], origin[6])
                 self.run(rsave=True, verbose=False)
                 try:
-                    test_results.append(XDSLogParser("IDXREF.LP", 
-                                           run_dir=self.run_dir, 
+                    test_results.append(XDSLogParser("IDXREF.LP",
+                                           run_dir=self.run_dir,
                                            verbose=0, raiseErrors=True).results)
                 except XDSExecError, err:
                     print "\t\tError in", err
@@ -1100,8 +1117,12 @@ class XDS:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
 
         "Runs the 2 first steps: DEFPIX and INTEGRATE"
+        self.inpParam["JOB"] = "DEFPIX",
+        self.run(rsave=True)
+        res = XDSLogParser("DEFPIX.LP", run_dir=self.run_dir, verbose=1)
+
         if len(image_ranges) >= 1:
-            self.inpParam["JOB"] = "DEFPIX", "INTEGRATE"
+            self.inpParam["JOB"] = "INTEGRATE",
             self.run(rsave=True)
             res = XDSLogParser("INTEGRATE.LP", run_dir=self.run_dir, verbose=1)
             self.check_fileout("INTEGRATE.HKL")
@@ -1125,7 +1146,7 @@ class XDS:
 
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
-        # run pointless on INTEGRATE.HKL        
+        # run pointless on INTEGRATE.HKL
         if not is_pointless_installed():
             print "!!  Warning. Pointless program not installed."
             print "  -> Skipping pointless analysis."
@@ -1166,7 +1187,7 @@ class XDS:
             spg_choosen = likely_spg[0][1]
             # Re-order pointless cell-axes in case of orthorombic SPG.
             spgSplit = likely_spg[0][0].split()
-            # if cell is coming from pointless, it need reordering 
+            # if cell is coming from pointless, it need reordering
             # in orthorombic cases
             if new_cell:
                 a, b, c, A, B, G = new_cell
@@ -1226,7 +1247,7 @@ class XDS:
         3 - For each one of the selected lattices:
                     in a seperated dir,
                     for all the laue symmetry compatible with
-                    the bravais lattice geometry run the CORRECT scaling 
+                    the bravais lattice geometry run the CORRECT scaling
         4 - Rank all the scaling from the parsing of all the CORRECT.LP
         """
         return 1 #res.resutls
@@ -1244,7 +1265,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
     prp = " Indexed spots:          %(indexed_percentage).1f%%"
     prp += "    (%(indexed_spots)d/%(total_spots)d)\n"
     prp += " Spot prediction ESD:       %(xy_spot_position_ESD).2f "
-    prp += "pixels and  %(z_spot_position_ESD).2f degrees"        
+    prp += "pixels and  %(z_spot_position_ESD).2f degrees"
     nind = 0
     i_score = []
     for indexation in indexations:
@@ -1256,7 +1277,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
         quality_contrast = origin_t[1][3] - origin_t[0][3]
         indexation["quality_contrast"] = quality_contrast
         indexation["i_score"] = indexation["indexed_percentage"]/(
-                                   2*indexation["xy_spot_position_ESD"] + 
+                                   2*indexation["xy_spot_position_ESD"] +
                                    indexation["z_spot_position_ESD"]/ \
                                       indexation["oscillation_range"])
         i_score.append(indexation["i_score"])
@@ -1313,7 +1334,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
     _best =  best_beam_center[ranking_mode]
     fmt1 =  "%s Best  %s_score rank: %3d  for Solution #%-3d"
     fmt2 = " beamx=%7.1f beamy=%7.1f"
-    print 
+    print
     print fmt1 % (iflag, "I", 1, i_best_index+1),
     print fmt2 % tuple(best_beam_center["ISCORE"])
     print fmt1 % (zflag, "Z", min(z_score), z_best_index+1),
@@ -1393,7 +1414,7 @@ def select_strategy(idxref_results, xds_par):
     "Interactive session to select strategy parameters."
     sel_spgn = SPG #xds_par["SPACE_GROUP_NUMBER"]
     sel_ano =  xds_par["FRIEDEL'S_LAW"]
-    #print xds_par["UNIT_CELL_CONSTANTS"] 
+    #print xds_par["UNIT_CELL_CONSTANTS"]
     valid_inp = False
     bravais_to_spgs = get_BravaisToSpgs()
     # Select LATTICE
@@ -1466,7 +1487,7 @@ def select_strategy(idxref_results, xds_par):
         try:
             _ans =  selection.strip()
             if _ans == "":
-                valid_inp = True    
+                valid_inp = True
             elif _ans[0] in "Yy":
                 xds_par["FRIEDEL'S_LAW"] = "FALSE"
                 valid_inp = True
