@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.5"
+__version__ = "0.8.6"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "28-06-2013"
+__date__ = "20-12-2013"
 __copyright__ = "Copyright (c) 2006-2013 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -90,7 +90,7 @@ fmt_outp = """==> Output file:          %(file_name_out)s
 >>> Friedel's law:           %(friedel_out)s
 >>> Merge:                   %(merge_out)s
 >>> Resolution limit:        %(res_low).2f - %(res_high).2f Angstroem
-""" 
+"""
 
 fmt_outp_ha = """
 >>> From Wavelength          %(wavelength).4f
@@ -101,12 +101,12 @@ fmt_outp_ha = """
 
 xdsconv_script = """UNIT_CELL_CONSTANTS=  %(cell_str)s
 SPACE_GROUP_NUMBER=   %(spgn_in)s
-INPUT_FILE=%(file_name_in)s %(file_type)s %(res_low).2f %(res_high).2f 
+INPUT_FILE=%(file_name_in)s %(file_type)s %(res_low).2f %(res_high).2f
 OUTPUT_FILE=%(dir_mode)s%(file_name_out)s %(mode_out)s FRIEDEL'S_LAW=%(friedel_out)s MERGE=%(merge_out)s
 """
 
 shelxc_script = """SAD  %(file_name_out)s
-CELL %(cell_str)s 
+CELL %(cell_str)s
 SPAG  %(spg_name)s
 NTRY 1000
 FIND %(num_sites)d
@@ -117,8 +117,12 @@ MAXM 2
 
 shelxall_script = """#!/bin/sh
 
-search_sites_shelx () {
+name="NORM"
+nsites=6
+pats="yes"
+res_range="3.3 3.5 3.8 4.0 4.4 5.0"
 
+search_sites_shelx () {
 ID=$1      # Identifier
 RES=$2     # High resolution limit
 NSITES=$3  # Number of sites
@@ -126,43 +130,39 @@ PATS=$4    # Patterson seeding option
 
 shelxc ${ID} << EOFC > ${ID}_shelxc.log
 SAD  %(file_name_out)s
-CELL %(cell_str)s 
+CELL %(cell_str)s
 SPAG  %(spg_name)s
 SHEL 999 ${RES}
 NTRY 1000
 FIND  ${NSITES}
 SFAC %(ha_name)s
-ESEL 1.4
-MIND -3.5 1
+ESEL 1.3
+MIND -3.0 1
 MAXM 4
 EOFC
 
 if [ $PATS != "yes" ] ; then
-
-#grep -v PATS ${ID}_fa.ins > ${ID}_nopats_fa.ins
-sed -e 's/^PATS/WEED 0.3\\nSKIP 0.5/'  ${ID}_fa.ins > ${ID}_nopats_fa.ins
-cp ${ID}.hkl ${ID}_nopats.hkl
-cp ${ID}_fa.hkl ${ID}_nopats_fa.hkl
-
-shelxd ${ID}_nopats_fa > ${ID}_nopats_shelxd.log
-
+   #grep -v PATS ${ID}_fa.ins > ${ID}_nopats_fa.ins
+   sed -e 's/^PATS/WEED 0.3\\nSKIP 0.5/'  ${ID}_fa.ins > ${ID}_nopats_fa.ins
+   cp ${ID}.hkl ${ID}_nopats.hkl
+   cp ${ID}_fa.hkl ${ID}_nopats_fa.hkl
+   shelxd ${ID}_nopats_fa > ${ID}_nopats_shelxd.log
 else
 
-shelxd ${ID}_fa > ${ID}_shelxd.log
-
+   shelxd ${ID}_fa > ${ID}_shelxd.log
 fi
 
 }
-
-id="aaa"
-nsites=%(num_sites)d
-pats="yes"
+if [ $pats != "yes" ] ; then
+   PN="NOPATS"
+else
+   PN="PATS"
+fi
 
 # loop to start batch process with different resoution limit
-for res in 3.2 3.5 4.0 4.4 ; do
-
-search_sites_shelx ${id}${res} ${res} ${nsites} ${pats} &
-
+for res in ${res_range} ; do
+   id="${name}_${PN}_E1.3_N${nsites}_D${res}"
+   search_sites_shelx  ${id}  ${res}  ${nsites} ${pats} &
 done
 # end of the loop.
 """
@@ -176,7 +176,7 @@ PATS=$3    # Patterson seeding option
 if [ $PATS = "yes" ] ; then
 
 cat  << EOFS > ${ID}_sitcom.inp
-unit_cell    %(cell_str)s 
+unit_cell    %(cell_str)s
 space_group  %(spgn_in)s
 str_name     ${ID}
 deriv_atyp   %(ha_name)s
@@ -198,7 +198,7 @@ EOFS
 else
 
 cat  << EOFS > ${ID}_nopats_sitcom.inp
-unit_cell    %(cell_str)s 
+unit_cell    %(cell_str)s
 space_group  %(spgn_in)s
 str_name     ${ID}_nopats
 deriv_atyp   %(ha_name)s
@@ -225,7 +225,7 @@ nsites=%(num_sites)d
 pats="yes"
 
 cat  << EOFS > tmp.all_sitcom.inp
-unit_cell    %(cell_str)s 
+unit_cell    %(cell_str)s
 space_group  %(spgn_in)s
 str_name     ${id}
 deriv_atyp   %(ha_name)s
@@ -268,7 +268,7 @@ E\nQ
 """
 
 f2mtz_script = """
-TITLE data from XDS 
+TITLE data from XDS
 FILE %(file_name_out)s
 SYMMETRY    %(spgn_in)s
 CELL    %(cell_str)s
@@ -279,7 +279,7 @@ END
 """
 
 f2mtz_phaser_script = """
-TITLE data from XDS 
+TITLE data from XDS
 FILE %(file_name_out)s
 SYMMETRY    %(spgn_in)s
 CELL    %(cell_str)s
@@ -288,7 +288,7 @@ CTYPOUT H H H  F   Q    G     L      G     L %(free_code)s
 END
 """
 
-scala_script = """#!/bin/bash 
+scala_script = """#!/bin/bash
 
 function run_scala() {
 pointless XDSIN XDS_ASCII.HKL \\
@@ -303,8 +303,8 @@ scala hklin XDS_pointless_correct.mtz hklout XDS_scala_correct.mtz \\
 > XDS_scala.log << eof-1
 cycles 0
 bin 12
-scales constant    # batch scaling is generally poorer than smoothed 
-anomalous on 
+scales constant    # batch scaling is generally poorer than smoothed
+anomalous on
 eof-1
 }
 
@@ -321,7 +321,7 @@ aimless hklin XDS_pointless_correct.mtz hklout XDS_aimless_correct.mtz \\
 > XDS_aimless.log << eof-2
 cycles 0
 bin 12
-scales constant    # batch scaling is generally poorer than smoothed 
+scales constant    # batch scaling is generally poorer than smoothed
 eof-2
 }
 
@@ -338,7 +338,7 @@ cad_crank_script = """
 """
 
 f2mtz_sharp_script = """
-TITLE data from XDS 
+TITLE data from XDS
 FILE %(file_name_out)s
 SYMMETRY    %(spgn_in)s
 CELL    %(cell_str)s
@@ -365,7 +365,7 @@ read_intensities
 checksolve
 mad_atom %(ha_name)s
 
-lambda 1 
+lambda 1
 label sad wavelength = %(wavelength)s
 rawmadfile %(file_name_out)s
 fixscattfactors
@@ -390,7 +390,7 @@ resolve << eof-resolve > resolve.out
 !seq_file protein.seq
 eof-resolve
 
-fft HKLIN resolve.mtz MAPOUT resolve.ccp4map << eof-fft > resolve_fft.out 
+fft HKLIN resolve.mtz MAPOUT resolve.ccp4map << eof-fft > resolve_fft.out
 TITLE    from resolve
 LABIN   F1=FP PHI=PHIM W=FOMM
 END
@@ -462,7 +462,7 @@ MODE EP_AUTO
 TITLe SAD phasing of ${ID} with %(num_sites)d ${scat}
 HKLIn %(last_name)s
 #COMPosition PROTein SEQ PROT.seq NUM 2
-COMPosition BY SOLVent  
+COMPosition BY SOLVent
 COMPosition PERCentage $solvent_content
 CRYStal ${ID} DATAset sad LABIn F+=F(+)${label} SIG+=SIGF(+)${label} F-=F(-)${label} SIG-=SIGF(-)${label}
 WAVElength %(wavelength)f
@@ -476,9 +476,9 @@ eof
 
 function run_parrot() {
 hand=$1
-if [ $hand = "ori" ] ; then 
+if [ $hand = "ori" ] ; then
 parrID=${ID}_auto
-elif [ $hand = "inv" ] ; then 
+elif [ $hand = "inv" ] ; then
 parrID=${ID}_auto.hand
 fi
 cparrot \\
@@ -577,7 +577,7 @@ test_set, test_flag = "test", 1
 cad_script = """LABIN FILE 1 ALL
 DWAVE FILE 1 %(ID)s d%(ID)s %(wavelength).5f\nEND"""
 cad2_script = """LABIN FILE 1 ALL
-LABIN FILE 2 %(cad_ano)s 
+LABIN FILE 2 %(cad_ano)s
 DWAVE FILE 2 %(ID)s d%(ID)s %(wavelength).5f\nEND"""
 
 mtzutils_script = "END\n"
@@ -900,12 +900,12 @@ def opReadCl(filename):
 
 def opWriteCl(filename, _str):
     f = open(filename,"w")
-    r = f.write(_str)
+    f.write(_str)
     f.close()
 
 def guessHA(wavelength):
     "Trying to find the closest HA edge in HAd from wavelength"
-    diffs = map(lambda x: abs(x - wavelength),HAd.keys())
+    diffs = map(lambda x: abs(x - wavelength), HAd.keys())
     return HAd[HAd.keys()[diffs.index(min(diffs))]]
 
 def get_crossec(P):
@@ -940,7 +940,7 @@ class DoMode:
                 infos = get_info(P.file_name_in)
                 P.res_high =  infos["res_high"]
                 P.res_low = infos["res_low"]
-            except: 
+            except:
                 pass
         if P.wavelength:
             self.wavelength = P.wavelength
@@ -1190,7 +1190,7 @@ class DoMode:
             P.symop = amore_symops[int(P.spgn_in)][1]
             opWriteCl("%s/data.d" % P.dir_mode, afmt % vars(P))
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     import xupy
 
@@ -1224,7 +1224,7 @@ if __name__=='__main__':
             try:
                 n = int(arg)
                 __num_sites = n
-                print argp_fmt %("nSites:", n)
+                print argp_fmt % ("nSites:", n)
             except:
                 pass
         elif arg.count("-l="):
@@ -1246,7 +1246,7 @@ if __name__=='__main__':
         # Geting output format
         elif arg.upper() in options:
             __format_out.append(arg.upper())
-            print argp_fmt %("Export mode:", arg.upper())
+            print argp_fmt % ("Export mode:", arg.upper())
         # Geting Atom type
         elif arg.title() in atom_names:
             print argp_fmt % ("atomType:", arg)
@@ -1260,7 +1260,7 @@ if __name__=='__main__':
                 ss = []
                 try:
                     ss = s.split()
-                    ss = map(float,ss)
+                    ss = map(float, ss)
                 except:
                     pass
                 if "!FORMAT=XDS_ASCII" in s:
@@ -1340,7 +1340,7 @@ if __name__=='__main__':
 
     H = xupy.read_xdsascii_head(XC.file_name_in)
     XC.spgn_in = H["sym"]
-    XC.cell = map(float,H["cell"].split())
+    XC.cell = map(float, H["cell"].split())
     XC.cell_str = 6*"%.2f  " % tuple(XC.cell)
     XC.friedel_in = H["friedels_law"]
     XC.merge_in = H["merge"]
@@ -1353,7 +1353,7 @@ if __name__=='__main__':
     XC.res_high = H["include_resolution"][1]
     XC.res_low = H["include_resolution"][0]
     if not H["wavelength"]:
-    # Try to catch the wavelength from 
+    # Try to catch the wavelength from
         if H["inputfile_name"] \
            and os.path.exists(H["inputfile_name"]) \
            and H["inputfile_type"] == "XDS_ASCII":
