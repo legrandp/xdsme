@@ -1,8 +1,8 @@
 Metadata-Version: 1.0
 Name: xdsme
-Version: 0.5.0.9
+Version: 0.5.9.1
 Summary: XDS Made Easier
-Home-page: http://code.google.com/p/xdsme/
+Home-page: https://github.com/legrandp/xdsme
 Author: Pierre Legrand
 Author-email: pierre.legrand_at_synchrotron-soleil.fr
 License: BSD license, see license.txt
