@@ -11,10 +11,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.0.9"
+__version__ = "0.5.2.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "18-12-2013"
-__copyright__ = "Copyright (c) 2006-2014 Pierre Legrand"
+__date__ = "25-11-2015"
+__copyright__ = "Copyright (c) 2006-2015 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -35,7 +35,7 @@ from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
                  get_BravaisToSpgs, get_number_of_processors, \
-                 EXCLUDE_ICE_RING
+                 EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
 import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -115,7 +115,7 @@ USAGE = """
          Input crystal orientation matrix.
          For example: -M XPARM.XDS
 
-    -p,  --project
+    -p,  --project NAME
          Set the project name. The default is the prefix taken from
          image names. The working directory will be: xds_process_"project"
 
@@ -164,6 +164,18 @@ USAGE = """
 
     --brute,
          Try hard to index. To be used in resistant cases.
+
+    --optimize, --O[1-3] 
+         After a first integration, gather differente parameters to optimize
+         profiles and post-refined diffraction prediction and re-run from
+         step 4 (DEFPIX, INTEGRATE, CORRECT). Default for --O or --optimize
+         --O1 Use postrefined geometry.
+         --O2 Update profiles as suggested in INTEGRATE.LP.
+         --O3 Combine O1 and O2 optimizations.
+         
+    -E, --exec PATH
+         Path for the directory containing the executables, if different from
+         or not in the default path.
 
 """ % PROGNAME
 
@@ -218,8 +230,6 @@ INTEGRATE_MOSAICITY_RE = re.compile(r"CRYSTAL MOSAICITY \(DEGREES\)")
 INTEGRATE_STRONG_RE = re.compile(r"REFLECTIONS ACCEPTED FOR REFINEMENT")
 RRF, RRI = r"[\ ]+([0-9\.]+)", r"[\ ]+([\d]+) "
 SCALE_RE = re.compile(r" "+RRI+r"  (\d)"+RRF+r"  ....... "+4*RRI+2*RRF)
-
-XDS_HOME = os.getenv('XDS')
 
 def _get_omatrix(_file):
     omat = []
@@ -617,12 +627,12 @@ class XDSLogParser:
                     rdi["IoverSigmaAsympt"] = float(self.lp[sp1:sp1+31].split()[2])
             except:
                     rdi["IoverSigmaAsympt"] =  0.0
-        print "  Upper theoritical limit of I/sigma: %8.3f" % \
-                                                rdi["IoverSigmaAsympt"]
         #print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
         #                                       (4*K1s, (K2s/4+0.0001))
         rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
         rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
+        rdi["Space_group_num"] = gpa("SPACE GROUP NUMBER ")
+        rdi["Cell_ref"] = gpa("UNIT CELL PARAMETERS")
         rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
         r = gpa(" "+"-"*74+"\n")
         rdi["I_sigma"], rdi["Rsym"] = r[2], r[4]
@@ -675,7 +685,8 @@ class XDSLogParser:
 
     def get_xds_version(self):
         "Get the version of XDS"
-        _execstr = "cd /tmp; xds_par | grep VERSION"
+        _execstr = "cd /tmp; %s | grep VERSION" % \
+                                         os.path.join(XDS_PATH,"xds_par")
         wc_out = self.run_exec_str(_execstr)
         return wc_out.strip()[24:-12].replace(")","")
 
@@ -701,8 +712,8 @@ class XDS:
         self.__cancelled = 0
         self.__lastOutp = 0
         self.mode = []
-        if XDS_HOME:
-            self.__execfile = os.path.join(XDS_HOME,"xds_par")
+        if XDS_PATH:
+            self.__execfile = os.path.join(XDS_PATH, "xds_par")
         else:
             self.__execfile = "xds_par"
         self.running = 0
@@ -772,6 +783,7 @@ class XDS:
                 try:
                     os.mkdir(self.run_dir)
                 except OSError, err:
+                    print "ERROR: %s" % err
                     raise XIO.XIOError, \
                      ("\nSTOP! Can't create xds working directory: %s\n" % \
                                                               self.run_dir)
@@ -1177,6 +1189,9 @@ class XDS:
         # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
+        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+                                             res.results["IoverSigmaAsympt"]
+
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
         newH = res.results["HighResCutoff"]
         if newH > H and not RES_HIGH:
@@ -1226,6 +1241,8 @@ class XDS:
         self.inpParam["SPACE_GROUP_NUMBER"] = spg_num
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
+        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+                                             res.results["IoverSigmaAsympt"]        
         s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
         if not s:
             print "\nERROR while running CORRECT"
@@ -1511,7 +1528,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:E:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1529,12 +1546,15 @@ if __name__ == "__main__":
                 "oscillation",
                 "orientation-matrix=",
                 "nthreads=",
-                "project",
+                "project=",
+                "exec=",
                 "beam-center-optimize-i",
                 "beam-center-optimize-z",
                 "beam-center-swap",
                 "xds-input=",
                 "verbose",
+                "optimize",
+                "O1","O2","O3","O",
                 "wavelength=",
                 "slow", "weak", "brute"]
 
@@ -1548,8 +1568,8 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
-    NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
-    # Use a maximum of 32 proc. by job. Change it if you whant another limit.
+    NUMBER_OF_PROCESSORS = min(16, get_number_of_processors())
+    # Use a maximum of 16 proc. by job. Change it if you whant another limit.
     WARNING = ""
     VERBOSE = False
     DEBUG = False
@@ -1581,16 +1601,29 @@ if __name__ == "__main__":
     FAST = False
     BRUTE = False
     STEP = 1
+    OPTIMIZE = 0
+    XDS_PATH = ""
 
     for o, a in opts:
         if o == "-v":
             VERBOSE = True
+        if o in ("-E", "--exec"):
+            XDS_PATH = a
+            xdsf = os.path.join(XDS_PATH, "xds_par")
+            if not (os.path.isfile(xdsf) and os.access(xdsf, os.X_OK)):
+                print "WARNING: no 'xds_par' exec found in path %s." % XDS_PATH
+                print "         Using default $PATH location."
+                XDS_PATH = ""
+            else:
+                os.environ['PATH'] = "%s%s%s" % (XDS_PATH, os.pathsep,
+                                                           os.environ["PATH"])
         if o in ("-a", "--anomal"):
             ANOMAL = True
+            STRICT_CORR = False
         if o in ("-A", "--Anomal"):
             ANOMAL = True
             STRICT_CORR = True
-        if o in ("-I", "--ici"):
+        if o in ("-I", "--ice"):
             ICE = True
         if o[1] in "123456":
             STEP = int(o[1])
@@ -1652,6 +1685,17 @@ if __name__ == "__main__":
             _beam_center_ranking = "ZSCORE"
         if o in ("-W", "--beam-center-swap"):
             _beam_center_swap = True
+        if o in ("--optimize", "--O"):
+            OPTIMIZE = 3
+            STEP = 4
+        if "--O" in o and len(o) == 4:
+            STEP = 4
+            try:
+                OPTIMIZE = int(o[-1])
+            except:
+                pass
+            if OPTIMIZE > 3:
+                OPTIMIZE = 3
         if o in ("--slow"):
             SLOW = True
         if o in ("--brute"):
@@ -1726,6 +1770,8 @@ if __name__ == "__main__":
         newPar["FRIEDEL'S_LAW"] = "TRUE"
     if STRICT_CORR:
         newPar["STRICT_ABSORPTION_CORRECTION"] = "TRUE"
+    else:
+        newPar["STRICT_ABSORPTION_CORRECTION"] = "FALSE" 
     if BEAM_X:
         newPar["ORGX"] = BEAM_X
     if BEAM_Y:
@@ -1771,6 +1817,12 @@ if __name__ == "__main__":
             sys.exit()
     if WAVELENGTH:
         newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
+    if OPTIMIZE in [1, 3]:
+        gxparm2xpar(newDir)
+    if OPTIMIZE >= 2:
+        profiles = getProfilRefPar(os.path.join(newDir, "INTEGRATE.LP"))
+        newPar.update(profiles)
+        print "UPDATED PROFILES: %s" % profiles
     #if XDS_INPUT:
     #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
     if "_HIGH_RESOL_LIMIT" in newPar:
@@ -1809,7 +1861,7 @@ if __name__ == "__main__":
     if WEAK:
         newrun.mode.append("weak")
 
-    #print "XDS env Variable= %s" % XDS_HOME
+    if XDS_PATH: print ">> XDS_PATH set to: %s" % XDS_PATH
     print "\n    Simplified XDS Processing"
     print "\n      xds   version: %18s" % XDSLogParser().get_xds_version()
     print "      xdsme version: %18s" % __version__
