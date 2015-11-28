@@ -1,6 +1,5 @@
 xscale2.py:
    - Final statistics: add the anomalous indicators
-   - Add the possibility to change merging, anomalous... -m, -u, -n, -a...
 
 XDS.py:
    - Add more unittesting
