@@ -118,7 +118,7 @@ XDS_DETECTOR_DICT = {
     "adsc":     ( EX, EY,  1,  EX, -EX, "YX"),
     "raxis":    ( EX, EY,  1,  EY,  EY, "XY"),
     "minicbf":  ( EX, EY,  1,  EX,  EX, "XY"),
-    "mscccd":   (-EX, EY, -1, -EY,  EY, "XY"),
+    "mscccd":   (-EX, EY, -1,  EY,  EY, "XY"),
   }
 }
 
