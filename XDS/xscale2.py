@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.5.2"
+__version__ = "0.5.8"
 __author__ = "Pierre Legrand (legrand@emble-grenoble.fr)"
-__date__ = "21-11-2013"
-__copyright__ = "Copyright (c) 2003-2012 Pierre Legrand"
+__date__ = "28-11-2015"
+__copyright__ = "Copyright (c) 2003-2015 Pierre Legrand"
 __license__ = "LGPL"
 
 usage   = """
@@ -20,6 +20,7 @@ usage   = """
                      file header)
       -r   FLOAT Set the high resolution limit to FLOAT value.
       -S0        Scaling schem: 0 = No correction.
+      -z         Apply Zerro Dose extrapolation.
                  
       -n   INT   Number of resolution bins for printing statistics set
                  INT value (default is 20)
@@ -91,16 +92,21 @@ else:
 xds_input_files = []
 print "File selected for scaling:\n"
 
-resolution = None
-scale = None
+RESOLUTION = None
+SCALE_TYPE = None
+ZERO_DOSE = None
 
 if sys.argv.count("-S0"):
     sys.argv.remove("-S0")
-    scale = 0
+    SCALE_TYPE = 0
+if sys.argv.count("-z"):
+    sys.argv.remove("-z")
+    ZERO_DOSE = "XTAL1"
 if sys.argv.count("-r"):
     p = sys.argv.index("-r")
     sys.argv.remove("-r")
-    resolution = float(sys.argv[p])
+    RESOLUTION = float(sys.argv[p])
+    sys.argv.remove(sys.argv[p])
 
 for arg in sys.argv[1:]:
     try:
@@ -172,14 +178,16 @@ for hklf in hklf_files:
             f.write(output_str % refdic)
             mad_fnames.append(fname)
     f.write("   INPUT_FILE= %s\n" % hklf.fileName)
-    if resolution:
-        res_range= "100 %.3f" % (resolution)
+    if ZERO_DOSE:
+        f.write("CRYSTAL_NAME=%s\n" % "XTAL1")
+    if RESOLUTION:
+        res_range= "100 %.3f" % (RESOLUTION)
         f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % res_range)
     elif "INCLUDE_RESOLUTION_RANGE" in hklf.header:
         f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % \
                 hklf.header["INCLUDE_RESOLUTION_RANGE"])
     f.write("      FRIEDEL'S_LAW=        %s\n" % hklf.header["FRIEDEL'S_LAW"])
-    if scale == 0:
+    if SCALE_TYPE == 0:
         f.write("      CORRECTIONS= NONE\n")      
     else:
         f.write("      ! CORRECTIONS= DECAY MODULATION ABSORPTION\n")
@@ -194,86 +202,5 @@ if not s:
     #else:
     #    print s
 print _fmt_final_stat % vars(s)
-if s.absent:
-   print _fmt_AbsIav % vars(s)
-if ["FRIEDEL'S_LAW"] == "FALSE":
-   print _fmt_anomal % vars(s)
-            
-            
-sys.exit()
-
-
-#### Default values
-float_arg = []
-merge = "FALSE"
-#friedels_law = "TRUE"
-friedels_law = 1
-nbin = 12
-hklout = "normal.hkl"
-dmin = get_resmax_limit()
-
-# Source file for spg, cell...
-# Order XDS_ASCII.HKL, GXPARM, XPARM
-
-xparmfile = ""
-hklfile = "XDS_ASCII.HKL"
-if  os.path.exists(hklfile):
-    H = read_xdsascii_head(hklfile)
-    if H["friedels_law"] == "FALSE":
-        friedels_law = 0
-        hklout = "anomal.hkl"
-    cell = H["cell"]
-    spaceGroupNum = H["sym"]
-else:
-    if os.path.exists("GXPARM.XDS"): xparmfile = "GXPARM.XDS"
-    elif os.path.exists("XPARM.XDS"): xparmfile = "XPARM.XDS"
-    if xparmfile:
-        line = (open("XPARM.XDS",'r').readlines()[7]).split()
-        spaceGroupNum, cell  = line[0],line[1:]
-
-# To handle old XDS.DATA
-if os.path.exists("XDS.HKL") and not os.path.exists("XDS_ASCII.HKL"):
-    hklfile = "XDS.HKL"
-
-if os.path.exists("XSCALE.INP") and not os.path.exists("XSCALE.INP.bck"):
-    os.system("mv XSCALE.INP XSCALE.INP.bck")
-if sys.argv.count("-h"):
-    print usage
-    sys.exit()
-if sys.argv.count("-a"):
-    sys.argv.remove("-a")
-    file_name, friedels_law = "anomal.hkl", 0
-if  sys.argv.count("-n"):
-    sys.argv.remove("-n")
-    file_name, friedels_law = "normal.hkl", 1
-if sys.argv.count("-u"):
-    sys.argv.remove("-u")
-    merge = "FALSE"
-if sys.argv.count("-m"):
-    sys.argv.remove("-m")
-    merge = "TRUE"
-if sys.argv.count("-N"):
-    arg_ind = sys.argv.index("-N")
-    nbin = sys.argv[arg_ind+1]
-    sys.argv.remove(nbin)
-    sys.argv.remove("-N")
-    try: nbin = int(nbin)
-    except:
-        print "\nERROR! Wrong value given for the number of bins:", nbin
-        print "\tNumber of bins will be set to: 12\n"
-        nbin = 12
-
-
-dirname = os.path.split(os.getcwd())[1]
-for arg in sys.argv[1:]:
-   float_arg.append(float(arg))
-
-if  len(sys.argv) == 2: dmin = float_arg[0]
-elif len(sys.argv) >= 3:
-        print usage
-        sys.exit()
-
-xlatt = Lattice(cell, "Unknown", symmetry=spaceGroupNum,
-                      dmin=dmin, friedels_law=friedels_law)
-run_xscale((hklfile,),hklout, xlatt, nbin=nbin, merge=merge)
-
+#if ["FRIEDEL'S_LAW"] == "FALSE":
+#   print _fmt_anomal % vars(s)
