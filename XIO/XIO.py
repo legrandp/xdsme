@@ -11,10 +11,10 @@
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.4.5"
+__version__ = "0.4.6"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "7-12-2009"
-__copyright__ = "Copyright (c) 2005-2009 Pierre Legrand"
+__date__ = "26-11-2015"
+__copyright__ = "Copyright (c) 2005-2015 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
 #
@@ -604,6 +604,7 @@ class Collect:
 
         #print "D1: %s" % init
         if type(init) == str:
+            init = init.replace("//","/") 
             self._naming_convension = 1
             M = REC_FULLIMAGENAME1.match(init)
 
