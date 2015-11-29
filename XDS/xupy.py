@@ -19,29 +19,29 @@ import commands
 import shutil
 from time import time, sleep
 
-__version__ = "0.7.12"
+__version__ = "0.7.14"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "26-03-2013"
-__copyright__ = "Copyright (c) 2006-2013  Pierre Legrand"
+__date__ = "25-11-2015"
+__copyright__ = "Copyright (c) 2006-2015  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 
-# Environemantal variable XDSHOME, if set, defines the place where the xds
+# Environemantal variable XDS_PATH, if set, defines the place where the xds
 # executables will be searched. The parallelized execs (xds_par, xscale_par)
 # will be used be defaults.
 
 def get_xdshome():
-    if "XDSHOME" in os.environ.keys():
-        XDSHOME = os.getenv("XDSHOME")
-        if not os.path.isfile(os.path.join(XDSHOME, "xds_par")):
+    if "XDS_PATH" in os.environ.keys():
+        XDS_PATH = os.getenv("XDS_PATH")
+        if not os.path.isfile(os.path.join(XDS_PATH, "xds_par")):
             #if _verbose:
-            #    print "WARNING: no 'xds_par' found in $XDSHOME path (%s)." % XDSHOME
+            #    print "WARNING: no 'xds_par' found in $XDS_PATH path (%s)." % XDS_PATH
             #    print "         Using default $PATH location."
-            XDSHOME = ""
-    else: XDSHOME = ""
-    return XDSHOME
+            XDS_PATH = ""
+    else: XDS_PATH = ""
+    return XDS_PATH
 
-XDSHOME = get_xdshome()
+XDS_PATH = get_xdshome()
 xinp = "XDS.INP"
 
 LP_names = ["COLSPOT.LP","CORRECT.LP","DEFPIX.LP","IDXREF.LP","XSCALE.LP",
@@ -117,7 +117,7 @@ xdsinp_base = """
  ! AIR= 0.001
  SPACE_GROUP_NUMBER= 0
  UNIT_CELL_CONSTANTS= 0 0 0 0 0 0
- VALUE_RANGE_FOR_TRUSTED_DETECTOR_PIXELS= 6100 30000
+ VALUE_RANGE_FOR_TRUSTED_DETECTOR_PIXELS= 5500 30000
  INCLUDE_RESOLUTION_RANGE= 45.0 0.0
  REFINE(INTEGRATE)= BEAM ORIENTATION CELL   
  DELPHI= 8.0
@@ -136,6 +136,7 @@ xdsinp_base = """
  REFINE(CORRECT)= DISTANCE BEAM AXIS ORIENTATION CELL
  TEST_RESOLUTION_RANGE= 20 4.5
  ! REFERENCE_DATA_SET=
+ MAX_FAC_Rmeas= 1.6
 """
 
 BravaisDico = {"a":"triclinic","m":"monoclinic","o":"orthorhombic",
@@ -730,7 +731,7 @@ def run_multi_integrate(xpar_init,inp_f=None,main_directory=None,
     if os.path.isdir(main_directory):
          os.chdir(main_directory)
     else:
-         print "STOP! Directory not found:",directory
+         print "STOP! Directory not found:",main_directory
          sys.exit()
     range_list = new_range(xpar.DATA_RANGE, nThreads)
 
@@ -813,10 +814,11 @@ def run_xds(new_par, inp_f=xinp, out_f=None, directory=None, save=1):
 
     xpar.mix(new_par)
     opWriteCl(xinp, "%s" % xpar)
-    exec_prog(os.path.join(XDSHOME,"xds_par"), stdout=out_f, stderr="xupy.stderr")
+    exec_prog(os.path.join(XDS_PATH,"xds_par"), stdout=out_f,
+                                               stderr="xupy.stderr")
     r = xpar.DATA_RANGE
     if save: saveLastVersion(LP_names)
-    return "XDS finished for integration of images %4d to %4d" % (r[0],r[1])
+    return "XDS finished for integration of images %4d to %4d" % (r[0], r[1])
 
 def getProfilRefPar(infile="INTEGRATE.LP"): 
     p_lp = opReadCl(infile)
@@ -826,9 +828,8 @@ def getProfilRefPar(infile="INTEGRATE.LP"):
     #if init:
     #    st1 = p_lp.index("BASED ON SPOT PROFILE PARAMETERS")+32
     #    fit_dat_1 = p_lp[st1:st1+163].replace("DEGREES","")
-    else:
-        st1 = p_lp.index("* SUGGESTED VALUES FOR INPUT PARAMETERS *")
-        fit_dat_1 = p_lp[st1+46:st1+165]
+    st1 = p_lp.index("* SUGGESTED VALUES FOR INPUT PARAMETERS *")
+    fit_dat_1 = "".join(p_lp[st1+46:st1+300].splitlines()[:2])
     return xdsInp2Param(inp_str=fit_dat_1)
 
 def gxparm2xpar(Dir):
@@ -913,7 +914,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
 
     stat_wilson = lp[st14+44:st14+75].split()
     #
-    TG, TG3 = [], []
+    TG = []
     for l in stat_tg: TG.append(l.split())
     #for l in stat_tg3: TG3.append(l.split())
 
@@ -993,7 +994,6 @@ def unpack_latticefit(_str):
     return latt
 
 def resum_idxref(idxref="IDXREF.LP"):
-    list_latticesFit = []
     i_lp = opReadCl(idxref)
     st1 = i_lp.index("LATTICE-  BRAVAIS-")
     idxref_latticesFit = i_lp[st1+172:st1+5012]
@@ -1005,7 +1005,6 @@ def get_xparm_cell(xp_name="XPARM.XDS"):
 
 def select_lattices(limit = 100, idxref="IDXREF.LP"):
             selected = []
-            selection = Param()
             for _latt in resum_idxref(idxref):
                  #if _latt.fit <= limit and _latt.fit != 0.0:
                  if _latt.fit <= limit:
@@ -1178,7 +1177,7 @@ def run_xscale(files, hklout, lattice, Dir=None,
          script = script + inp_line % (file, lattice.dmin)
     open(os.path.join(Dir,"XSCALE.INP"),"wb").write(script)
     #
-    exec_prog("cd %s; %s" % (Dir,os.path.join(XDSHOME,"xscale_par")),
+    exec_prog("cd %s; %s" % (Dir,os.path.join(XDS_PATH,"xscale_par")),
                               stdout=out_f, stderr="xupy.stderr")
     if save: saveLastVersion("XSCALE.LP")
     s = resum_scaling(lpf=os.path.join(Dir,"XSCALE.LP"))
