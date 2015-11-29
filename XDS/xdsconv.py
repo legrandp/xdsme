@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.6"
+__version__ = "0.8.7"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "20-12-2013"
-__copyright__ = "Copyright (c) 2006-2013 Pierre Legrand"
+__date__ = "26-11-2015"
+__copyright__ = "Copyright (c) 2006-2015 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
-# Environemantal variable XDSHOME, if set, defines the place where the xds
+# Environemantal variable XDS_PATH, if set, defines the place where the xds
 # executables will be searched. The parallelized execs (xds_par, xscale_par)
 # will be used be defaults.
 
@@ -32,7 +32,7 @@ usage   = """
             %s\n
         FILE is a XDS or XSCALE reflection file (usually XDS_ASCII.HKL).\n
     OPTIONS:
-        -a       force anomal output (Friedel's law = False)
+        -a       force anomal output. This is the default.
         -n       force normal output (Friedel's law = True)
         -m       force merged output
         -u       force unmerged output
@@ -112,7 +112,7 @@ NTRY 1000
 FIND %(num_sites)d
 SFAC %(ha_name)s
 MIND -3.5
-MAXM 2
+MAXM 8
 """
 
 shelxall_script = """#!/bin/sh
@@ -477,9 +477,9 @@ eof
 function run_parrot() {
 hand=$1
 if [ $hand = "ori" ] ; then
-parrID=${ID}_auto
+parrID=${ID}_auto.1
 elif [ $hand = "inv" ] ; then
-parrID=${ID}_auto.hand
+parrID=${ID}_auto.1.hand
 fi
 cparrot \\
 -mtzin-wrk      ${parrID}.mtz \\
@@ -502,7 +502,7 @@ cparrot \\
 
 run_phaser
 run_parrot ori
-test -f ${ID}_auto.hand.mtz && run_parrot inv
+test -f ${ID}_auto.1.hand.mtz && run_parrot inv
 
 """
 
@@ -1079,12 +1079,12 @@ class DoMode:
             os.makedirs(self.dir_mode)
 
         if self.mode not in ("SOLVE",):
-            toexec = os.path.join(xupy.XDSHOME,"xdsconv")
+            toexec = os.path.join(xupy.XDS_PATH,"xdsconv")
             xupy.exec_prog(toexec, stdout="xdsconv.log")
             if self.mode == "CCP4F":
                 os.system("mv XDSCONV2.INP XDSCONV.INP")
                 os.system("mv f2mtz.inp2 %s" % self.dir_mode)
-                toexec = os.path.join(xupy.XDSHOME,"xdsconv")
+                toexec = os.path.join(xupy.XDS_PATH,"xdsconv")
                 xupy.exec_prog(toexec, stdout="xdsconv_dano.log")
 
 
@@ -1207,6 +1207,7 @@ if __name__ == '__main__':
     __force_unmerge = False
     __force_free = False
     __force_no_free = False
+    __force_output = False
     __label = ""
 
     argp_fmt = "<<< %-24s %s"
@@ -1233,6 +1234,9 @@ if __name__ == '__main__':
             __label = "_"+str(args[args.index("-l") + 1])
         elif arg == "-f":
             __force_free = True
+        elif arg == "-o":
+             __force_output = True
+             __outname = str(args[args.index("-o") + 1])
         elif arg == "-nf":
             __force_no_free = True
         elif arg == "-a":
@@ -1344,12 +1348,18 @@ if __name__ == '__main__':
     XC.cell_str = 6*"%.2f  " % tuple(XC.cell)
     XC.friedel_in = H["friedels_law"]
     XC.merge_in = H["merge"]
-    if H["template_name"]:
-        XC.ID = H["template_name"]
-        while XC.ID[-1] == "_":
-            XC.ID = XC.ID[:-1]
+
+    # Setting the output filename
+    if __force_output:
+        XC.ID = __outname
     else:
-        XC.ID = "XSCALEa"
+        if H["template_name"]:
+            XC.ID = H["template_name"]
+            while XC.ID[-1] == "_":
+                XC.ID = XC.ID[:-1]
+        else:
+            XC.ID = "XSCALEa"
+
     XC.res_high = H["include_resolution"][1]
     XC.res_low = H["include_resolution"][0]
     if not H["wavelength"]:
@@ -1366,7 +1376,9 @@ if __name__ == '__main__':
     if H["merge"] == "TRUE" and XC.merge_out == "FALSE":
         print "\n>>> WARNING!  The input file does not unmerged reflections."
 
-    if not XC.friedel_out: XC.friedel_out = H["friedels_law"]
+    if not XC.friedel_out:
+        #XC.friedel_out = H["friedels_law"]
+        XC.friedel_out = "FALSE"
     if not XC.merge_out: XC.merge_out = H["merge"]
 
     # Depending on the chosen mode, predefine suffix_name, merge_out, friedel_out...
