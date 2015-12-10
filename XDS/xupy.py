@@ -273,7 +273,7 @@ class Lattice:
         self.isig = None
 
         if type(cell) == type(""):
-            cell = map(float, cell.strip().split())
+            cell = map(float, cell.strip().replace(","," ").split())
         if len(cell) == 6:
             self.cell = map(float,tuple(cell))
             (self.a, self.b, self.c,
