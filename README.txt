@@ -1,6 +1,6 @@
 ######################################################################
 XDSME: XDS Made Easier
-Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012
+Copyright (C) 2007-2015
           Pierre Legrand.
 License:  New BSD License, see LICENSE file or
           http://www.opensource.org/licenses/bsd-license.php
@@ -10,7 +10,7 @@ xdsme is a collection of python scripts made to simplify the processing of cryst
 
  $ xdsme pos1_1_???.img
 
-Supported detector image format include: ADSC, MARCCD, MAR345. There is an experimental support for the minicbf format of PILATUS, SATURN, RAXIS and MAR555 detectors (limited by lack of test images).
+Supported detector image format include: PILATUS, ADSC, MARCCD, MAR345, SATURN. There is an experimental support for RAXIS and MAR555 detectors (limited by lack of test images).
 
 The main scripts are: - xdsme (XDS.py), xscale.py and xdsconv.py for the data processing, scaling andfile conversion. - XOalign.py for the goniometer setting calculation (can be set to work with different type of goniometer including Kappa, mini-Kappa, Euler...). - xds2mos.py or xds2dnz.py ... (for convertion of orientation matrices)
 
@@ -19,7 +19,7 @@ All scripts are pure python code, so the only dependency is Python version >= 2.
 A typical session will look like that:
 
  $ xdsme  col1_1_*.img 
- $ xdsme  -a -3 -s P3121 -c  “59 59 123 90 90 120” col1_1_*.img 
+ $ xdsme  --O -r 2.1 -s P3121 -c  “59 59 123 90 90 120” col1_1_*.img 
  $ cd  xds_process_col1_1 
  
  $ xscale.py  XDS_ASCII.HKL ../xds_process_lowres/XDS_ASCII.HKL 
