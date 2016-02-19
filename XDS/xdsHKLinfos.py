@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.4.0"
+__version__ = "0.4.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "04-07-2010"
+__date__ = "07-12-2015"
 __copyright__ = "Copyright (c) 2010 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -74,14 +74,14 @@ def calc_reso(hkl, cell):
                sum(a[1,:]*hkl[:,:3],1)**2 +
                sum(a[2,:]*hkl[:,:3],1)**2)**0.5
 
-def low_res_info(hklFileName, t0=None):
+def low_res_info(hklFileName, t0=None, filterR=False):
     "Read the header and return some details."
     refl = opReadCl(hklFileName)
     cell = get_cell(refl[:2500])
     if t0:
         t1 = time.time()
         print "\n... Reading:          %.3fs" % (t1 - t0)
-    hkls = getHKLv2(refl, maxcolumn=5, dtype=float)
+    hkls = getHKLv2(refl, maxcolumn=8, dtype=float)
     if t0:
         t2 = time.time()
         print "... Extracting HKLs:  %.3fs" % (t2 - t1)
@@ -89,7 +89,7 @@ def low_res_info(hklFileName, t0=None):
     #    1/0
     #    res = read_resolution(refl[:2500])
     #except:
-    if 1:
+    if True:
         hkls = N.array(hkls)
         if t0:
             t3 = time.time()
@@ -113,8 +113,21 @@ def low_res_info(hklFileName, t0=None):
         if Iover6 < 3.:
             W = "W"
         print " %1s %1s %10.2f" % (R, W, res[i]), \
-              "%4d%4d%4d%12.3e%12.3e" % tuple(hkls[i]), \
+              "%5d%5d%5d%12.3e%12.3e" % tuple(hkls[i,:5]), \
               "%9.2f" % Iover6
+    print "          RESOL    H   K   L   INTENSITY    SIGMA    INTENSITY/SIGMA\n"
+    for i in -1*N.array(range(1,N_LIST_LOW)):
+        Iover6 = hkls[i,3]/abs(hkls[i,4])
+        R = W = " "
+        if hkls[i,4]<0:
+            R = "R"
+        if Iover6 < 3.:
+            W = "W"
+        print " %1s %1s %10.2f %6.1f" % (R, W, res[i], Iover6), \
+              "%5d%5d%5d" % tuple(hkls[i,:3]), \
+              "%8.1f%8.1f%8.1f 3 3 3" % tuple(hkls[i,-3:])
+              
+             
     return {"res_low": res_low,
             "res_high": res_high,
             "refl_numb": len(hkls),
@@ -175,6 +188,9 @@ if __name__=='__main__':
     parser.add_option("-r", "--lowres",
                   action="store_true", dest="lowres", default=False,
                   help="Report on quality of lower resolution reflections.")
+    parser.add_option("-F","--filter",
+                  action="store_true", dest="filterR", default=False,
+                  help="Try to better filter lower resolution reflections.")
     parser.add_option("-n", "--num_list_refl",
                   dest="nlistlow", default=40, type="int", metavar="N_LIST_LOW",
                   help="Number of listed lower reflections.")
@@ -185,7 +201,11 @@ if __name__=='__main__':
     t0 = None
     if options.test: 
        t0 = time.time()
-    if options.lowres:
+    if options.filterR:
+        info = low_res_info(options.file, t0, filterR=True)
+        info["cell_str"] = 6*"%.2f  " % tuple(info["cell"])
+        print info_fmt % info
+    elif options.lowres:
         info = low_res_info(options.file, t0)
         info["cell_str"] = 6*"%.2f  " % tuple(info["cell"])
         print info_fmt % info
