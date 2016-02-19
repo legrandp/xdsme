@@ -73,6 +73,7 @@ XDS_DETECTOR_DICT = {
     "adsc":      "ADSC",
     "raxis":     "RAXIS",
     "minicbf":   "PILATUS",
+    "hdf5dec":   "EIGER",
     "mscccd":    "SATURN",
   },
   "overload":{
@@ -82,6 +83,7 @@ XDS_DETECTOR_DICT = {
     "adsc":       65000,
     "raxis":     262100, # for raxisII. raxisIV: 1000000, raxisV: 2000000.
     "minicbf":  1048500,
+    "hdf5dec":    62300,
     "mscccd":   1000000,
   },
   "minval":{
@@ -91,6 +93,7 @@ XDS_DETECTOR_DICT = {
     "adsc":     1,
     "raxis":    0,
     "minicbf":  0,
+    "hdf5dec":  0,
     "mscccd":   1,
   },
   "min_number_of_pixels":{
@@ -100,6 +103,7 @@ XDS_DETECTOR_DICT = {
     "adsc":     8,
     "raxis":    8,
     "minicbf":  3,
+    "hdf5dec":  4,
     "mscccd":   8,
   },
   "sensor_thickness":{
@@ -109,6 +113,7 @@ XDS_DETECTOR_DICT = {
     "adsc":     0,
     "raxis":    0,
     "minicbf":  0.32,
+    "hdf5dec":  0.45,
     "mscccd":   0,
   },
   "orient":{ # X_det, Y_det, distanceSign, spindle_axis, twoThetaAxis, beamdef
@@ -119,6 +124,7 @@ XDS_DETECTOR_DICT = {
     "raxis":    ( EX, EY,  1,  EY,  EY, "XY"),
     "minicbf":  ( EX, EY,  1,  EX,  EX, "XY"),
     "mscccd":   (-EX, EY, -1,  EY,  EY, "XY"),
+    "hdf5dec":  ( EX, EY,  1,  EX,  EX, "XY"),
   }
 }
 
@@ -250,6 +256,7 @@ HTD = {
 'DIRECTION_OF_DETECTOR_X-AXIS':(['TwoTheta','ImageType'], det_axis_x),
 'DIRECTION_OF_DETECTOR_Y-AXIS':(['TwoTheta','ImageType'], det_axis_y),
 '_HIGH_RESOL_LIMIT':(['EdgeResolution'], lambda x: round(x,2)),
+'SENSOR_THICKNESS':(['SensorThickness'], float),
 }
 
 #     Collect Translator Dictionary.
