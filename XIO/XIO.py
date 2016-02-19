@@ -35,20 +35,23 @@ VERBOSE = 0
 
 RE_DIRPATH =       r"(.*/+)?"               # opt. directory path
 RE_IMAGE_NAME1 =    r"(.*)_(\d+)\.(\w+)"    # image name with prefix_num.ext
+RE_IMAGE_NAME1H =   r"(.*)_master.(\w+)"
 RE_IMAGE_NAME2 =    r"(.*)\.(\d{3,5})"      # image name with prefixnum.ext
 RE_IMAGE_NAME3 =    r"(.*)(\d{3,5})\.(\w+)" # image name with prefixnum.ext
 RE_EXT_COMPRESSION = r"(\.gz|\.Z|\.bz2)?\Z"   # opt. ending compression ext
-RE_EXTCOMPRESSED =   RE_EXT_COMPRESSION.replace('?','+')  # compression
-RE_FULLIMAGENAME1 =  RE_DIRPATH + RE_IMAGE_NAME1 + RE_EXT_COMPRESSION
-RE_FULLIMAGENAME2 =  RE_DIRPATH + RE_IMAGE_NAME2 + RE_EXT_COMPRESSION
-RE_FULLIMAGENAME3 =  RE_DIRPATH + RE_IMAGE_NAME3 + RE_EXT_COMPRESSION
+RE_EXTCOMPRESSED =    RE_EXT_COMPRESSION.replace('?','+')  # compression
+RE_FULLIMAGENAME1 =   RE_DIRPATH + RE_IMAGE_NAME1 + RE_EXT_COMPRESSION
+RE_FULLIMAGENAME1H =  RE_DIRPATH + RE_IMAGE_NAME1H + RE_EXT_COMPRESSION
+RE_FULLIMAGENAME2 =   RE_DIRPATH + RE_IMAGE_NAME2 + RE_EXT_COMPRESSION
+RE_FULLIMAGENAME3 =   RE_DIRPATH + RE_IMAGE_NAME3 + RE_EXT_COMPRESSION
 
-REC_DIRPATH =         re.compile(RE_DIRPATH)
-REC_EXTCOMPRESSION =  re.compile(RE_EXT_COMPRESSION)
-REC_EXTCOMPRESSED =   re.compile(RE_EXTCOMPRESSED)
-REC_FULLIMAGENAME1 =  re.compile(RE_FULLIMAGENAME1)
-REC_FULLIMAGENAME2 =  re.compile(RE_FULLIMAGENAME2)
-REC_FULLIMAGENAME3 =  re.compile(RE_FULLIMAGENAME3)
+REC_DIRPATH =          re.compile(RE_DIRPATH)
+REC_EXTCOMPRESSION =   re.compile(RE_EXT_COMPRESSION)
+REC_EXTCOMPRESSED =    re.compile(RE_EXTCOMPRESSED)
+REC_FULLIMAGENAME1 =   re.compile(RE_FULLIMAGENAME1)
+REC_FULLIMAGENAME1H =  re.compile(RE_FULLIMAGENAME1H)
+REC_FULLIMAGENAME2 =   re.compile(RE_FULLIMAGENAME2)
+REC_FULLIMAGENAME3 =   re.compile(RE_FULLIMAGENAME3)
 
 def list_of_string(arg):
     "Return True if all the component of the list are of string type."
@@ -244,6 +247,10 @@ class Image:
             self.type = "mar"
             return self.type
 
+        elif "HDF" in self.rawHead[:6] and "Dectris" in self.rawHead:
+            self.type = "hdf5dec"
+            return self.type
+
         # Test to identify ADSC header
         elif  self.rawHead[:15] == "{\nHEADER_BYTES=" and \
                 self.rawHead.count(";\nPIXEL_SIZE="):
@@ -343,6 +350,17 @@ class Image:
         if not  interpreterClass:
             interpreterClass = importName("plugins.%s_interpreter" % \
                                        self.type, "Interpreter")
+        if self.type == "hdf5dec":
+            sys.path.insert(0,"/data/bioxsoft/progs/DECTRIS/albula/3.2/python")
+            try:
+                import dectris.albula as dec
+            except ImportError:
+                print "\nThe DECTRIS ALBULA API could not be loaded."
+                raise SystemExit
+            h5cont = dec.DImageSeries(self.fileName)
+            neXus_tree = h5cont.neXus()
+            neXus_root = neXus_tree.root()
+
         if not interpreterClass:
             raise XIOError, "Can't import %s interperter" % (self.type)
 
@@ -351,8 +369,14 @@ class Image:
         # Special = interpreter.SpecialRules
         #
         self.interpreter = interpreterClass()
-        self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
+        if self.type == "hdf5dec":
+            self.RawHeadDict = self.interpreter.getRawHeadDict(neXus_root,
+                                                        dec.DNeXusNode.GROUP)
+        else:
+            self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)       
         #VERBOSE = True
+        # Default value        
+        self.header['SensorThickness'] = 0.0
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
             #self.header[k] = apply(func, map(self.RawHeadDict.get,args))
@@ -390,6 +414,9 @@ class Image:
             args, func = exporter.HTD[k]
 
             exportDict[k] = func(*map(self.header.get, args))
+        if "OverloadValue" in self.header:
+            print "OVERLOAD", self.header['OverloadValue']
+            exportDict["OVERLOAD"] = self.header['OverloadValue']
         return exportDict
 
     def info(self, verbose=0):
@@ -421,6 +448,7 @@ class Image:
                                          self.header['Height'])
         print ">> Distance: %.1f mm, Lambda: %.3f A" % \
                            (self.header['Distance'],self.header['Wavelength'])
+        if self.type == "hdf5dec": return
         try:
             data = self.getData()
             if self.type == 'marccd':
@@ -597,6 +625,7 @@ class Collect:
         self.imageNumbers = [] # set by lookup_imageNumbers()
         self.imageRanges = []  # set by lookup_imageRanges()
         self.image = None
+        self.imageType = None
 
         if type(init) == list and list_of_string(init):
             _init_list_of_images = init
@@ -609,14 +638,16 @@ class Collect:
             M = REC_FULLIMAGENAME1.match(init)
 
             if not M:
-                #print "2nd conv"
                 M = REC_FULLIMAGENAME2.match(init)
                 self._naming_convension = 2
 
             if not M:
-                #print "3rd conv."
                 M = REC_FULLIMAGENAME3.match(init)
                 self._naming_convension = 3
+
+            if not M:
+                M = REC_FULLIMAGENAME1H.match(init)
+                self._naming_convension = 4
 
             if not M:
                 _err_message = "String constructor: %s doesn't match Collect "
@@ -629,6 +660,9 @@ class Collect:
             if self._naming_convension == 2:
                 self.directory, self.prefix, num, compres = M.groups()
                 self.suffix = ""
+            elif self._naming_convension == 4:
+                self.directory, self.prefix, self.suffix, compress = M.groups()
+                num = "000000"
             else:
                 self.directory, self.prefix, num, \
                                 self.suffix, compres = M.groups()
@@ -661,6 +695,7 @@ class Collect:
         if self._naming_convension == 1:  re_fmt = r"%s_([0-9]{%d,})\.%s"
         elif self._naming_convension == 2: re_fmt = r"%s.([0-9]{%d,})%s"
         elif self._naming_convension == 3: re_fmt = r"%s([0-9]{%d,})\.%s"
+        elif self._naming_convension == 4: re_fmt = r"%s_([0-9]{%d,})\.%s"
 
         _re_imageNameID = re_fmt % (self.prefix, self.nDigits, self.suffix)
         self.rec_imageNameID = re.compile(RE_DIRPATH + 
@@ -686,6 +721,7 @@ class Collect:
         if self._naming_convension == 1:  sep = "_%s."
         elif self._naming_convension == 3: sep = "%s."
         elif self._naming_convension == 2: sep = ".%s"
+        elif self._naming_convension == 4: sep = "_%s."
 
         # generic template format without external compression
         self.formatTemplate = self.directory + \
@@ -773,9 +809,13 @@ class Collect:
         If mask_range: Map a model ranges to the existing image range.
         Example of mask: [[1,10],[41,50],[81,90]]
         """
-
+        # All this does not apply to HDF5 collect:
+        if self.imageType == 'hdf5dec':
+            if "ImageNumber" in self.image.header:
+                self.imageNumbers = range(1,self.image.header["ImageNumber"]+1)
+                #return range(1,self.image.header["ImageNumber"]+1)
         # Make sure we have a sequence of imageNumbers to work with
-        if not self.imageNumbers or forceCheck:
+        elif not self.imageNumbers or forceCheck:
             self.lookup_imageNumbers()
 
         # Transform the sequence to ranges
@@ -792,10 +832,14 @@ class Collect:
     def isContinuous(self, imagename_list, methode=0, _epsilon=1.5e-1):
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
-        if not self.imageNumbers:
-            self.lookup_imageNumbers()
         if not self.image:
             self.image = Image(self.initialImageName)
+            if self.image.type == 'hdf5dec':
+                return True
+            if "ImageNumber" in self.image.header:
+                self.imageNumbers = range(1,self.image.header["ImageNumber"]+1)
+        if not self.imageNumbers:
+            self.lookup_imageNumbers()
         last_image_name = self.pythonTemplate % self.imageNumbers[-1]
         if os.path.exists(last_image_name):
             last_image = last_image_name
@@ -803,6 +847,8 @@ class Collect:
             last_image = last_image_name + ".gz"
         elif os.path.exists(last_image_name+".bz2"):
             last_image = last_image_name + ".bz2"
+        elif self.image.type == 'hdf5dec':
+            last_image = self.image.header["ImageNumber"]
         # Check only for the initialImageName and last images of the list
         # their phi_osc range is compatible with their numbering.
         if methode == 0:
