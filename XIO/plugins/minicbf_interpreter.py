@@ -3,10 +3,10 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "23-09-2012"
-__copyright__ = "Copyright (c) 2009-2012 Pierre Legrand"
+__date__ = "17-02-2016"
+__copyright__ = "Copyright (c) 2009-2016 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -39,7 +39,7 @@ def get_edge_resolution(pixel_x, width, distance, wavelength):
         return 0.
 
 FLOAT1 = lambda x: float(x.split()[0])
-FLOAT2 = lambda x: float(x.split()[0])*1e3
+FLOAT2 = lambda x: float(x.split()[-2])*1e3
 
 def DISTANCE(inp):
     args = inp.split()
@@ -86,6 +86,7 @@ class Interpreter:
     'OscAxis':(['Oscillation_axis'], lambda x: x.split(",")[0].lower().strip()),
     'DateStr':(['DATE'], str),
     'DateSeconds':(['DATE'], date_seconds),
+    'SensorThickness':(['Silicon'], FLOAT2),
     }
 
     SpecialRules = {
@@ -107,7 +108,7 @@ class Interpreter:
         i_1 = 28+raw_head.find("_array_data.header_contents")
         i_2 = raw_head.find("_array_data.data", i_1)
         i_3 = raw_head.find("--CIF-BINARY-FORMAT-SECTION--", i_2)+29
-        i_4 = i_3+500
+        i_4 = raw_head.rfind("X-Binary-Size", i_3)+100
         lis = [line[2:].strip().split(" ", 1) \
                    for line in raw_head[i_1:i_2].splitlines() \
                        if line and line[0]=="#"]
