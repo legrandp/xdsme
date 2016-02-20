@@ -414,9 +414,6 @@ class Image:
             args, func = exporter.HTD[k]
 
             exportDict[k] = func(*map(self.header.get, args))
-        if "OverloadValue" in self.header:
-            print "OVERLOAD", self.header['OverloadValue']
-            exportDict["OVERLOAD"] = self.header['OverloadValue']
         return exportDict
 
     def info(self, verbose=0):
@@ -921,6 +918,8 @@ class Collect:
                     exportDict["SPECIFIC_KEYWORDS"] = spec_SN[spec_type]
         except:
             pass
+        if "OverloadValue" in self.image.header:
+            exportDict["OVERLOAD"] = self.image.header['OverloadValue']
         return exportDict
 
     def export_template(self, exportType='xds'):
