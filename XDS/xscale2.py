@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.5.8"
-__author__ = "Pierre Legrand (legrand@emble-grenoble.fr)"
-__date__ = "28-11-2015"
-__copyright__ = "Copyright (c) 2003-2015 Pierre Legrand"
+__version__ = "0.5.9"
+__author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
+__date__ = "20-02-2016"
+__copyright__ = "Copyright (c) 2003-2016 Pierre Legrand"
 __license__ = "LGPL"
 
 usage   = """
 
->>>   Usage : xscale.py [-h] [-u] [-a/n] [-N nbins] [reso_high ]
+>>>   Usage : xscale2.py [-h] [-u] [-a/n] [-N nbins] [reso_high ]
 
       -h         Print this message
       -u         Output unmerged reflections (defaulf is unmerge)
@@ -96,6 +96,9 @@ RESOLUTION = None
 SCALE_TYPE = None
 ZERO_DOSE = None
 
+if sys.argv.count("-h"):
+    print usage
+    sys.exit()
 if sys.argv.count("-S0"):
     sys.argv.remove("-S0")
     SCALE_TYPE = 0
@@ -121,8 +124,7 @@ for arg in sys.argv[1:]:
         pass
 
 if xds_input_files == []:
-    print "None!"
-    print "\nError no valid reflection files given!"
+    print usage 
     sys.exit()
 
 # the first reflection file is taken as the reference.
