@@ -3,9 +3,9 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "17-02-2016"
+__date__ = "20-02-2016"
 __copyright__ = "Copyright (c) 2009-2016 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -40,6 +40,7 @@ def get_edge_resolution(pixel_x, width, distance, wavelength):
 
 FLOAT1 = lambda x: float(x.split()[0])
 FLOAT2 = lambda x: float(x.split()[-2])*1e3
+INT2 = lambda x: int(x.split()[-2])
 
 def DISTANCE(inp):
     args = inp.split()
@@ -73,6 +74,7 @@ class Interpreter:
     'Width':(['Binary-Size-Fastest-Dimension'], int),
     'Height':(['Binary-Size-Second-Dimension'], int),
     #'Message':(['MESSAGE'], lambda x: x.split(';')),
+    'OverloadValue':(['Count_cutoff'],INT2),
     'PhiStart':(['Start_angle'], FLOAT1),
     'PhiEnd':(['Start_angle', 'Angle_increment'], \
                      lambda x, y: FLOAT1(x)+FLOAT1(y)),
