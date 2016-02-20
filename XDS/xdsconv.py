@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.7"
+__version__ = "0.8.8"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "26-11-2015"
+__date__ = "20-02-2016"
 __copyright__ = "Copyright (c) 2006-2015 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -102,7 +102,8 @@ fmt_outp_ha = """
 xdsconv_script = """UNIT_CELL_CONSTANTS=  %(cell_str)s
 SPACE_GROUP_NUMBER=   %(spgn_in)s
 INPUT_FILE=%(file_name_in)s %(file_type)s %(res_low).2f %(res_high).2f
-OUTPUT_FILE=%(dir_mode)s%(file_name_out)s %(mode_out)s FRIEDEL'S_LAW=%(friedel_out)s MERGE=%(merge_out)s
+OUTPUT_FILE=%(dir_mode)s%(file_name_out)s %(mode_out)s
+FRIEDEL'S_LAW=%(friedel_out)s MERGE=%(merge_out)s
 """
 
 shelxc_script = """SAD  %(file_name_out)s
@@ -1348,7 +1349,7 @@ if __name__ == '__main__':
     XC.cell_str = 6*"%.2f  " % tuple(XC.cell)
     XC.friedel_in = H["friedels_law"]
     XC.merge_in = H["merge"]
-
+    
     # Setting the output filename
     if __force_output:
         XC.ID = __outname
@@ -1359,7 +1360,7 @@ if __name__ == '__main__':
                 XC.ID = XC.ID[:-1]
         else:
             XC.ID = "XSCALEa"
-
+    
     XC.res_high = H["include_resolution"][1]
     XC.res_low = H["include_resolution"][0]
     if not H["wavelength"]:
