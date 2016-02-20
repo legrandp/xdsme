@@ -83,7 +83,7 @@ XDS_DETECTOR_DICT = {
     "adsc":       65000,
     "raxis":     262100, # for raxisII. raxisIV: 1000000, raxisV: 2000000.
     "minicbf":  1048500,
-    "hdf5dec":    62300,
+    "hdf5dec":  1000000,
     "mscccd":   1000000,
   },
   "minval":{
@@ -274,11 +274,11 @@ CTD = {
                                         [x[0][0], min(x[0][0]+7, x[0][1])]),
 'DETECTOR':(['imageType'], lambda x: XDS_DETECTOR_DICT["detector_name"][x]),
 'NAME_TEMPLATE_OF_DATA_FRAMES':(['xdsTemplate'], str),
-'OVERLOAD':(['imageType'], lambda x: XDS_DETECTOR_DICT["overload"][x]),
 'SENSOR_THICKNESS':(['imageType'], lambda x: \
                                    XDS_DETECTOR_DICT["sensor_thickness"][x]),
 'MINIMUM_VALID_PIXEL_VALUE':(['imageType'], lambda x: \
                                              XDS_DETECTOR_DICT["minval"][x]),
 'MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT':(['imageType'], lambda x: \
                                XDS_DETECTOR_DICT["min_number_of_pixels"][x]),
+'OVERLOAD':(['imageType'], lambda x: XDS_DETECTOR_DICT["overload"][x]),
 }
