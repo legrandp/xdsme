@@ -38,4 +38,4 @@ XDSME is available under the New BSD License [Read the copyright statement and l
 
 ## Included code
 
-Some code comes from the [CgKit project](http://cgkit.sourceforge.net
+Some code comes from the [CgKit project](http://cgkit.sourceforge.net)
