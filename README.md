@@ -12,7 +12,7 @@ Supported detector image format include: PILATUS, EIGER (experimental), ADSC, MA
 
 The main scripts are:
  - xdsme for data processing,
- - xscale2.py for scaling of multiple reflexion files,
+ - xscale.py for scaling of multiple reflexion files,
  - and xdsconv.py for file format conversion,
  - XOalign.py for goniometer setting calculation (can be set to work with different type of goniometer including Kappa, mini-Kappa, Euler...)
  - xds2mos.py or xds2dnz.py ... (for convertion of orientation matrices)
@@ -21,7 +21,7 @@ The main scripts are:
 
 All scripts are pure python code, so the only dependency is Python version >= 2.2. It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
 
-# Examples
+## Examples
 
 A typical session will look like that:
 ```bash

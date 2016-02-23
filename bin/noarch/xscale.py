@@ -1,1 +1,1 @@
-../../XDS/xscale.py
+../../XDS/xscale2.py
