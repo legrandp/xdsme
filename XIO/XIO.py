@@ -11,10 +11,10 @@
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.4.6"
+__version__ = "0.5.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "26-11-2015"
-__copyright__ = "Copyright (c) 2005-2015 Pierre Legrand"
+__date__ = "23-02-2016"
+__copyright__ = "Copyright (c) 2005-2016 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
 #
@@ -29,6 +29,10 @@ import time
 
 PLUGIN_DIR_NAME = "plugins"
 VERBOSE = 0
+if "ALBULA_PYTHON_PATH" in os.environ.keys():
+    HDF5_LIB_PATH = os.getenv("ALBULA_PYTHON_PATH")
+else:
+    HDF5_LIB_PATH = "/data/bioxsoft/progs/DECTRIS/albula/3.2/python"
 
 # Defines General regexp for the complete image names:
 # dirPath + imageName + externalCompression
@@ -103,15 +107,15 @@ class XIOError(Exception):
 class Image:
     """Defines a generic X-ray diffraction image file.
     The constructor tries first to determine the image type (using guessType()),
-    and then the internal compression (using guessIntCompression()). 
+    and then the internal compression (using guessIntCompression()).
 
-    Then, if a type specific plugin exist for that image type, the header will 
+    Then, if a type specific plugin exist for that image type, the header will
     be interpreted and stored in a dictionary with standard keys (as difined by
     the DNA DiffractionImage module).
     The constructor only reads the 9000 first bytes which are supposed to
     contain the header data for all images formats.
 
-    Files externaly compressed with gzip (.gz) or compress (.Z) or bzip2 (.bz2) 
+    Files externaly compressed with gzip (.gz) or compress (.Z) or bzip2 (.bz2)
     can be read transparently.
 
     In that case, only the first 9000 bytes are read and uncompressed.
@@ -237,7 +241,7 @@ class Image:
         t1, t2 = 1234, 4321
         martest1 = (m1 == t1 or m1 == t2 or m2 == t1 or m2 == t2)
 
-        if (martest1 and 
+        if (martest1 and
             self.rawHead.count("mar research     ") and
             self.rawHead.count("mar555")):
             self.type = "mar555"
@@ -351,7 +355,7 @@ class Image:
             interpreterClass = importName("plugins.%s_interpreter" % \
                                        self.type, "Interpreter")
         if self.type == "hdf5dec":
-            sys.path.insert(0,"/data/bioxsoft/progs/DECTRIS/albula/3.2/python")
+            sys.path.insert(0, HDF5_LIB_PATH)
             try:
                 import dectris.albula as dec
             except ImportError:
@@ -373,9 +377,9 @@ class Image:
             self.RawHeadDict = self.interpreter.getRawHeadDict(neXus_root,
                                                         dec.DNeXusNode.GROUP)
         else:
-            self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)       
+            self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
         #VERBOSE = True
-        # Default value        
+        # Default value
         self.header['SensorThickness'] = 0.0
         for k in self.interpreter.HTD.keys():
             args, func = self.interpreter.HTD[k]
@@ -422,9 +426,9 @@ class Image:
         print ">> Interpreting header of image:  %s" % self.fileName
         print ">> Image format:      %s" % self.type
         if self.detModel:
-            print ">> Detector type:     %s" % self.detModel 
+            print ">> Detector type:     %s" % self.detModel
         if hasattr(self, "beamline") and self.beamline:
-            print ">> Beamline guess:    %s %s %s" % self.beamline 
+            print ">> Beamline guess:    %s %s %s" % self.beamline
         if self.intCompression:
             print ">> Image Compression:\t%s" % self.intCompression
         if verbose:
@@ -578,7 +582,7 @@ class Collect:
     """ A simple class to handle X-ray data collection informations.
     It can be contruct from either a string template or a
     tupple of 4 building elements (dir, prefix, nDigits, suffix).
-    dir, prefix and suffix. 
+    dir, prefix and suffix.
 
     >>> dc = Collect("/data/trp/ref-trypsin_1_001.img")
     >>> assert dc.directory == '/data/trp/'
@@ -630,7 +634,7 @@ class Collect:
 
         #print "D1: %s" % init
         if type(init) == str:
-            init = init.replace("//","/") 
+            init = init.replace("//","/")
             self._naming_convension = 1
             M = REC_FULLIMAGENAME1.match(init)
 
@@ -686,7 +690,7 @@ class Collect:
         self.setTemplates()
 
         # self.rec_imageNameID is an identifier for the instanced Collect:
-        # Verification is made that the prefix, suffix and number of digits 
+        # Verification is made that the prefix, suffix and number of digits
         # matches. dirPath and extCompression are optional.
 
         if self._naming_convension == 1:  re_fmt = r"%s_([0-9]{%d,})\.%s"
@@ -695,7 +699,7 @@ class Collect:
         elif self._naming_convension == 4: re_fmt = r"%s_([0-9]{%d,})\.%s"
 
         _re_imageNameID = re_fmt % (self.prefix, self.nDigits, self.suffix)
-        self.rec_imageNameID = re.compile(RE_DIRPATH + 
+        self.rec_imageNameID = re.compile(RE_DIRPATH +
                                           _re_imageNameID +
                                           RE_EXT_COMPRESSION)
         if _init_list_of_images:
@@ -749,13 +753,13 @@ class Collect:
             self.setTemplates()
         else:
             raise TypeError, "Unexpected argument type in setDirectory:", \
-                                                        type(newpath)   
+                                                        type(newpath)
 
 
     def getNumber(self, imageName):
         "If imageName matchs: return the int(number)."
         m = self.rec_imageNameID.match(imageName)
-        if m: return int(m.group(2))        
+        if m: return int(m.group(2))
 
     def lookup_imageNumbers(self, files=None):
         "Return a list of matching image number. Removes duplicate numbers."
@@ -823,7 +827,7 @@ class Collect:
             mask_seq = self._ranges_to_sequence(mask_range)
             intersect = [m for m in mask_seq if m in self.imageNumbers]
             return self._sequence_to_ranges(intersect)
-        else: 
+        else:
             return self.imageRanges
 
     def isContinuous(self, imagename_list, methode=0, _epsilon=1.5e-1):
@@ -901,7 +905,7 @@ class Collect:
             self.interpretImage()
 
         self.lookup_imageRanges()
-        try:    
+        try:
             exportDict = self.image.export(exportType)
         #except ValueError:
         except NameError:
@@ -1033,7 +1037,7 @@ def test2(filename):
     for k in DH2.keys():
         if not DH1[k] == DH2[k]:
             try:
-                _diff = abs(DH1[k] - DH2[k]) 
+                _diff = abs(DH1[k] - DH2[k])
                 assert _diff/DH1[k] < 1.e-7
             except  AssertionError:
                 print "Error. Difference %s between value '%s': %s != %s" % \
