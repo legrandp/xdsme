@@ -40,7 +40,16 @@ def get_edge_resolution(pixel_x, width, distance, wavelength):
 
 FLOAT1 = lambda x: float(x.split()[0])
 FLOAT2 = lambda x: float(x.split()[-2])*1e3
-INT2 = lambda x: int(x.split()[-2])
+#INT2 = lambda x: int(x.split()[-2])
+def INT2(x):
+    try:
+        y = int(x.split()[0])
+    except:
+        try:
+            y = int(x.split()[-2])
+        except:
+            y = 1048500
+    return y
 
 def DISTANCE(inp):
     args = inp.split()
