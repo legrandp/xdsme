@@ -372,24 +372,41 @@ class XDSParser:
     def parse_xparm(self, infname="XPARM.XDS"):
 
         xparm = openReadClose(infname).splitlines()
-        if len(xparm[0].split()) == 3:
-            self.dict["rot"] = map(float,xparm[0].split())
-        if len(xparm[0].split()) == 6:
-            self.dict["rot"] = map(float,xparm[0].split()[3:])
-        self.dict["beam"] = map(float,xparm[1].split()[1:])
-        self.dict["distance"] = float(xparm[3].split()[0])
-        self.dict["originXDS"] = map(float,xparm[3].split()[1:])
-        self.dict["A"] = map(float,xparm[8].split())
-        self.dict["B"] = map(float,xparm[9].split())
-        self.dict["C"] = map(float,xparm[10].split())
-        self.dict["cell"] = map(float,xparm[7].split()[1:])
-        self.dict["pixel_size"] = map(float,xparm[2].split()[2:])
-        self.dict["pixel_numb"] = map(float,xparm[2].split()[:2])
-        self.dict["symmetry"] = int(xparm[7].split()[0])
-        self.dict["num_init"], self.dict["phi_init"], self.dict["delta_phi"] = \
-                   map(float,xparm[0].split()[:3])
-        self.dict["detector_X"] = map(float,xparm[4].split())
-        self.dict["detector_Y"] = map(float,xparm[5].split())
+
+        if (xparm[0].split()[0] == "XPARM.XDS"):
+            self.dict["rot"]        = map(float,xparm[1].split()[3:])
+            self.dict["beam"]       = map(float,xparm[2].split()[1:])
+            self.dict["distance"]   =     float(xparm[8].split()[2])
+            self.dict["originXDS"]  = map(float,xparm[8].split()[:2])
+            self.dict["A"]          = map(float,xparm[4].split())
+            self.dict["B"]          = map(float,xparm[5].split())
+            self.dict["C"]          = map(float,xparm[6].split())
+            self.dict["cell"]       = map(float,xparm[3].split()[1:])
+            self.dict["pixel_size"] = map(float,xparm[7].split()[3:])
+            self.dict["pixel_numb"] = map(float,xparm[7].split()[1:])
+            self.dict["symmetry"]   =       int(xparm[3].split()[0])
+            self.dict["num_init"], self.dict["phi_init"], self.dict["delta_phi"] = map(float,xparm[1].split()[:3])
+            self.dict["detector_X"] = map(float,xparm[9].split())
+            self.dict["detector_Y"] = map(float,xparm[10].split())
+
+        else:
+            if len(xparm[0].split()) == 3:
+                self.dict["rot"] = map(float,xparm[0].split())
+            if len(xparm[0].split()) == 6:
+                self.dict["rot"] = map(float,xparm[0].split()[3:])
+            self.dict["beam"] = map(float,xparm[1].split()[1:])
+            self.dict["distance"] = float(xparm[3].split()[0])
+            self.dict["originXDS"] = map(float,xparm[3].split()[1:])
+            self.dict["A"] = map(float,xparm[8].split())
+            self.dict["B"] = map(float,xparm[9].split())
+            self.dict["C"] = map(float,xparm[10].split())
+            self.dict["cell"] = map(float,xparm[7].split()[1:])
+            self.dict["pixel_size"] = map(float,xparm[2].split()[2:])
+            self.dict["pixel_numb"] = map(float,xparm[2].split()[:2])
+            self.dict["symmetry"] = int(xparm[7].split()[0])
+            self.dict["num_init"], self.dict["phi_init"], self.dict["delta_phi"] = map(float,xparm[0].split()[:3])
+            self.dict["detector_X"] = map(float,xparm[4].split())
+            self.dict["detector_Y"] = map(float,xparm[5].split())
 
     def debut(self):
         "Do simple cristallographic calculations from XDS initial parameters"
