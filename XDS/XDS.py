@@ -28,7 +28,7 @@ else:
 
 from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
-from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy
+from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
 
 from pointless import pointless, is_pointless_installed
 from xupy import XParam, xdsInp2Param, opWriteCl, \
@@ -232,14 +232,9 @@ RRF, RRI = r"[\ ]+([0-9\.]+)", r"[\ ]+([\d]+) "
 SCALE_RE = re.compile(r" "+RRI+r"  (\d)"+RRF+r"  ....... "+4*RRI+2*RRF)
 
 def _get_omatrix(_file):
-    omat = []
-    xparm = open(_file,'r').readlines()
-    spgcell = xparm[7].split()
-    spgn = int(spgcell[0])
-    cell = map(float, spgcell[1:])
-    for line in xparm[8:]:
-        omat.append(map(float, line.split()))
-    return spgn, cell, omat
+    P = XDSParser(_file)
+    return P.dict["symmetry"], P.dict["cell"], \
+                              [P.dict["A"], P.dict["B"], P.dict["C"]]
 
 def unpack_latticefit2(lattice_string):
     "From lattice_string to Lattice object."
@@ -1805,7 +1800,7 @@ if __name__ == "__main__":
     if ORIENTATION_MATRIX:
         try:
             _spg, cell, omat = _get_omatrix(ORIENTATION_MATRIX)
-	    SPG, _spg_info, _spg_str = parse_spacegroup(_spg)
+            SPG, _spg_info, _spg_str = parse_spacegroup(_spg)
             newPar["SPACE_GROUP_NUMBER"] = SPG
             newPar["UNIT_CELL_CONSTANTS"] = cell
             newPar["UNIT_CELL_A_AXIS"] = omat[0]
