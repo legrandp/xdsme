@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.5.9"
+__version__ = "0.6.1"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "20-02-2016"
+__date__ = "09-09-2016"
 __copyright__ = "Copyright (c) 2003-2016 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -12,12 +12,10 @@ usage   = """
 >>>   Usage : xscale2.py [-h] [-u] [-a/n] [-N nbins] [reso_high ]
 
       -h         Print this message
-      -u         Output unmerged reflections (defaulf is unmerge)
       -m         Output merged reflections (defaulf is unmerge)
-      -a/n       -a: Set Friedel's law as "FALSE"
-                 -n: Set Friedel's law as "TRUE"
-                    (default is to read this information in the reflection
-                     file header)
+      -a         Set Friedel's law to "FALSE"
+                 Default is to read this information in the reflection
+                     file header
       -r   FLOAT Set the high resolution limit to FLOAT value.
       -S0        Scaling schem: 0 = No correction.
       -z         Apply Zerro Dose extrapolation.
@@ -55,7 +53,7 @@ input_head = """!
 
 output_str = """\nOUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
 STRICT_ABSORPTION_CORRECTION= TRUE
-      MERGE=FALSE
+      MERGE=%(merge)s
 
 """
 
@@ -95,6 +93,8 @@ print "File selected for scaling:\n"
 RESOLUTION = None
 SCALE_TYPE = None
 ZERO_DOSE = None
+MERGE = False
+FRIEDELS_LAW = True
 
 if sys.argv.count("-h"):
     print usage
@@ -105,6 +105,12 @@ if sys.argv.count("-S0"):
 if sys.argv.count("-z"):
     sys.argv.remove("-z")
     ZERO_DOSE = "XTAL1"
+if sys.argv.count("-m"):
+    sys.argv.remove("-m")
+    MERGE = True
+if sys.argv.count("-a"):
+    sys.argv.remove("-a")
+    FRIEDELS_LAW = False
 if sys.argv.count("-r"):
     p = sys.argv.index("-r")
     sys.argv.remove("-r")
@@ -133,6 +139,7 @@ refdic = {}
 refdic['cell'] = hklref.header["UNIT_CELL_CONSTANTS"]
 refdic['spg'] = hklref.header["SPACE_GROUP_NUMBER"]
 refdic['hklout'] = "XSCALE.HKL"
+refdic['merge'] = MERGE
 
 try:
     # work for XDS_ASCII from XDS
@@ -166,7 +173,7 @@ if len(wavelengths) > 1:
             break
 
 if not muliwavelength:
-    f.write(output_str % refdic)
+    f.write((output_str % refdic).upper())
 
 mad_fnames = []
 print "MultiWavelength:", muliwavelength
@@ -177,7 +184,7 @@ for hklf in hklf_files:
         refdic['hklout'] = (fname)
         print fname, mad_fnames
         if fname not in mad_fnames:
-            f.write(output_str % refdic)
+            f.write((output_str % refdic).upper())
             mad_fnames.append(fname)
     f.write("   INPUT_FILE= %s\n" % hklf.fileName)
     if ZERO_DOSE:
@@ -188,7 +195,11 @@ for hklf in hklf_files:
     elif "INCLUDE_RESOLUTION_RANGE" in hklf.header:
         f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % \
                 hklf.header["INCLUDE_RESOLUTION_RANGE"])
-    f.write("      FRIEDEL'S_LAW=        %s\n" % hklf.header["FRIEDEL'S_LAW"])
+    if not FRIEDELS_LAW:
+        f.write("      FRIEDEL'S_LAW=        FALSE\n")
+    else:
+        f.write("      FRIEDEL'S_LAW=        %s\n" % \
+                                 hklf.header["FRIEDEL'S_LAW"])
     if SCALE_TYPE == 0:
         f.write("      CORRECTIONS= NONE\n")      
     else:
