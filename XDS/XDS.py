@@ -1723,7 +1723,7 @@ if __name__ == "__main__":
         sys.exit(2)
     else:
         # TODO cycle over input_file with try/except to avoid XIOError
-        _coll = XIO.Collect(inputf[0])
+        _coll = XIO.Collect(inputf[0], filetype = TYPE)
     if not PROJECT:
         newDir = DIRNAME_PREFIX + _coll.prefix
     else:
