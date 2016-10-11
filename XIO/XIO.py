@@ -146,7 +146,7 @@ class Image:
     >>> assert im.header['Width'] == 2304
     """
 
-    def __init__(self, imageFileName, doInterpret=True):
+    def __init__(self, imageFileName, doInterpret=True, filetype=None):
 
         self.fileName = imageFileName
         #
@@ -183,7 +183,10 @@ class Image:
         self.beamline = None
         #
         # Methodes that fill the attributes [type, header, compression]
-        self.guessType()
+        if not filetype:
+            self.guessType()
+        else:
+            self.type = filetype
         self.guessIntCompression()
         if doInterpret:
             self.headerInterpreter()
