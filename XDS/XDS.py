@@ -166,6 +166,9 @@ USAGE = """
     --brute,
          Try hard to index. To be used in resistant cases.
 
+    --invert,
+         Invert the rotation axis. For example, used at the Australian Synchrotron (-1, 0, 0).
+
     --optimize, --O[1-3] 
          After a first integration, gather differente parameters to optimize
          profiles and post-refined diffraction prediction and re-run from
@@ -266,7 +269,7 @@ def _mkdir(newdir):
             os.mkdir(newdir)
 
 def make_xds_image_links(imagename_list, dir_name="img_links",
-                       prefix="image", start_num=1):
+                       prefix="image", start_num=1, rotationAxis=False):
     """All image names in the imagename_list are supposed to be part
     of one continous sequence of collected images.
     Todo:
@@ -284,7 +287,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
     collect_im = {}
     osc_ranges = []
     for _image in imagename_list:
-        image = XIO.Image(_image)
+        image = XIO.Image(_image, rotationAxis=rotationAxis)
         if VERBOSE:
             print _image
         # How to safely modulate PhiStart outside the [-180,180] range?
@@ -940,7 +943,7 @@ class XDS:
         # Selecting spot range(s),
         # self.inpParam["SPOT_RANGE"] is set to Collect.imageRanges by the
         # xds export function XIO
-        cfo = XIO.Collect("foo_001.bar")
+        cfo = XIO.Collect("foo_001.bar", rotationAxis=INVERT)
         cfo.imageNumbers = cfo._ranges_to_sequence(self.inpParam["SPOT_RANGE"])
         #
         min_fn, max_fn = self.inpParam["DATA_RANGE"]
@@ -1533,6 +1536,7 @@ if __name__ == "__main__":
                 "beam-x=",
                 "beam-y=",
                 "ice",
+                "invert",
                 "spg=",
                 "strategy",
                 "high-resolution=",
@@ -1602,6 +1606,7 @@ if __name__ == "__main__":
     BRUTE = False
     STEP = 1
     OPTIMIZE = 0
+    INVERT = False
     XDS_PATH = ""
     RUN_XDSCONV = True
     RUN_AIMLESS = True
@@ -1704,6 +1709,8 @@ if __name__ == "__main__":
             BRUTE = True
         if o in ("--weak"):
             WEAK = True
+        if o in ("--invert"):
+            INVERT = True
         if o in ("-h", "--help"):
             print USAGE
             sys.exit()
@@ -1734,7 +1741,7 @@ if __name__ == "__main__":
         #collect.prefix = prefix
 
     try:
-        collect = XIO.Collect(inputf)
+        collect = XIO.Collect(inputf, rotationAxis=INVERT)
         collect.interpretImage()
         collect.image.info()
         collect.lookup_imageRanges(forceCheck=False)
