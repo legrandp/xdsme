@@ -30,7 +30,8 @@ from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
 from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
 
-from pointless import pointless, is_pointless_installed
+from pointless import pointless, is_pointless_installed, run_aimless, \
+                 run_xdsconv
 from xupy import XParam, xdsInp2Param, opWriteCl, \
                  saveLastVersion, LP_names, xdsinp_base, \
                  SPGlib, Lattice, resum_scaling, \
@@ -1250,6 +1251,9 @@ class XDS:
             print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
             print FMT_ANOMAL % vars(s)
+        if s.compl > 85.:
+            if RUN_AIMLESS: run_aimless(self.run_dir)
+            if RUN_XDSCONV: run_xdsconv(self.run_dir)
 
     def run_scaleLaueGroup(self):
         """Runs the CORRECT step with reindexation for all the selected Laue
@@ -1599,6 +1603,8 @@ if __name__ == "__main__":
     STEP = 1
     OPTIMIZE = 0
     XDS_PATH = ""
+    RUN_XDSCONV = True
+    RUN_AIMLESS = True
 
     for o, a in opts:
         if o == "-v":
