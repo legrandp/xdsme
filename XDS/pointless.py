@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "17-12-2013"
-__copyright__ = "Copyright (c) 2010-2014 Pierre Legrand"
+__date__ = "20-09-2016"
+__copyright__ = "Copyright (c) 2010-2016 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -99,6 +99,17 @@ def run_pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     os.chdir(dir_name)
     os.system(cmline)
     return tmp_fn
+
+def run_aimless(dir_name, hklinp="XDS_ASCII.HKL"):
+    cmline = "run_xds2aimless.sh XDS_ASCII.HKL" 
+    os.chdir(dir_name)
+    os.system(cmline)
+    os.chdir("..")
+
+def run_xdsconv(dir_name, hklinp="XDS_ASCII.HKL"):
+    cmline = "xdsconv.py XDS_ASCII.HKL ccp4" 
+    os.chdir(dir_name)
+    os.system(cmline)
 
 def pointless(dir_name, hklinp="XDS_ASCII.HKL"):
     fname = run_pointless(dir_name, hklinp)
