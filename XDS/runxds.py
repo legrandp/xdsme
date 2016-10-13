@@ -4,10 +4,10 @@
 """ Little utility that help automate tests and optimization with XDS.
 """
 
-__version__ = "0.4.5"
-__date__ = "12-06-2012"
+__version__ = "0.4.6"
+__date__ = "12-05-2016"
 __author__ = "Pierre Legrand (pierre.legrand _at_ synchrotron-soleil.fr)"
-__copyright__ = "Copyright (c) 2004-2012 Pierre Legrand"
+__copyright__ = "Copyright (c) 2004-2016 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
@@ -50,7 +50,14 @@ if __name__ == '__main__':
         xp.update(xdsInp2Param(inp_str=_xds_input))
         sys.argv.remove('-i')
         sys.argv.remove(_xds_input)
-    if "-norun" in sys.argv:
+    if "-f" in sys.argv:
+        optid = sys.argv.index("-f")
+        _reference_file = sys.argv[optid+1]
+        xp["JOB"] = "CORRECT",
+        xp["REFERENCE_DATA_SET"] = _reference_file
+        sys.argv.remove('-f')
+        sys.argv.remove(_reference_file)
+    if ("-norun" in sys.argv) or ("-0" in sys.argv):
         saveLastVersion(LP_names)
         sys.exit()
     else:
