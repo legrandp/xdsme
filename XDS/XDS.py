@@ -11,10 +11,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.2.2"
+__version__ = "0.5.3.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "25-11-2015"
-__copyright__ = "Copyright (c) 2006-2015 Pierre Legrand"
+__date__ = "13-10-2016"
+__copyright__ = "Copyright (c) 2006-2013 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -1563,6 +1563,7 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
+    DIRNAME_PREFIX = "xdsme_"
     NUMBER_OF_PROCESSORS = min(16, get_number_of_processors())
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
     WARNING = ""
@@ -1711,9 +1712,9 @@ if __name__ == "__main__":
         # TODO cycle over input_file with try/except to avoid XIOError
         _coll = XIO.Collect(inputf[0])
     if not PROJECT:
-        newDir = "xds_process_" + _coll.prefix
+        newDir = DIRNAME_PREFIX + _coll.prefix
     else:
-        newDir = "xds_process_" + PROJECT
+        newDir = DIRNAME_PREFIX + PROJECT
     #
     _linkimages = False
     if not _coll.isContinuous(inputf):
