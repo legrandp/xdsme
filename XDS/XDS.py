@@ -135,7 +135,8 @@ USAGE = """
          Force to go for calculating strategy (XPLAN) and then stops.
 
     -t,  --type
-         Force use of type of data
+         Force use of type of data - possible types are:
+             %s
 
     -x,  --beam-x
          Set a new value for ORGX: X-coordinates (in pixels) of the
@@ -181,7 +182,7 @@ USAGE = """
          Path for the directory containing the executables, if different from
          or not in the default path.
 
-""" % PROGNAME
+""" % (PROGNAME, [filetype for filetype in XIO.FILETYPES])
 
 FMT_HELLO = """
     Diffraction Setup Parameters:\n
