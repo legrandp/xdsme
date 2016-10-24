@@ -880,7 +880,7 @@ class Collect:
                 print  "WARNING: Oscillation_Range recorded in image header is null ! Use the -O option to give the true value."
                 return True
             phi_start = self.image.header['PhiStart']
-            phi_last = Image(last_image, self.filetype).header['PhiStart']
+            phi_last = Image(last_image, filetype=self.filetype).header['PhiStart']
             num_start = self.imageNumbers[0]
             num_last = self.imageNumbers[-1]
             diff = (phi_last - phi_start)/phi_range - (num_last - num_start)
