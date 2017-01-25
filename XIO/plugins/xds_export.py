@@ -4,10 +4,10 @@
     See http://xds.mpimf-heidelberg.mpg.de/html_doc/xds_prepare.html
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "27-11-2013"
-__copyright__ = "Copyright (c) 2007-2013 Pierre Legrand"
+__date__ = "25-01-2017"
+__copyright__ = "Copyright (c) 2007-2017 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
@@ -131,6 +131,7 @@ XDS_DETECTOR_DICT = {
 SPECIFIC_SUPPLEMENTARY_KEYWORDS = {
   "PILATUS 6M": """!SPECIFIC KEYWORDS FOR PILATUS 6M
   
+ GAIN= 1.0
  VALUE_RANGE_FOR_TRUSTED_DETECTOR_PIXELS= 5500 30000
   
  UNTRUSTED_RECTANGLE= 487  495     0 2528
