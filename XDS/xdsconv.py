@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.8"
+__version__ = "0.8.9"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "20-02-2016"
-__copyright__ = "Copyright (c) 2006-2015 Pierre Legrand"
+__date__ = "25-01-2017"
+__copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 # Environemantal variable XDS_PATH, if set, defines the place where the xds
@@ -1191,6 +1191,7 @@ class DoMode:
             P.symop = amore_symops[int(P.spgn_in)][1]
             opWriteCl("%s/data.d" % P.dir_mode, afmt % vars(P))
 
+
 if __name__ == '__main__':
 
     import xupy
@@ -1210,6 +1211,11 @@ if __name__ == '__main__':
     __force_no_free = False
     __force_output = False
     __label = ""
+    __quiet = False
+
+    def _print(txt):
+        if not __quiet:
+            print txt
 
     argp_fmt = "<<< %-24s %s"
     progname = sys.argv[0].split("/")[-1]
@@ -1219,14 +1225,14 @@ if __name__ == '__main__':
         sys.exit(1)
 
     args = sys.argv[1:]
-    print "\n<== OPTIONS:"
+    #_print("\n XDSCONV EXPORT OPTIONS:")
     for arg in args:
         nonnum = [i for i in arg if i not in "1234567890"]
         if nonnum == []:
             try:
                 n = int(arg)
                 __num_sites = n
-                print argp_fmt % ("nSites:", n)
+                _print(argp_fmt % ("nSites:", n))
             except:
                 pass
         elif arg.count("-l="):
@@ -1246,15 +1252,17 @@ if __name__ == '__main__':
             __force_norm = True
         elif arg == "-u":
             __force_unmerge = True
+        elif arg == "-q":
+            __quiet = True
         elif arg == "-m":
             __force_merge = True
         # Geting output format
         elif arg.upper() in options:
             __format_out.append(arg.upper())
-            print argp_fmt % ("Export mode:", arg.upper())
+            _print(argp_fmt % ("Export mode:", arg.upper()))
         # Geting Atom type
         elif arg.title() in atom_names:
-            print argp_fmt % ("atomType:", arg)
+            _print(argp_fmt % ("atomType:", arg))
             __atom_name = arg.title()
         # Identifying file type
         elif os.path.isfile(arg):
@@ -1280,18 +1288,18 @@ if __name__ == '__main__':
                     __free_refl_input = arg
                     __free_refl_type = "CCP4"
                 else:
-                    print "\nWarning: Can't define the file type",
-                    print "for argument '%s'\n" % arg
+                    _print("\nWarning: Can't define the file type" +
+                           "for argument '%s'\n" % arg)
             except:
                 pass
 
     # If input file for free reflection set is CCP4 it needs to be converted
     # to shelx format for input in xdsconv.
     if __free_refl_input:
-        print argp_fmt % ("free_hkl_to_inherit:", __free_refl_input),
-        print "[%s format]." % ( __free_refl_type)
+        _print(argp_fmt % ("free_hkl_to_inherit:", __free_refl_input) +
+               "[%s format]." % ( __free_refl_type))
         if __free_refl_type == "CCP4":
-            print "   --> Converting CCP4 free reflections to SHELX format."
+            _print("   --> Converting CCP4 free reflections to SHELX format.")
             script = open("mtz2shelx_free.sh", "w")
             script.write(mtz2various_script)
             script.close()
@@ -1300,7 +1308,7 @@ if __name__ == '__main__':
             __free_refl_type = "SHELX"
     #
     if __force_anom and __force_norm:
-        print "Warning: Umbiguous options specification (-a and -n), keeping -a."
+        _print("Warning: Umbiguous options specification (-a and -n), keeping -a.")
         __force_norm == False
 
     # test input file type of inherited reflections
@@ -1373,9 +1381,9 @@ if __name__ == '__main__':
     else:
         XC.wavelength = H["wavelength"]
     if H["friedels_law"] == "TRUE" and XC.friedel_out == "FALSE":
-        print "\n>>> WARNING!  The input file does not contain Friedel's mate."
+        _print("\n>>> WARNING!  The input file does not contain Friedel's mate.")
     if H["merge"] == "TRUE" and XC.merge_out == "FALSE":
-        print "\n>>> WARNING!  The input file does not unmerged reflections."
+        _print("\n>>> WARNING!  The input file does not unmerged reflections.")
 
     if not XC.friedel_out:
         #XC.friedel_out = H["friedels_law"]
@@ -1383,16 +1391,16 @@ if __name__ == '__main__':
     if not XC.merge_out: XC.merge_out = H["merge"]
 
     # Depending on the chosen mode, predefine suffix_name, merge_out, friedel_out...
-    print fmt_inp % vars(XC)
+    _print(fmt_inp % vars(XC))
 
     #-----------------------------
     modes = XC.modes[:]
     for mode in modes:
         XC.mode = mode
         E = DoMode(XC)
-        print fmt_outp % vars(XC)
+        _print(fmt_outp % vars(XC))
         if XC.friedel_in == "FALSE":
-            print fmt_outp_ha % vars(XC)
+            _print(fmt_outp_ha % vars(XC))
         E.run()
         E.post_run(XC)
 
