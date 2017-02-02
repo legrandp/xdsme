@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.8.9"
+__version__ = "0.8.10"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "25-01-2017"
+__date__ = "02-02-2017"
 __copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -24,7 +24,7 @@ atom_names = ['Ag', 'Al', 'Ar', 'As', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Br',
 'Yb', 'Zn', 'Zr']
 
 options = ["CCP4","CCP4F","CNS","SHELX","SOLVE","EPMR","CRANK",
-           "AMORE","SHARP","PHASER","REPLACE"]
+           "AMORE","SHARP","PHASER","REPLACE", "CCP4IF"]
 
 usage   = """
     USAGE : %s FILE OPTIONS [free_hkl_to_inherit] [nSites] [atomType] EXPORT_MODE \n
@@ -289,6 +289,17 @@ CTYPOUT H H H  F   Q    G     L      G     L %(free_code)s
 END
 """
 
+f2mtz_ccp4IF_script = """
+TITLE data from XDS
+FILE %(file_name_out)s
+SYMMETRY    %(spgn_in)s
+CELL    %(cell_str)s
+LABOUT  H K L IMEAN%(lbl)s SIGIMEAN%(lbl)s I(+)%(lbl)s SIGI(+)%(lbl)s I(-)%(lbl)s SIGI(-)%(lbl)s FP%(lbl)s SIGFP%(lbl)s F(+)%(lbl)s SIGF(+)%(lbl)s F(-)%(lbl)s SIGF(-)%(lbl)s %(free_lbl)s
+CTYPOUT H H H  J       Q      K      M      K    M      F   Q    G     L      G     L    %(free_code)s
+NAME PROJECT %(ID)s CRYSTAL %(ID)s DATASET d%(ID)s
+END
+"""
+
 scala_script = """#!/bin/bash
 
 function run_scala() {
@@ -331,11 +342,11 @@ run_aimless
 """
 
 cad_crank_script = """
- cad HKLIN1 temp.mtz HKLOUT output_file_name.mtz<<EOF
- LABIN FILE 1 ALL
- XNAME FILE 1 ALL=XDS
- DWAVELENGTH FILE 1 XDS %(wavelength)s
- END
+cad HKLIN1 temp.mtz HKLOUT output_file_name.mtz<<EOF
+LABIN FILE 1 ALL
+XNAME FILE 1 ALL=XDS
+DWAVELENGTH FILE 1 XDS %(wavelength)s
+END
 """
 
 f2mtz_sharp_script = """
@@ -1000,6 +1011,12 @@ class DoMode:
             P.merge_out == "TRUE"
             P.friedel_out = "TRUE"
 
+        elif self.mode == "CCP4IF":
+            self.name_ext = ".mtz"
+            P.mode_out = "CCP4_I+F"
+            P.merge_out == "TRUE"
+            P.friedel_out = "FALSE"
+
         elif self.mode == "CRANK":
             self.name_ext = ".mtz"
             P.mode_out = "CCP4_I"
@@ -1065,7 +1082,8 @@ class DoMode:
         #P.file_name_out = P.ident + self.name_ext
         P.file_name_out = P.ID + self.name_ext
         if self.mode == "CCP4" or self.mode == "CCP4F" or \
-           self.mode == "CRANK" or self.mode == "SHARP" or self.mode == "PHASER" :
+          self.mode == "CRANK" or self.mode == "SHARP" or \
+          self.mode == "PHASER" or self.mode == "CCP4IF"  :
             self.last_name = P.file_name_out
             P.file_name_out = "F2MTZ.HKL.TMP"
             P.last_name = self.last_name
@@ -1090,6 +1108,7 @@ class DoMode:
 
 
     def post_run(self, P):
+        
         if self.mode == "SHELX":
             # run xprepx
             P.cns_sg = cns_sg_lib[int(XC.spgn_in)]
@@ -1124,6 +1143,15 @@ class DoMode:
            os.system("cd %s;cad hklin1 TMP.MTZ hklin2 TMP2.MTZ hklout %s <cad.inp >cad.log"
                          % (P.dir_mode, self.last_name))
            os.system("rm -f F2MTZ.INP ccp4f/TMP*.MTZ ccp4f/F2MTZ.HKL.TMP*")
+
+        elif self.mode == "CCP4IF":
+            opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_ccp4IF_script % vars(P))
+            opWriteCl("%s/cad.inp" % P.dir_mode, cad_script % vars(P))
+            os.system("cd %s;f2mtz hklout TMP.MTZ<f2mtz.inp >f2mtz.log" % P.dir_mode)
+            os.system("cd %s;cad hklin1 TMP.MTZ hklout %s <cad.inp >cad.log"
+                          % (P.dir_mode, self.last_name))
+            os.system("rm -f F2MTZ.INP ccp4if/TMP.MTZ ccp4if/F2MTZ.HKL.TMP")
+
 
         elif self.mode == "CRANK":
             #opWriteCl("%s/f2mtz.inp" % P.dir_mode, f2mtz_script % vars(P))
