@@ -450,7 +450,7 @@ HKLIn %(last_name)s
 #COMPosition PROTein SEQ PROT.seq NUM 2
 COMPosition BY SOLVent
 COMPosition PERCentage $solvent_content
-CRYStal ${ID} DATAset sad LABIn F+=F(+)${label} SIG+=SIGF(+)${label} F-=F(-)${label} SIG-=SIGF(-)${label}
+CRYStal ${ID} DATAset sad LABIn F+=F(+)${label} SIGF+=SIGF(+)${label} F-=F(-)${label} SIGF-=SIGF(-)${label}
 WAVElength %(wavelength)f
 LLGComplete COMPLETE ON # CLASH 3.8
 ATOM CRYStal ${ID} PDB $hatom_pdb SCATtering ${scat}
