@@ -11,9 +11,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.4.0"
+__version__ = "0.5.5.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "25-01-2017"
+__date__ = "25-02-2017"
 __copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -911,6 +911,10 @@ class XDS:
         self.inpParam["BACKGROUND_RANGE"] = bkgr
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
+        if res.results["mean_background"] < 1.:
+            print "WARNING: INIT has found a very LOW mean background. " + \
+                  "Setting FIXED_SCALE_FACTOR for INTEGRATE."
+            self.inpParam["DATA_RANGE_FIXED_SCALE_FACTOR"] = i1, i2, 1.
         return res.results
 
     def run_colspot(self):
@@ -1571,7 +1575,7 @@ if __name__ == "__main__":
         sys.exit(2)
 
     DIRNAME_PREFIX = "xdsme_"
-    NUMBER_OF_PROCESSORS = min(16, get_number_of_processors())
+    NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
     WARNING = ""
     VERBOSE = False
