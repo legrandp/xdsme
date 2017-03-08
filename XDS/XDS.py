@@ -134,6 +134,10 @@ USAGE = """
     -S, --strategy
          Force to go for calculating strategy (XPLAN) and then stops.
 
+    -t,  --type
+         Force use of type of data - possible types are:
+             %s
+
     -x,  --beam-x
          Set a new value for ORGX: X-coordinates (in pixels) of the
          detector origin. It may be given in mm if the value is directly
@@ -178,7 +182,7 @@ USAGE = """
          Path for the directory containing the executables, if different from
          or not in the default path.
 
-""" % PROGNAME
+""" % (PROGNAME, [filetype for filetype in XIO.FILETYPES])
 
 FMT_HELLO = """
     Diffraction Setup Parameters:\n
@@ -266,7 +270,7 @@ def _mkdir(newdir):
             os.mkdir(newdir)
 
 def make_xds_image_links(imagename_list, dir_name="img_links",
-                       prefix="image", start_num=1):
+                       prefix="image", start_num=1, filetype=None):
     """All image names in the imagename_list are supposed to be part
     of one continous sequence of collected images.
     Todo:
@@ -284,7 +288,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
     collect_im = {}
     osc_ranges = []
     for _image in imagename_list:
-        image = XIO.Image(_image)
+        image = XIO.Image(_image, filetype=filetype)
         if VERBOSE:
             print _image
         # How to safely modulate PhiStart outside the [-180,180] range?
@@ -1534,7 +1538,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:E:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:E:f:F:i:IL:O:M:n:p:s:Sr:R:t:x:y:vw:WSF"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1562,6 +1566,7 @@ if __name__ == "__main__":
                 "optimize",
                 "O1","O2","O3","O",
                 "wavelength=",
+                "type="
                 "slow", "weak", "brute"]
 
     if len(sys.argv) == 1:
@@ -1609,6 +1614,7 @@ if __name__ == "__main__":
     BRUTE = False
     STEP = 1
     OPTIMIZE = 0
+    TYPE = None
     XDS_PATH = ""
     RUN_XDSCONV = True
     RUN_AIMLESS = True
@@ -1705,6 +1711,8 @@ if __name__ == "__main__":
                 pass
             if OPTIMIZE > 3:
                 OPTIMIZE = 3
+        if o in ("--type", "-t"):
+            TYPE = a
         if o in ("--slow"):
             SLOW = True
         if o in ("--brute"):
@@ -1723,7 +1731,7 @@ if __name__ == "__main__":
         sys.exit(2)
     else:
         # TODO cycle over input_file with try/except to avoid XIOError
-        _coll = XIO.Collect(inputf[0])
+        _coll = XIO.Collect(inputf[0], filetype = TYPE)
     if not PROJECT:
         newDir = DIRNAME_PREFIX + _coll.prefix
     else:
@@ -1736,7 +1744,7 @@ if __name__ == "__main__":
         link_dir_name = "img_links"
         inputf = make_xds_image_links(inputf,
                                     os.path.join(newDir,link_dir_name),
-                                    "image")
+                                    "image", filetype=TYPE)
         #collect.setDirectory(link_dir_name)
         #collect.prefix = prefix
 
