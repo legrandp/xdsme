@@ -11,9 +11,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.5.0"
+__version__ = "0.5.5.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "25-02-2017"
+__date__ = "23-06-2017"
 __copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -471,7 +471,7 @@ class XDSLogParser:
         prp += "  Mean Gain:        %(mean_gain).1f\n"
         prp += "  Min table gain:   %(min_gain).2f\n"
         prp += "  Max table gain:   %(max_gain).2f\n"
-        prp += "  Mean Background:  %(mean_background).1f\n"
+        prp += "  Mean Background:  %(mean_background).2f\n"
         if self.verbose:
             print prp % rdi
         return rdi, prp
@@ -482,14 +482,13 @@ class XDSLogParser:
         #
         rdi["strong_pixels"] = gpa("EXTRACTED FROM IMAGES")
         rdi["weak_spots_ignored"] = gpa("WEAK SPOTS OMITTED")
-        rdi["out_of_center_spots"] = gpa("SPOT MAXIMUM OUT OF CENTER")
+        rdi["out_of_center_spots"] = gpa("CLOSE TO UNTRUSTED REGION")
         rdi["spot_number"] = self.get_spot_number()
         rdi["time"] = gpa("elapsed wall-clock time", 11)
 
-        prp =  "  Number of spots found:    %(spot_number)10d\n"
-        prp += "  Out of center rejected:   %(out_of_center_spots)10d\n"
-        prp += "  Weak spots rejected:      %(weak_spots_ignored)10d\n"
-        prp += "  Number of spots accepted: %(spot_number)10d\n"
+        prp = "  Close to untrusted region: %(out_of_center_spots)10d\n"
+        prp += "  Weak spots rejected:       %(weak_spots_ignored)10d\n"
+        prp += "  Number of spots accepted:  %(spot_number)10d\n"
         if self.verbose:
             print prp % rdi
         return rdi, prp
@@ -912,8 +911,8 @@ class XDS:
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
         if res.results["mean_background"] < 1.:
-            print "WARNING: INIT has found a very LOW mean background. " + \
-                  "Setting FIXED_SCALE_FACTOR for INTEGRATE."
+            print "  WARNING: INIT has found a very LOW mean background.\n" + \
+                  "  -> Setting FIXED_SCALE_FACTOR for INTEGRATE step."
             self.inpParam["DATA_RANGE_FIXED_SCALE_FACTOR"] = i1, i2, 1.
         return res.results
 
