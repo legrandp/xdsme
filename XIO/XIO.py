@@ -57,6 +57,20 @@ REC_FULLIMAGENAME1H =  re.compile(RE_FULLIMAGENAME1H)
 REC_FULLIMAGENAME2 =   re.compile(RE_FULLIMAGENAME2)
 REC_FULLIMAGENAME3 =   re.compile(RE_FULLIMAGENAME3)
 
+# supported file types
+MAR555 = "mar555"
+MAR = "mar"
+HDF5DEC = "hdf5dec"
+ADSC = "adsc"
+MSCCCD = "mscccd"
+MARCCD = "marccd"
+CBF = "cbf"
+MINICBF = "minicbf"
+RAXIS = "raxis"
+OXFORD = "oxford"
+UNKNOWN = "unknown"
+FILETYPES = {MAR555, MAR, HDF5DEC, ADSC, MSCCCD, MARCCD, CBF, MINICBF, RAXIS, OXFORD, UNKNOWN}
+
 def list_of_string(arg):
     "Return True if all the component of the list are of string type."
     return reduce(lambda a, b: a and b, map(lambda s: type(s) == str, arg))
@@ -146,7 +160,7 @@ class Image:
     >>> assert im.header['Width'] == 2304
     """
 
-    def __init__(self, imageFileName, doInterpret=True):
+    def __init__(self, imageFileName, doInterpret=True, filetype=None):
 
         self.fileName = imageFileName
         #
@@ -183,7 +197,14 @@ class Image:
         self.beamline = None
         #
         # Methodes that fill the attributes [type, header, compression]
-        self.guessType()
+        if not filetype:
+            self.guessType()
+        else:
+            if filetype in FILETYPES:
+                self.type = filetype
+            else:
+                self.type = UNKNOWN
+                print "not a known file type, resetting to", UNKNOWN
         self.guessIntCompression()
         if doInterpret:
             self.headerInterpreter()
@@ -244,62 +265,62 @@ class Image:
         if (martest1 and
             self.rawHead.count("mar research     ") and
             self.rawHead.count("mar555")):
-            self.type = "mar555"
+            self.type = MAR555
             return self.type
 
         elif (martest1 and self.rawHead.count("mar research     ")):
-            self.type = "mar"
+            self.type = MAR
             return self.type
 
         elif "HDF" in self.rawHead[:6] and "Dectris" in self.rawHead:
-            self.type = "hdf5dec"
+            self.type = HDF5DEC
             return self.type
 
         # Test to identify ADSC header
         elif  self.rawHead[:15] == "{\nHEADER_BYTES=" and \
                 self.rawHead.count(";\nPIXEL_SIZE="):
-            self.type = "adsc"
+            self.type = ADSC
             return self.type
 
         # Test to identify MSC ccd header
         elif  self.rawHead[:15] == "{\nHEADER_BYTES=" and \
                 self.rawHead.count(";\nCCD_DETECTOR_DESCRIPTION="):
-            self.type = "mscccd"
+            self.type = MSCCCD
             return self.type
 
         # Test to identify MarCCD header
         elif self.rawHead[0:3] == "II*" and \
                 struct.unpack('<I', self.rawHead[1024:1028])[0] == 2L and \
                 self.rawHead[1028:1031] == "MMX" :
-            self.type = "marccd"
+            self.type = MARCCD
             return self.type
 
         # Test to identify imageCIF or CBF header
         elif self.rawHead.count("loop_") >= 3 and \
              self.rawHead.count("data_image_"):
-            self.type = "cbf"
+            self.type = CBF
             return self.type
 
         # Test to identify miniCIF (PILATUS)
         elif self.rawHead[0:7] == "###CBF:" and \
                 self.rawHead.count("PILATUS"):
-            self.type = "minicbf"
+            self.type = MINICBF
             return self.type
 
         # Test to identify RAXIS header
         elif self.rawHead[0:5] == "RAXIS":
-            self.type = "raxis"
+            self.type = RAXIS
             return self.type
 
         # Test to identify Oxford Diffraction header
         elif "OD " == self.rawHead[:3]:
-            self.type = "oxford"
+            self.type = OXFORD
             return self.type
 
         # Failled to identify any image type :-(
         else:
             print self.rawHead[:20]
-            self.type = "unknown"
+            self.type = UNKNOWN
             return self.type
 
     def guessDetModel(self):
@@ -307,7 +328,7 @@ class Image:
             return
         _size = self.header["Width"]*self.header["PixelX"]
         #print "SIZE= %.2f" % _size
-        if self.type == "marccd":
+        if self.type == MARCCD:
             if 167. > _size > 160.:
                 self.detModel = "MarCCD 165"
             elif 228. > _size > 220.:
@@ -316,7 +337,7 @@ class Image:
                 self.detModel = "MarCCD 300"
             elif 328. > _size > 319.:
                 self.detModel = "MarCCD 325"
-        elif self.type == "adsc":
+        elif self.type == ADSC:
             if 190. > _size > 187.:
                 self.detModel = "ADSC Q4"
             elif 212. > _size > 207.:
@@ -354,7 +375,7 @@ class Image:
         if not  interpreterClass:
             interpreterClass = importName("plugins.%s_interpreter" % \
                                        self.type, "Interpreter")
-        if self.type == "hdf5dec":
+        if self.type == HDF5DEC:
             sys.path.insert(0, HDF5_LIB_PATH)
             try:
                 import dectris.albula as dec
@@ -373,7 +394,7 @@ class Image:
         # Special = interpreter.SpecialRules
         #
         self.interpreter = interpreterClass()
-        if self.type == "hdf5dec":
+        if self.type == HDF5DEC:
             self.RawHeadDict = self.interpreter.getRawHeadDict(neXus_root,
                                                         dec.DNeXusNode.GROUP)
         else:
@@ -449,13 +470,13 @@ class Image:
                                          self.header['Height'])
         print ">> Distance: %.1f mm, Lambda: %.3f A" % \
                            (self.header['Distance'],self.header['Wavelength'])
-        if self.type == "hdf5dec": return
+        if self.type == HDF5DEC: return
         try:
             data = self.getData()
-            if self.type == 'marccd':
+            if self.type == MARCCD:
                 data = filter(None, data)
                 print data[:10]
-            if self.type == 'raxis':
+            if self.type == RAXIS:
                 hval = map(lambda val: (0x7fff&val)*8,
                               filter(lambda x: x>0x7fff, data))
                 print hval
@@ -620,13 +641,14 @@ class Collect:
     >>> assert dc_match.groups() == ('/data/trp/', '001', None)
     """
 
-    def __init__(self, init):
+    def __init__(self, init, filetype = None):
 
         _init_list_of_images = None
         self.imageNumbers = [] # set by lookup_imageNumbers()
         self.imageRanges = []  # set by lookup_imageRanges()
         self.image = None
         self.imageType = None
+        self.filetype = filetype
 
         if type(init) == list and list_of_string(init):
             _init_list_of_images = init
@@ -712,7 +734,7 @@ class Collect:
         if not self.imageNumbers:
             self.lookup_imageNumbers()
         #print self.initialImageName
-        self.image = Image(self.initialImageName)
+        self.image = Image(self.initialImageName, filetype=self.filetype)
         self.imageType = self.image.type
 
     def setTemplates(self):
@@ -834,7 +856,7 @@ class Collect:
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
         if not self.image:
-            self.image = Image(self.initialImageName)
+            self.image = Image(self.initialImageName, filetype=self.filetype)
             if self.image.type == 'hdf5dec':
                 return True
             if "ImageNumber" in self.image.header:
@@ -858,7 +880,7 @@ class Collect:
                 print  "WARNING: Oscillation_Range recorded in image header is null ! Use the -O option to give the true value."
                 return True
             phi_start = self.image.header['PhiStart']
-            phi_last = Image(last_image).header['PhiStart']
+            phi_last = Image(last_image, filetype=self.filetype).header['PhiStart']
             num_start = self.imageNumbers[0]
             num_last = self.imageNumbers[-1]
             diff = (phi_last - phi_start)/phi_range - (num_last - num_start)
