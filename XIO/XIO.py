@@ -146,7 +146,7 @@ class Image:
     >>> assert im.header['Width'] == 2304
     """
 
-    def __init__(self, imageFileName, doInterpret=True):
+    def __init__(self, imageFileName, doInterpret=True, rotationAxis=False):
 
         self.fileName = imageFileName
         #
@@ -181,6 +181,7 @@ class Image:
         self.header = {}
         self.detModel = None
         self.beamline = None
+        self.rotationAxis = rotationAxis
         #
         # Methodes that fill the attributes [type, header, compression]
         self.guessType()
@@ -402,7 +403,7 @@ class Image:
         self.header["ImageType"] = self.type
         return self.header
 
-    def export(self, exportType='xds'):
+    def export(self, exportType='xds', rotationAxis=False):
         """Try to interpret the header, and return a dictionary with the header
           information
           _FIXME_ This need to go to the Collect class
@@ -418,6 +419,9 @@ class Image:
             args, func = exporter.HTD[k]
 
             exportDict[k] = func(*map(self.header.get, args))
+        if rotationAxis:
+            rot_axis = [-float(value) for value in exportDict['ROTATION_AXIS'].split()]
+            exportDict['ROTATION_AXIS'] = exporter.V3FMT % tuple(rot_axis)
         return exportDict
 
     def info(self, verbose=0):
@@ -620,13 +624,14 @@ class Collect:
     >>> assert dc_match.groups() == ('/data/trp/', '001', None)
     """
 
-    def __init__(self, init):
+    def __init__(self, init, rotationAxis=False):
 
         _init_list_of_images = None
         self.imageNumbers = [] # set by lookup_imageNumbers()
         self.imageRanges = []  # set by lookup_imageRanges()
         self.image = None
         self.imageType = None
+        self.rotationAxis = rotationAxis
 
         if type(init) == list and list_of_string(init):
             _init_list_of_images = init
@@ -712,7 +717,7 @@ class Collect:
         if not self.imageNumbers:
             self.lookup_imageNumbers()
         #print self.initialImageName
-        self.image = Image(self.initialImageName)
+        self.image = Image(self.initialImageName, rotationAxis=self.rotationAxis)
         self.imageType = self.image.type
 
     def setTemplates(self):
@@ -834,7 +839,7 @@ class Collect:
         """Return true if the collect is supposed to be a serie of images
            with consecutive phi angles."""
         if not self.image:
-            self.image = Image(self.initialImageName)
+            self.image = Image(self.initialImageName, rotationAxis=self.rotationAxis)
             if self.image.type == 'hdf5dec':
                 return True
             if "ImageNumber" in self.image.header:
@@ -906,7 +911,7 @@ class Collect:
 
         self.lookup_imageRanges()
         try:
-            exportDict = self.image.export(exportType)
+            exportDict = self.image.export(exportType, rotationAxis=self.rotationAxis)
         #except ValueError:
         except NameError:
             exportDict = {}
@@ -931,7 +936,7 @@ class Collect:
             exporter = __import__(exportType.lower()+'_export')
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
-        exportDict = self.export(exportType)
+        exportDict = self.export(exportType,rotationAxis=self.rotationAxis)
         #import pprint
         #pprint.pprint(exportDict)
         return exporter.TEMPLATE % exportDict
