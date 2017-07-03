@@ -1715,7 +1715,7 @@ if __name__ == "__main__":
             BRUTE = True
         if o in ("--weak"):
             WEAK = True
-        if o in ("--invert"):
+        if o == "--invert":
             INVERT = True
         if o in ("-h", "--help"):
             print USAGE
