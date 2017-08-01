@@ -50,7 +50,7 @@ If you wish to cite this work, you can use the following reference:
 Legrand, P. XDSME: XDS Made Easier (2017) GitHub repository, https://github.com/legrandp/xdsme 
 DOI 10.5281/zenodo.837885
 
-## Acknowledgment
+## Acknowledgements
 
 Many thanks to the following people how have contributed with pieces of code:
  - Miguel Ortiz Lombardía (CNRS, Marseille, France),
