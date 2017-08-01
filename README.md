@@ -43,6 +43,21 @@ For most scripts, there is also an in-line help aviable with the argument -h (xd
 XDSME is available under the New BSD License [Read the copyright statement and license] (/legrandp/xdsme/LICENSE)
           http://www.opensource.org/licenses/bsd-license.php
 
+## Citation
+
+If you wish to cite this work, you can use the following reference:
+
+Legrand, P. XDSME: XDS Made Easier (2017) GitHub repository, https://github.com/legrandp/xdsme 
+DOI 10.5281/zenodo.837885
+
+## Acknowledgment
+
+Many thanks to the following people how have contributed with pieces of code:
+ - Miguel Ortiz Lombardía (CNRS, Marseille, France),
+ - Jun Aishima (Australian Synchrotron, Melbourne, Australia), 
+ - Clemens Vonrhein (Global Phasing, Cambridge, UK),
+ - Ludovic Pecqueur (College de France, Paris, France),
+ - Michal Babiak (CEITEC, Brno, Czech Republic)
 
 ## Included code
 
