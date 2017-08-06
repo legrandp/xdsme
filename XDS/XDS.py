@@ -11,21 +11,46 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.5.2"
+__version__ = "0.6.1.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-06-2017"
+__date__ = "05-08-2017"
 __copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
 import re
+import logging
+from subprocess import Popen, PIPE
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-if sys.version_info <= (2, 4, 0):
-    from popen2 import Popen3
-else:
-    from subprocess import Popen, PIPE
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
+cslFormatter = logging.Formatter("%(message)s")
+prntLog = logging.getLogger()
+prntLog.setLevel(logging.DEBUG)
 
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(cslFormatter)
+prntLog.addHandler(consoleHandler)
+fileHandler = None
+
+def prnt(msg, lvl=INFO, timing=False):
+    "Fonction used to replace all print"
+    if timing and fileHandler:
+        fileHandler.setFormatter(logFormatter)
+    elif fileHandler:
+        fileHandler.setFormatter(cslFormatter)
+    if lvl == INFO:
+        prntLog.info(msg)
+    elif lvl == DEBUG: 
+        prntLog.debug(msg)
+    elif lvl == WARNING:
+        prntLog.warning(" WARNING: " + msg)
+    elif lvl == ERROR:
+        prntLog.error("!ERROR! " + msg)
+    elif lvl == CRITICAL:
+        prntLog.critical("!CRITICAL! " + msg)
+        sys.exit(0)
 from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
 from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
@@ -280,8 +305,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
         try:
             _mkdir(dir_name)
         except Exception, err:
-            print "Error\n", err
-            sys.exit(0)
+            prnt(err, CRITICAL)
     #
     dir_name = os.path.abspath(dir_name)
     collect_im = {}
@@ -289,18 +313,15 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
     for _image in imagename_list:
         image = XIO.Image(_image, rotationAxis=rotationAxis)
         if VERBOSE:
-            print _image
+            prnt(_image)
         # How to safely modulate PhiStart outside the [-180,180] range?
-        if VERBOSE:
-            print "\tPhiStart %8.2f" % image.header['PhiStart']
-        if VERBOSE:
-            print "\tPhiWidth %8.2f" % image.header['PhiWidth']
+            prnt("\tPhiStart %8.2f" % image.header['PhiStart'])
+            prnt("\tPhiWidth %8.2f" % image.header['PhiWidth'])
         collect_im[image.header['PhiStart']] = _image
         osc_ranges.append(image.header['PhiWidth'])
 
     if max(osc_ranges) != min(osc_ranges):
-        print "Error. Image list contains different oscillation range!"
-        sys.exit(0)
+        prnt("Image list contains different oscillation range!", CRITICAL)
     #
     osc_starts = collect_im.keys()
     osc_starts.sort()
@@ -309,7 +330,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
         link_name = os.path.join(dir_name, prefix+"_%04.0f.img" % _num)
         if os.path.lexists(link_name) and os.path.islink(link_name):
             if VERBOSE:
-                print "==> Removing existing link: %s" % link_name
+                prnt("==> Removing existing link: %s" % link_name)
             os.remove(link_name)
         os.symlink(os.path.abspath(collect_im[_osc]), link_name)
         link_list.append(link_name)
@@ -355,39 +376,38 @@ class XDSLogParser:
             _err_msg = self.lp[_err:]
             if _err_msg.count(" CANNOT READ IMAGE "):
                 _err_type = "Some images connot be read"
-                _err_level = "WARNING"
+                _err_level = WARNING
             # IDXREF ERROR Messages:
             elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
                 _err_type = "IDXREF. Percentage of indexed"
                 _err_type += " reflections bellow limit.\n"
-                _err_level = "WARNING"
+                _err_level = WARNING
             elif _err_msg.count("ERROR IN REFINE !!! RETURN"):
                 _err_type = "IDXREF. Can't refine cell paramters."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("USELESS DATA SET"):
                 _err_type = "INTEGRATE:  USELESS DATA SET."
                 _err_type += " Not enough images or bad diffraction ?"
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("SOLUTION IS INACCURATE"):
                 _err_type = "IDXREF. Solution is inaccurate.\n"
-                _err_level = "WARNING"
+                _err_level = WARNING
             elif _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
                 _err_type = "IDXREF. INSUFFICIENT NUMBER OF ACCEPTED SPOTS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("CANNOT INDEX REFLECTIONS"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("CANNOT CONTINUE WITH A TWO-DIMENSIONAL"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             else:
-                print "\n %s \n" % (self.lp[_err:-1])
-                sys.exit()
-        if _err_level in ("FATAL", "ERROR") and raiseErrors:
+                prnt("\n %s \n" % (self.lp[_err:-1]), CRITICAL)
+        if _err_level in (CRITICAL, ERROR) and raiseErrors:
             raise XDSExecError, (_err_level, _err_type)
 
         if self.verbose and _err != -1:
-            print "\n  !!! %s in %s" % (_err_level, _err_type)
+            prnt(_err_type, _err_level)
 
         if full_filename.count("INIT.LP"):
             self.parse_init()
@@ -476,7 +496,7 @@ class XDSLogParser:
         prp += "  Max table gain:   %(max_gain).2f\n"
         prp += "  Mean Background:  %(mean_background).2f\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_colspot(self):
@@ -493,7 +513,7 @@ class XDSLogParser:
         prp += "  Weak spots rejected:       %(weak_spots_ignored)10d\n"
         prp += "  Number of spots accepted:  %(spot_number)10d\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_idxref(self):
@@ -566,9 +586,9 @@ class XDSLogParser:
         prp2 += ppd[:-1] + ppe[:-1] + ppf[:-1] + "\n"
         #prp += " Index origin score: %.2f\n" % (rdi["index_score"])
         if self.verbose == 1:
-            print (prp + prp2) % rdi
+            prnt((prp + prp2) % rdi)
         elif self.verbose == 2:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_defpix(self):
@@ -577,7 +597,7 @@ class XDSLogParser:
         rdi["value_range"] = gpa("TRUSTED_DETECTOR_PIXELS= ")
         prp = "  Value range for trusted detector pixels: %(value_range)s"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_integrate(self):
@@ -591,7 +611,7 @@ class XDSLogParser:
         prp += "  Estimated divergence:                 %(divergence).3f\n"
         prp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_xplan(self):
@@ -608,9 +628,8 @@ class XDSLogParser:
         prp += "  Spacegroup:      %(spacegroup)d\n"
         prp += "  Unitcell:        %(unitcell)s\n"
         if self.verbose:
-            print prp % rdi
-            print
-            print self.lp[st0:st2]
+            prnt(prp % rdi)
+            prnt("\n"+self.lp[st0:st2])
         return rdi, prp
 
     def parse_correct(self):
@@ -656,7 +675,7 @@ class XDSLogParser:
         prp += "\n  Compared reflections:                 %(Compared)d\n"
         prp += "  Total number of measures:             %(Total)d\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def get_proper_resolition_range(self, res_table):
@@ -676,20 +695,17 @@ class XDSLogParser:
         return high_hit
 
     def run_exec_str(self, execstr):
-        if sys.version_info <= (2, 4, 0):
-            spot_file = os.popen(execstr)
-            outp = spot_file.read()
-            spot_file.close()
-        else:
-            outp = Popen([execstr], stdout=PIPE, shell=True).communicate()[0]
+        outp = Popen([execstr], stdout=PIPE, shell=True).communicate()[0]
         return outp
 
     def get_xds_version(self):
         "Get the version of XDS"
-        _execstr = "cd /tmp; %s | grep VERSION" % \
-                                         os.path.join(XDS_PATH,"xds_par")
-        wc_out = self.run_exec_str(_execstr)
-        return wc_out.strip()[24:-12].replace(")","")
+        _execstr = "cd /tmp; %s" % os.path.join(XDS_PATH,"xds_par")
+        wc_out = self.run_exec_str(_execstr).splitlines()[1:]
+        if "license expired" in wc_out[0]:
+            prnt(wc_out[0].replace(" licen", " XDS licen"), CRITICAL)
+        else:
+            return wc_out[0].strip()[24:-12].replace(")","")
 
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
@@ -741,14 +757,10 @@ class XDS:
 
     def _creat_process(self, _execstr):
         "Return a process with pipe redirected IO."
-        if sys.version_info <= (2, 4, 0):
-            self.wait_value = -1
-            return Popen3(_execstr)
-        else:
-            self.wait_value = None
-            return Popen(_execstr, stdin=PIPE, stdout=PIPE,
-                              stderr=PIPE, bufsize=1, close_fds=True,
-                              universal_newlines=True)
+        self.wait_value = None
+        return Popen(_execstr, stdin=PIPE, stdout=PIPE,
+                          stderr=PIPE, bufsize=1, close_fds=True,
+                          universal_newlines=True)
 
     def cancel(self):
         "Cancel the job."
@@ -784,7 +796,7 @@ class XDS:
                 try:
                     os.mkdir(self.run_dir)
                 except OSError, err:
-                    print "ERROR: %s" % err
+                    prnt(err, ERROR)
                     raise XIO.XIOError, \
                      ("\nSTOP! Can't create xds working directory: %s\n" % \
                                                               self.run_dir)
@@ -821,20 +833,20 @@ class XDS:
             # ilines parsing of stdout
             if self.step_name == "INTEGRATE":
                 if _init_parse:
-                    print "    Processing    Mean #Strong  ",
-                    print "Estimated   Overloaded"
-                    print "    Image Range   refl./image   ",
-                    print "Mosaicity   reflections\n"
+                    prnt("    Processing    Mean #Strong  " +
+                         "Estimated   Overloaded" +
+                         "    Image Range   refl./image   " +
+                         "Mosaicity   reflections\n")
                     table_int = []
                     _init_parse = False
                 if INTEGRATE_STEP_RE.search(lines):
-                    print lines[44:50]+" - "+lines[56:-1],
+                    _msg = lines[44:50]+" - "+lines[56:-1]
                     nimages = int(lines[56:-1]) - int(lines[44:50]) + 1
                 elif INTEGRATE_STRONG_RE.search(lines):
-                    print "%11.0f" % (float(lines.split()[0])/nimages),
+                    _msg += "%11.0f" % (float(lines.split()[0])/nimages)
                 elif INTEGRATE_MOSAICITY_RE.search(lines):
-                    print " %11.3f" % float(lines.split()[3]),
-                    print " %11d" %  overloaded_spots
+                    _msg += " %11.3f" % float(lines.split()[3])
+                    prnt(_msg + " %11d" % overloaded_spots)
                     overloaded_spots = 0
                 hit = SCALE_RE.search(lines)
                 if hit:
@@ -846,7 +858,7 @@ class XDS:
                 self.step_name = sm.group(2)
                 #if VERBOSE:
                 if verbose:
-                    print "\n --->  Running job: %20s\n" % self.step_name
+                    prnt("\n --->  Running job: %20s\n" % self.step_name)
             if lines:
                 self.outp.append(lines)
         self.step += 1
@@ -914,8 +926,8 @@ class XDS:
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
         if res.results["mean_background"] < 1.:
-            print "  WARNING: INIT has found a very LOW mean background.\n" + \
-                  "  -> Setting FIXED_SCALE_FACTOR for INTEGRATE step."
+            prnt("INIT has found a very LOW mean background.\n" + \
+              "  -> Setting FIXED_SCALE_FACTOR for INTEGRATE step.", WARNING)
             self.inpParam["DATA_RANGE_FIXED_SCALE_FACTOR"] = i1, i2, 1.
         return res.results
 
@@ -973,7 +985,7 @@ class XDS:
         _rs = "  Image range(s) for spot collection: "
         for sub_range in self.inpParam["SPOT_RANGE"]:
             _rs += ("  [%d - %d]," % tuple(sub_range))
-        print _rs[:-1] + "\n"
+        prnt(_rs[:-1] + "\n")
 
         res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         while res.results["spot_number"] < MIN_SPOT_NUMBER and _trial < 4:
@@ -982,9 +994,9 @@ class XDS:
             self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = max(min_pixels-1, 1)
             self.inpParam["STRONG_PIXEL"] -= 1.
             #self.inpParam["SPOT_MAXIMUM_CENTROID"] += 1
-            print "Insuficiant number of spot (minimum set to %d)." % \
-                                                         MIN_SPOT_NUMBER
-            print "Recollecting spots. Trial number %d" % _trial
+            prnt("Insuficiant number of spot (minimum set to %d)." % \
+                                                         MIN_SPOT_NUMBER)
+            prnt("Recollecting spots. Trial number %d" % _trial)
             self.run(rsave=True)
             res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
@@ -1734,7 +1746,11 @@ if __name__ == "__main__":
         newDir = DIRNAME_PREFIX + _coll.prefix
     else:
         newDir = DIRNAME_PREFIX + PROJECT
-    #
+
+    fileHandler = logging.FileHandler("{0}/{1}.log".format("./", newDir))
+    fileHandler.setFormatter(logFormatter)
+    prntLog.addHandler(fileHandler)
+
     _linkimages = False
     if not _coll.isContinuous(inputf):
         print "Discontinous naming scheme, creating ling."
