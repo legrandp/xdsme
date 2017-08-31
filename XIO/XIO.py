@@ -262,6 +262,13 @@ class Image:
             self.type = "adsc"
             return self.type
 
+        # Test to identify Pilatus-MSC header 
+        elif  self.rawHead[:15] == "{\nHEADER_BYTES=" and \
+                self.rawHead.count(";\nDETECTOR_TYPE=Pilatus"):
+            self.type = "mscpilatus"
+            self.intCompression = "CBF"
+            return self.type
+
         # Test to identify MSC ccd header
         elif  self.rawHead[:15] == "{\nHEADER_BYTES=" and \
                 self.rawHead.count(";\nCCD_DETECTOR_DESCRIPTION="):
@@ -279,12 +286,14 @@ class Image:
         elif self.rawHead.count("loop_") >= 3 and \
              self.rawHead.count("data_image_"):
             self.type = "cbf"
+            self.intCompression = "CBF"
             return self.type
 
         # Test to identify miniCIF (PILATUS)
         elif self.rawHead[0:7] == "###CBF:" and \
                 self.rawHead.count("PILATUS"):
             self.type = "minicbf"
+            self.intCompression = "CBF"
             return self.type
 
         # Test to identify RAXIS header
@@ -936,7 +945,7 @@ class Collect:
             exporter = __import__(exportType.lower()+'_export')
         except:
             raise XIOError, "Can't load %s exporter" % (exportType)
-        exportDict = self.export(exportType,rotationAxis=self.rotationAxis)
+        exportDict = self.export(exportType)
         #import pprint
         #pprint.pprint(exportDict)
         return exporter.TEMPLATE % exportDict
