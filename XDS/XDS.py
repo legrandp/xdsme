@@ -38,6 +38,8 @@ from xupy import XParam, xdsInp2Param, opWriteCl, \
                  get_BravaisToSpgs, get_number_of_processors, \
                  EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
 import XIO
+from CChalf_xdsme_dev import CalculateAimlessHighRes
+                             
 
 PROGNAME = os.path.split(sys.argv[0])[1]
 USAGE = """
@@ -643,6 +645,7 @@ class XDSLogParser:
         sp2 = self.lp.index(10*"-", sp1)
         _table = self.lp[sp1:sp2].splitlines()[3:-1]
         _table = [ map(float, l[:26].split()[1:3]) for l in _table ]
+
         rdi["HighResCutoff"] = self.get_proper_resolition_range(_table)
         prp = ""
         if rdi["Mosaicity"]:
@@ -1150,7 +1153,7 @@ class XDS:
         #    sys.exit(0)
         return res.results
 
-    def run_pre_correct(self):
+    def run_pre_correct(self, cutres=True):
         """Runs a first pass of CORRECT to evaluate high_res and
            point group.
         """
@@ -1194,12 +1197,12 @@ class XDS:
         # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
-        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+        print "  Upper theoretical limit of I/sigma: %8.3f" % \
                                              res.results["IoverSigmaAsympt"]
 
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
         newH = res.results["HighResCutoff"]
-        if newH > H and not RES_HIGH:
+        if cutres is True and newH > H and not RES_HIGH:
             H = newH
         if SPG:
             spg_choosen = SPG
@@ -1565,7 +1568,8 @@ if __name__ == "__main__":
                 "optimize",
                 "O1","O2","O3","O",
                 "wavelength=",
-                "slow", "weak", "brute"]
+                "slow", "weak", "brute",
+                "CChalf="]
 
     if len(sys.argv) == 1:
         print USAGE
@@ -1616,6 +1620,7 @@ if __name__ == "__main__":
     XDS_PATH = ""
     RUN_XDSCONV = True
     RUN_AIMLESS = True
+    CChalf = None
 
     for o, a in opts:
         if o == "-v":
@@ -1659,6 +1664,8 @@ if __name__ == "__main__":
             FIRST_FRAME = int(a)
         if o in ("-L", "--last-frame"):
             LAST_FRAME = int(a)
+        if o in ("--CChalf"):
+            CChalf = float(a)
         if o in ("-O", "--oscillation"):
             OSCILLATION = float(a)
         if o in ("-M", "--orientation-matrix"):
@@ -1927,8 +1934,18 @@ if __name__ == "__main__":
     if STEP <= 4:
         R4 = newrun.run_integrate(collect.imageRanges)
     if STEP <= 5:
-        (h, l), spgn  = newrun.run_pre_correct()
-        newrun.run_correct((h, l), spgn)
-
-
-
+        if CChalf is not None:
+            (l, h), spgn  = newrun.run_pre_correct(cutres=False)
+            RUN_XDSCONV=False
+            newrun.run_correct((l, h), spgn)
+            Newh=CalculateAimlessHighRes(filename="%s_aimless.log"%_coll.prefix, \
+                                         run_dir=newrun.run_dir, verbose=1, CChalf=CChalf)
+            RUN_XDSCONV=True
+            if Newh is not None:
+                newrun.run_correct((l, Newh), spgn)
+            else:
+                print "==>  Processing with full resolution range  <=="
+                newrun.run_correct((l, h), spgn)
+        else:
+            (l, h), spgn  = newrun.run_pre_correct(cutres=True)
+            newrun.run_correct((l, h), spgn)        
