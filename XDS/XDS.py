@@ -38,7 +38,7 @@ from xupy import XParam, xdsInp2Param, opWriteCl, \
                  get_BravaisToSpgs, get_number_of_processors, \
                  EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
 import XIO
-from CChalf_xdsme_dev import CalculateAimlessHighRes
+from CChalf_xdsme import CalculateAimlessHighRes
                              
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -1944,8 +1944,9 @@ if __name__ == "__main__":
             if Newh is not None:
                 newrun.run_correct((l, Newh), spgn)
             else:
-                print "==>  Processing with full resolution range  <=="
-                newrun.run_correct((l, h), spgn)
+                print "==>  Processed data using full resolution range  <=="
+                run_xdsconv(newrun.run_dir)
+#                newrun.run_correct((l, h), spgn)
         else:
             (l, h), spgn  = newrun.run_pre_correct(cutres=True)
             newrun.run_correct((l, h), spgn)        
