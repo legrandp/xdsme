@@ -122,26 +122,32 @@ def EstimateCC_NewHighRes(cutoff, d0, r, Ey):
 
 #Check if calculation is sensible or not
     if cutoff<=min(Ey):
-        print "ERROR, data don't reach this cutoff value...skipping CC1/2 analysis"
+        print "WARNING: data don't reach this cutoff value...skipping CC1/2 analysis"
         return
         
     cutoff=float(cutoff)
     d0=float(d0)
     r=float(r)
     HighRes=None
-    CC_calc=[]
-    
+    CC_calc, delta=[], []
+    #Searching for CC1/2 resolution by minimizing CC1/2-cutoff        
     x = linspace(0.,1.,1001).tolist()
     for val in x:
-        CC_calc.append(round(0.5*(1 -tanh((val - d0)/r)), 3))
+        CC_calc.append((0.5*(1 -tanh((val - d0)/r))))
 
-    tolerance= linspace(0.005,0.03,6).tolist()  
     for val in CC_calc:
-        if True in [cutoff<=val<cutoff+i for i in tolerance]:
-                HighRes=sqrt(1/x[CC_calc.index(val)])
-                CalculatedCutoff=val
-        else: continue
-            
+        delta.append(abs(val-cutoff))
+    HighRes=sqrt(1/x[delta.index(min(delta))])
+    CalculatedCutoff=CC_calc[delta.index(min(delta))]
+#==============================================================================
+#     tolerance= linspace(0.005,0.03,6).tolist()  
+#     for val in CC_calc:
+#         if True in [cutoff<=val<cutoff+i for i in tolerance]:
+#                 HighRes=sqrt(1/x[CC_calc.index(val)])
+#                 CalculatedCutoff=val
+#         else: continue
+#==============================================================================
+          
     print '''   %s
    ->  Suggested New High Resolution Limit: %.2f A for CC1/2= %.2f <-
    %s
