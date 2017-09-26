@@ -46,7 +46,11 @@ usage   = """
                  -l pk or -l=pk becomes:
                  FP_pk, SIGFP_pk, DANO_pk ... in CCP4 mode
                  FP_pk, SIGFP_pk, F(+)_pk, SIGF(+)_pk, ... in PHASER mode
-
+	
+	 -free, or -free=
+		Generate the free reflection set with the given percent.
+		-free 10 or -free=10 will generate a 10 percent free reflection set.
+		
         free_hkl_to_inherit: is a reflection file containing a previously
                  selected set of free reflection to be kept in the newly
                  exported reflection file for calculation of unbiased Rfree.
@@ -1194,6 +1198,7 @@ if __name__ == '__main__':
     __force_no_free = False
     __force_output = False
     __label = ""
+    __freefrac = 0.05
     __quiet = False
 
     def _print(txt):
@@ -1222,6 +1227,12 @@ if __name__ == '__main__':
             __label = "_"+arg[3:]
         elif arg.count("-l"):
             __label = "_"+str(args[args.index("-l") + 1])
+        elif arg.count("-free="):
+            __freefrac = float(arg[6:])
+	    __freefrac = __freefrac/100
+        elif arg.count("-free"):
+            __freefrac = float(args[args.index("-free") + 1])
+	    __freefrac = __freefrac/100
         elif arg == "-f":
             __force_free = True
         elif arg == "-o":
@@ -1304,7 +1315,7 @@ if __name__ == '__main__':
     XC = Dumy()
     XC.file_type = "XDS_ASCII"
     XC.friedel_out = ""
-    XC.free_out = "GENERATE_FRACTION_OF_TEST_REFLECTIONS=0.05\n"
+    XC.free_out = "GENERATE_FRACTION_OF_TEST_REFLECTIONS=%3.2f\n"%(__freefrac)
     XC.free_lbl = "FreeR_flag"
     XC.free_code = "X"
     XC.merge_out = ""
@@ -1321,7 +1332,7 @@ if __name__ == '__main__':
     if __force_merge: XC.merge_out = "TRUE"
     if __force_unmerge: XC.merge_out = "FALSE"
     if __force_free:
-        XC.free_out = "GENERATE_FRACTION_OF_TEST_REFLECTIONS=0.05\n"
+        XC.free_out = "GENERATE_FRACTION_OF_TEST_REFLECTIONS=%3.2f\n"%(__freefrac)
         XC.free_lbl = "FreeR_flag"
         XC.free_code = "X"
     if __force_no_free:
