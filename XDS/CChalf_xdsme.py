@@ -122,25 +122,31 @@ def EstimateCC_NewHighRes(cutoff, d0, r, Ey):
 
 #Check if calculation is sensible or not
     if cutoff<=min(Ey):
-        print "ERROR, data don't reach this cutoff value...skipping"
+        print "ERROR, data don't reach this cutoff value...skipping CC1/2 analysis"
         return
         
     cutoff=float(cutoff)
     d0=float(d0)
     r=float(r)
     HighRes=None
-
+    CC_calc=[]
+    
     x = linspace(0.,1.,1001).tolist()
     for val in x:
-        y=round(0.5*(1 -tanh((val - d0)/r)), 3)
-        if cutoff<=y<cutoff+0.03: #This condition is likely a source of problem
-            HighRes=sqrt(1/x[x.index(val)])
-            CalculatedCutoff=y
+        CC_calc.append(round(0.5*(1 -tanh((val - d0)/r)), 3))
+
+    tolerance= linspace(0.005,0.03,6).tolist()  
+    for val in CC_calc:
+        if True in [cutoff<=val<cutoff+i for i in tolerance]:
+                HighRes=sqrt(1/x[CC_calc.index(val)])
+                CalculatedCutoff=val
+        else: continue
+            
     print '''   %s
    ->  Suggested New High Resolution Limit: %.2f A for CC1/2= %.2f <-
    %s
    ''' %('='*66,HighRes, CalculatedCutoff,'='*66)
-    del y    
+#    del y    
     return HighRes
 
 def CalculateAimlessHighRes(filename, run_dir="./", verbose=1, CChalf=0.3):
