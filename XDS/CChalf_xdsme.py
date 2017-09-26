@@ -75,7 +75,6 @@ class AimlessLogParser:
 def func(x,d0,r):
     '''x and y are lists of same size
        x is 1/d**2, y is CC1/2
-       s is the resolution 1/d**2
        d0 is 1/d**2 at half decrease
        r is the steepness of the falloff
     '''
@@ -85,7 +84,6 @@ def func(x,d0,r):
 def tanh_fit(Ex, Ey):
     '''Ex and Ey are lists of same size
        x is 1/d**2, y is CC1/2
-       s is the resolution 1/d**2
        d0 is 1/d**2 at half decrease
        r is the steepness of the falloff
     '''
