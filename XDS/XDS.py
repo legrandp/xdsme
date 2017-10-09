@@ -82,6 +82,10 @@ USAGE = """
     -c,  --cell
          Set the expected cell.
          For example: -c "79 79 38 90 90 90"
+    
+    --CChalf
+        --CChalf fractional value (ie --CChalf 0.30) to cut resolution
+        using a given CChalf threshold
 
     -d,  --distance
          Set the detector to crystal distance.
