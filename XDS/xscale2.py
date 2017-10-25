@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "09-09-2016"
-__copyright__ = "Copyright (c) 2003-2016 Pierre Legrand"
+__date__ = "25-10-2017"
+__copyright__ = "Copyright (c) 2003-2017 Pierre Legrand"
 __license__ = "LGPL"
 
 usage   = """
@@ -14,14 +14,13 @@ usage   = """
       -h         Print this message
       -m         Output merged reflections (defaulf is unmerge)
       -a         Set Friedel's law to "FALSE"
+      -n         Set Friedel's law to "TRUE"
                  Default is to read this information in the reflection
                      file header
       -r   FLOAT Set the high resolution limit to FLOAT value.
       -S0        Scaling schem: 0 = No correction.
       -z         Apply Zerro Dose extrapolation.
                  
-      -n   INT   Number of resolution bins for printing statistics set
-                 INT value (default is 20)
 
 >>>   Cell parameters and space group number are taken either from the
       "XDS_ASCII.HKL", "GXPARM.XDS" or "XPARM.XDS" file.
@@ -95,6 +94,7 @@ SCALE_TYPE = None
 ZERO_DOSE = None
 MERGE = False
 FRIEDELS_LAW = True
+FRIEDELS_LAW_TRUE = False
 
 if sys.argv.count("-h"):
     print usage
@@ -111,6 +111,11 @@ if sys.argv.count("-m"):
 if sys.argv.count("-a"):
     sys.argv.remove("-a")
     FRIEDELS_LAW = False
+    FRIEDELS_LAW_TRUE = True
+if sys.argv.count("-n"):
+    sys.argv.remove("-n")
+    FRIEDELS_LAW = True
+    FRIEDELS_LAW_TRUE = True
 if sys.argv.count("-r"):
     p = sys.argv.index("-r")
     sys.argv.remove("-r")
@@ -195,11 +200,13 @@ for hklf in hklf_files:
     elif "INCLUDE_RESOLUTION_RANGE" in hklf.header:
         f.write("      INCLUDE_RESOLUTION_RANGE= %s\n" % \
                 hklf.header["INCLUDE_RESOLUTION_RANGE"])
-    if not FRIEDELS_LAW:
-        f.write("      FRIEDEL'S_LAW=        FALSE\n")
-    else:
+    if not FRIEDELS_LAW_TRUE:
         f.write("      FRIEDEL'S_LAW=        %s\n" % \
                                  hklf.header["FRIEDEL'S_LAW"])
+    elif FRIEDELS_LAW == True:
+        f.write("      FRIEDEL'S_LAW=        TRUE\n")
+    elif FRIEDELS_LAW == False :
+        f.write("      FRIEDEL'S_LAW=        FALSE\n")
     if SCALE_TYPE == 0:
         f.write("      CORRECTIONS= NONE\n")      
     else:
