@@ -76,6 +76,7 @@ usage   = """
           xdsconv.py solve XDS_ASCII.HKL Se 12
           xdsconv.py 12 Se phaser XDS_ASCII.HKL
           xdsconv.py XDS_ASCII.HKL ccp4 -n FreeR_reference.mtz
+          xdsconv.py XDS_ASCII.HKL ccp4 -n FreeR_reference.mtz -free 5
           xdsconv.py XDS_ASCII.HKL ccp4 Se 12 -l=peak FreeR_reference.mtz
 """
 
