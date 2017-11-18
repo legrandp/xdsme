@@ -111,6 +111,9 @@ class Interpreter:
                 if h5key[:6] == '/entry':
                     #print h5key, raw_head[h5key][()]
                     self.raw_head_dict[h5key] = raw_head[h5key][()]
-        self.raw_head_dict.update({'MESSAGE': '', 'TWOTHETA': '0',
-                                   'HEADER_BYTES':0, 'OSC_AXIS': "phi" }) # Example missing
+        try:
+            self.raw_head_dict["ImageNumber"] = sum([d.shape[0] for d in raw_head['/entry/data'].values() if d is not None])
+        except:
+            pass
+        self.raw_head_dict.update({'MESSAGE': '', 'TWOTHETA': '0', 'HEADER_BYTES':0, 'OSC_AXIS': "phi" })
         return self.raw_head_dict

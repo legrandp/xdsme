@@ -1,0 +1,3 @@
+[submodule "3rdparty/pyfive"]
+	path = 3rdparty/pyfive
+	url = https://github.com/jjhelmus/pyfive.git
