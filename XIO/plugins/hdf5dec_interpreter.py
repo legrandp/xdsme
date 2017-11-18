@@ -3,23 +3,24 @@
 """ XIO plugin for the Dectris HDF5 image format.
 """
 
-__version__ = "0.0.2"
+__version__ = "0.1.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "17-02-2016"
-__copyright__ = "Copyright (c) 2005-2016 Pierre Legrand"
+__date__ = "18-11-2017"
+__copyright__ = "Copyright (c) 2015-2017 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 
+FLOAT2 = lambda x: float(x)*1e3
+
+
 def date_time(time_str):
-    "from str return standard str: 'Wed Oct 28 16:42:12 2009'"
+    """from str return standard str: 'Wed Oct 28 16:42:12 2009'"""
     return time.ctime(date_seconds(time_str,"%Y-%m-%dT%T"))
 
-#def _dateseconds(timestr):
-#    return time.mktime(time.strptime(timestr))
 
 def date_seconds(time_str):
-    "from tupple return seconds"
+    """"from tupple return seconds"""
     try:
         return time.mktime(time.strptime(time_str.split(".")[0],
                                          "%Y-%m-%dT%H:%M:%S"))
@@ -28,8 +29,9 @@ def date_seconds(time_str):
         print "... Using time.time() instead."
         return time.time()
 
+
 def get_edge_resolution(pixel_x, width, distance, wavelength):
-    "Calculate EdgeResolution."
+    """"Calculate EdgeResolution."""
     from math import sin, atan
     distance=float(distance)
     if abs(distance) > 0.0:
@@ -38,16 +40,15 @@ def get_edge_resolution(pixel_x, width, distance, wavelength):
     else:
         return 0.
 
+
 def endian(code):
     if code == 'big_endian': return '>'
     else: return '<'
-      
-FLOAT2 = lambda x: float(x)*1e3
+
 
 # Creates a dictionary of all keys and values in the NeXus tree
-
 class Interpreter:
-    "Dummy class, container for standard Dict and Function."
+    """Dummy class, container for standard Dict and Function."""
 
     HTD = {
     # The adsc Header Translator Dictionary.
@@ -101,23 +102,15 @@ class Interpreter:
     }
 
     def __init__(self):
-        self.raw_head_dict = None
+        self.raw_head_dict = {}
 
-    def iterate_children(self, node, nodeDict={}):
-        """ iterate over the children of a neXus node """
-        if node.type() == self.groupType:
-            for kid in node.children():
-                nodeDict = self.iterate_children(kid, nodeDict)
-        else:
-            nodeDict[node.path()] = node.value()
-        return nodeDict
-
-    def getRawHeadDict(self, raw_head, groupNode):
+    def getRawHeadDict(self, raw_head):
         "Intepret the ascii structure of the asdc image header."
-        self.groupType = groupNode
-        self.raw_head_dict = self.iterate_children(raw_head)
-        #print neXus_string_tree
-        # First version. Works only with local bioxsoft installation.
+        for key in Interpreter.HTD:
+            for h5key in Interpreter.HTD[key][0]:
+                if h5key[:6] == '/entry':
+                    #print h5key, raw_head[h5key][()]
+                    self.raw_head_dict[h5key] = raw_head[h5key][()]
         self.raw_head_dict.update({'MESSAGE': '', 'TWOTHETA': '0',
                                    'HEADER_BYTES':0, 'OSC_AXIS': "phi" }) # Example missing
         return self.raw_head_dict

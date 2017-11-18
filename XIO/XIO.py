@@ -11,10 +11,10 @@
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-02-2016"
-__copyright__ = "Copyright (c) 2005-2016 Pierre Legrand"
+__date__ = "18-11-2017"
+__copyright__ = "Copyright (c) 2005-2017 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
 #
@@ -29,10 +29,11 @@ import time
 
 PLUGIN_DIR_NAME = "plugins"
 VERBOSE = 0
-if "ALBULA_PYTHON_PATH" in os.environ.keys():
-    HDF5_LIB_PATH = os.getenv("ALBULA_PYTHON_PATH")
-else:
-    HDF5_LIB_PATH = "/data/bioxsoft/progs/DECTRIS/albula/3.2/python"
+DIRNAME = os.path.dirname(__file__)
+
+#
+if os.path.isdir(os.path.join(DIRNAME, "../3rdparty/pyfive")):
+    HDF5_LIB_PATH = os.path.join(DIRNAME, "../3rdparty/pyfive")
 
 # Defines General regexp for the complete image names:
 # dirPath + imageName + externalCompression
@@ -57,9 +58,11 @@ REC_FULLIMAGENAME1H =  re.compile(RE_FULLIMAGENAME1H)
 REC_FULLIMAGENAME2 =   re.compile(RE_FULLIMAGENAME2)
 REC_FULLIMAGENAME3 =   re.compile(RE_FULLIMAGENAME3)
 
+
 def list_of_string(arg):
     "Return True if all the component of the list are of string type."
     return reduce(lambda a, b: a and b, map(lambda s: type(s) == str, arg))
+
 
 def isExtCompressed(filename):
     "Tells from the filename suffix if the file is externaly compressed"
@@ -68,22 +71,27 @@ def isExtCompressed(filename):
     else:
         return False
 
+
 def uncompressedName(filename):
     "Remove the compression extention in filename"
     if isExtCompressed(filename):
         return filename[:filename.rindex(".")]
-    else: return filename
+    else:
+        return filename
+
 
 def remove_redundancy(seq):
-    "Fast way to remove the redundant elements in any sorted sequence."
+    """Fast way to remove the redundant elements in any sorted sequence."""
     _seq_shift = seq[1:]
     _seq_shift.append(None)
     return [E for E, C in zip(seq, map(cmp, seq, _seq_shift)) if C]
 
+
 def add_reduce(seq):
-    "Like Numeric.add.reduce(array)..."
+    """Like Numeric.add.reduce(array)..."""
     from operator import add
     return reduce(add, seq)
+
 
 def importName(moduleName, namedObject):
     """ Import a named object from a module. To do something like:
@@ -103,6 +111,7 @@ def importName(moduleName, namedObject):
 class XIOError(Exception):
     """This level of exception raises a recoverable error which can be fixed.
     """
+
 
 class Image:
     """Defines a generic X-ray diffraction image file.
@@ -365,15 +374,12 @@ class Image:
             interpreterClass = importName("plugins.%s_interpreter" % \
                                        self.type, "Interpreter")
         if self.type == "hdf5dec":
-            sys.path.insert(0, HDF5_LIB_PATH)
+            import pyfive
             try:
-                import dectris.albula as dec
+                self.rawHead = pyfive.File(self.fileName)
             except ImportError:
-                print "\nThe DECTRIS ALBULA API could not be loaded."
+                print "\nThe master_file could not be interpreted."
                 raise SystemExit
-            h5cont = dec.DImageSeries(self.fileName)
-            neXus_tree = h5cont.neXus()
-            neXus_root = neXus_tree.root()
 
         if not interpreterClass:
             raise XIOError, "Can't import %s interperter" % (self.type)
@@ -383,11 +389,7 @@ class Image:
         # Special = interpreter.SpecialRules
         #
         self.interpreter = interpreterClass()
-        if self.type == "hdf5dec":
-            self.RawHeadDict = self.interpreter.getRawHeadDict(neXus_root,
-                                                        dec.DNeXusNode.GROUP)
-        else:
-            self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
+        self.RawHeadDict = self.interpreter.getRawHeadDict(self.rawHead)
         #VERBOSE = True
         # Default value
         self.header['SensorThickness'] = 0.0
