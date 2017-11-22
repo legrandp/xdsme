@@ -11,16 +11,14 @@
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.5.2"
+__version__ = "0.5.4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "18-11-2017"
+__date__ = "22-11-2017"
 __copyright__ = "Copyright (c) 2005-2017 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
-#
-# Standard modules
-#
 
+# Standard modules
 import os
 import sys
 import struct
@@ -60,12 +58,12 @@ REC_FULLIMAGENAME3 =   re.compile(RE_FULLIMAGENAME3)
 
 
 def list_of_string(arg):
-    "Return True if all the component of the list are of string type."
+    """"Return True if all the component of the list are of string type."""
     return reduce(lambda a, b: a and b, map(lambda s: type(s) == str, arg))
 
 
 def isExtCompressed(filename):
-    "Tells from the filename suffix if the file is externaly compressed"
+    """Tells from the filename suffix if the file is externaly compressed"""
     if REC_EXTCOMPRESSED.search(filename):
         return True
     else:
@@ -73,7 +71,7 @@ def isExtCompressed(filename):
 
 
 def uncompressedName(filename):
-    "Remove the compression extention in filename"
+    """Remove the compression extention in filename"""
     if isExtCompressed(filename):
         return filename[:filename.rindex(".")]
     else:
@@ -97,9 +95,7 @@ def importName(moduleName, namedObject):
     """ Import a named object from a module. To do something like:
     from moduleName import namedObject
     but with moduleName and namedObject are runtime computed expressions.
-    NOTE: It's more secured solution than just using __import__
-    """
-    #
+    NOTE: It's more secured solution than just using __import__"""
     try:
         module = __import__(moduleName, globals(), locals(), namedObject)
     except ImportError:
@@ -428,7 +424,6 @@ class Image:
         exportDict = {}
         for k in exporter.HTD.keys():
             args, func = exporter.HTD[k]
-
             exportDict[k] = func(*map(self.header.get, args))
         if rotationAxis:
             rot_axis = [-float(value) for value in exportDict['ROTATION_AXIS'].split()]
@@ -930,14 +925,15 @@ class Collect:
             args, func = exporter.CTD[k]
             exportDict[k] = func(*map(self.__dict__.get, args))
         exportDict["SPECIFIC_KEYWORDS"] = ""
-        det_SN = self.image.header["SerialNumber"]
         try:
             spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
             for spec_type in spec_SN.keys():
-                if spec_type in det_SN:
-                    exportDict["SPECIFIC_KEYWORDS"] = spec_SN[spec_type]
+                if spec_type in self.image.header["SerialNumber"] or spec_type == self.detModel:
+                    exportDict["SPECIFIC_KEYWORDS"] += spec_SN[spec_type]
         except:
             pass
+        if exportDict["_LIB"]:
+            exportDict["SPECIFIC_KEYWORDS"] += "LIB= %s" % exportDict["_LIB"]
         if "OverloadValue" in self.image.header:
             exportDict["OVERLOAD"] = self.image.header['OverloadValue']
         return exportDict

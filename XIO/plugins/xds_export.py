@@ -4,13 +4,14 @@
     See http://xds.mpimf-heidelberg.mpg.de/html_doc/xds_prepare.html
 """
 
-__version__ = "0.4.2"
+__version__ = "0.4.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "25-01-2017"
+__date__ = "22-11-2017"
 __copyright__ = "Copyright (c) 2007-2017 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
+import os
 
 from pycgtypes import vec3
 from pycgtypes import mat3
@@ -19,6 +20,13 @@ EX, EY, EZ = vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)
 V3FMT = "%9.6f %9.6f %9.6f"
 PI = 3.1415926535897931
 D2R = PI/180.
+
+def set_detplugin_lib(dettype):
+    """Find out if we can set the LIB keyword"""
+    if dettype == "hdf5dec" and "XDS_LIB_HDF5DEC" in os.environ:
+        return os.environ["XDS_LIB_HDF5DEC"]
+    else:
+        return None
 
 def det_dist(distance, dettype):
     "Return the disance with the proper sign."
@@ -161,11 +169,11 @@ SPECIFIC_SUPPLEMENTARY_KEYWORDS = {
 ! Y-GEO_CORR= ../hole_mask/y_geo_corr.cbf   
 
  \n""",
-"457":"""
+ "457":"""
 ! AS MX1 Reverse Phi
 ROTATION_AXIS= -1.0 0.0 0.0
 \n""",
-"928":"""
+ "928":"""
 ! AS MX2 Reverse Phi
 ROTATION_AXIS= -1.0 0.0 0.0
 \n"""
@@ -262,7 +270,7 @@ HTD = {
 'DIRECTION_OF_DETECTOR_X-AXIS':(['TwoTheta','ImageType'], det_axis_x),
 'DIRECTION_OF_DETECTOR_Y-AXIS':(['TwoTheta','ImageType'], det_axis_y),
 '_HIGH_RESOL_LIMIT':(['EdgeResolution'], lambda x: round(x,2)),
-'SENSOR_THICKNESS':(['SensorThickness'], float),
+'SENSOR_THICKNESS':(['SensorThickness'], float)
 }
 
 #     Collect Translator Dictionary.
@@ -287,4 +295,5 @@ CTD = {
 'MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT':(['imageType'], lambda x: \
                                XDS_DETECTOR_DICT["min_number_of_pixels"][x]),
 'OVERLOAD':(['imageType'], lambda x: XDS_DETECTOR_DICT["overload"][x]),
+'_LIB':(['imageType'], set_detplugin_lib)
 }
