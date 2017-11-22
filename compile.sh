@@ -1,3 +1,3 @@
 find . -name \*.pyc -exec rm {} \;
-python compileall.py .
+python -c "import compileall; compileall.compile_dir('.', force=True)"
 
