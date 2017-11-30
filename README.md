@@ -12,7 +12,9 @@ The XDSME package contains a collection of python scripts made to simplify the p
 
 ## Features
 
-Supported detector image format include: PILATUS, EIGER (experimental), ADSC, MARCCD, MAR345, SATURN. There is an experimental support for RAXIS and MAR555 detectors (limited by lack of test images).
+Supported detector image format include: PILATUS, EIGER, ADSC, MARCCD, MAR345, SATURN. There is an experimental support for RAXIS and MAR555 detectors (limited by lack of test images).
+
+xdsme and xds are able to directly process compressed frames in the .gz or .bz2 formats. 
 
 The main scripts are:
  - xdsme for data processing,
@@ -24,8 +26,10 @@ The main scripts are:
 ## Install
 
 You can either:
- - Download the xdsme-master.zip file and unzip it. Then add the xdsme-master/bin/noarch to your PATH variable (export PATH=$PATH:$HOME/progs/xdsme-master/bin/noarch),
- - or use git to clone the repository. This method makes updating to a new version eisier.
+ - *Recommended way:* Download the [lastest released version](https://github.com/legrandp/xdsme/releases/latest) and gunzip it. 
+ - or ownload the xdsme-master.zip file and unzip it.
+ - or use git to clone the repository. This method makes updating to a new version easier.
+ - Then add the xdsme-master/bin/noarch to your PATH variable (export PATH=$PATH:$HOME/progs/xdsme-master/bin/noarch),
 ```bash
  $ cd $HOME/progs 
  $ git clone https://github.com/legrandp/xdsme.git
@@ -79,3 +83,4 @@ Many thanks to the following people how have contributed with pieces of code:
 ## Included code
 
 Some code comes from the [CgKit project](http://cgkit.sourceforge.net)
+The [pyfive module](https://github.com/jjhelmus/pyfive) is also distributed in the released tarball.
