@@ -11,10 +11,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.5.5.2"
+__version__ = "0.6.4.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "23-06-2017"
-__copyright__ = "Copyright (c) 2006-2017 Pierre Legrand"
+__date__ = "06-02-2018"
+__copyright__ = "Copyright (c) 2006-2018 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -176,7 +176,8 @@ USAGE = """
          --O1 Use postrefined geometry.
          --O2 Update profiles as suggested in INTEGRATE.LP.
          --O3 Combine O1 and O2 optimizations.
-         
+         --O4 = O3 + Not refining geometry during INTEGRATE.
+
     -E, --exec PATH
          Path for the directory containing the executables, if different from
          or not in the default path.
@@ -654,7 +655,7 @@ class XDSLogParser:
         if rdi["HighResCutoff"]:
             prp += "  Suggested high resolution cutoff: %(HighResCutoff)9.2f"
         prp += "\n  Compared reflections:                 %(Compared)d\n"
-        prp += "  Total number of measures:             %(Total)d\n"
+        prp += "  Total number of measures:             %(Total)d"
         if self.verbose:
             print prp % rdi
         return rdi, prp
@@ -663,7 +664,7 @@ class XDSLogParser:
         "High res is selected when at least 3 values of I/sigma are below 1."
         high_n, high_hit = [], None
         for res, IoS in res_table:
-            if IoS < 1.:
+            if IoS < 0.5:
                 high_n.append(res)
                 if not high_hit and len(high_n) == 3:
                     high_hit = high_n[0]
@@ -1194,7 +1195,7 @@ class XDS:
         # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
-        print "  Upper theoritical limit of I/sigma: %8.3f" % \
+        print "  Upper theoritical limit of I/sigma: %8.3f\n" % \
                                              res.results["IoverSigmaAsympt"]
 
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
@@ -1254,7 +1255,7 @@ class XDS:
             sys.exit()
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         s["name"] = os.path.basename(self.inpParam["NAME_TEMPLATE_OF_DATA_FRAMES"])
-        print s.last_table
+        print "\n", s.last_table
         print FMT_FINAL_STAT % vars(s)
         if s.absent:
             print FMT_ABSENCES % vars(s)
@@ -1563,7 +1564,7 @@ if __name__ == "__main__":
                 "xds-input=",
                 "verbose",
                 "optimize",
-                "O1","O2","O3","O",
+                "O1","O2","O3","O4","O",
                 "wavelength=",
                 "slow", "weak", "brute"]
 
@@ -1707,8 +1708,8 @@ if __name__ == "__main__":
                 OPTIMIZE = int(o[-1])
             except:
                 pass
-            if OPTIMIZE > 3:
-                OPTIMIZE = 3
+            if OPTIMIZE > 4:
+                OPTIMIZE = 4
         if o in ("--slow"):
             SLOW = True
         if o in ("--brute"):
@@ -1832,12 +1833,14 @@ if __name__ == "__main__":
             sys.exit()
     if WAVELENGTH:
         newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
-    if OPTIMIZE in [1, 3]:
+    if OPTIMIZE in [1, 4]:
         gxparm2xpar(newDir)
     if OPTIMIZE >= 2:
         profiles = getProfilRefPar(os.path.join(newDir, "INTEGRATE.LP"))
         newPar.update(profiles)
         print "UPDATED PROFILES: %s" % profiles
+    if OPTIMIZE == 4:
+        newPar["REFINE(INTEGRATE)= NONE"]
     #if XDS_INPUT:
     #    newPar.update(xdsInp2Param(inp_str=XDS_INPUT))
     if "_HIGH_RESOL_LIMIT" in newPar:
