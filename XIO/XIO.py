@@ -943,7 +943,6 @@ class Collect:
         try:
             spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
             for spec_type in spec_SN.keys():
-                print "_SPEC_TYPE",  spec_type
                 if spec_type in self.image.header["SerialNumber"] or spec_type == self.image.detModel:
                     exportDict["SPECIFIC_KEYWORDS"] += spec_SN[spec_type]
         except:
