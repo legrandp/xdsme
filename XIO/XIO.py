@@ -331,6 +331,12 @@ class Image:
                 self.detModel = "MarCCD 300"
             elif 328. > _size > 319.:
                 self.detModel = "MarCCD 325"
+        elif self.type == "minicbf":
+            if (self.header["Width"] == 2463 and 
+                self.header["Height"] == 2527):
+                self.detModel = "Pilatus 6M"
+            else:
+                self.detModel = "Pilatus" 
         elif self.type == "adsc":
             if 190. > _size > 187.:
                 self.detModel = "ADSC Q4"
@@ -459,7 +465,8 @@ class Image:
                                          self.header['Height'])
         print ">> Distance: %.1f mm, Lambda: %.3f A" % \
                            (self.header['Distance'],self.header['Wavelength'])
-        if self.type == "hdf5dec": return
+        if self.type == "hdf5dec":
+            return
         try:
             data = self.getData()
             if self.type == 'marccd':
@@ -928,10 +935,12 @@ class Collect:
         try:
             spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
             for spec_type in spec_SN.keys():
-                if spec_type in self.image.header["SerialNumber"] or spec_type == self.detModel:
+                print "_SPEC_TYPE",  spec_type
+                if spec_type in self.image.header["SerialNumber"] or spec_type == self.image.detModel:
                     exportDict["SPECIFIC_KEYWORDS"] += spec_SN[spec_type]
         except:
-            pass
+            raise
+            #pass
         if exportDict["_LIB"]:
             exportDict["SPECIFIC_KEYWORDS"] += "LIB= %s" % exportDict["_LIB"]
         if "OverloadValue" in self.image.header:
