@@ -473,7 +473,6 @@ cparrot \\
 -colin-wrk-fo   "/*/*/[FP${label},SIGFP${label}]" \\
 -colin-wrk-hl   "/*/*/[HLA,HLB,HLC,HLD]" \\
 -colin-wrk-fc   "/*/*/[FWT,PHWT]" \\
--colin-wrk-free "/*/*/[FreeR_flag]" \\
 -mtzout         ${parrID}_parrot_${solvent_content}_${parrot_cycles}.mtz \\
 -colout         parrot \\
 -solvent-flatten \\
@@ -483,7 +482,8 @@ cparrot \\
 -solvent-content ${solvent_content} \\
 -ncs-average \\
 > cparrot_${parrID}_${solvent_content}_${parrot_cycles}.log
-# -ncs-mask-filter-radius 22 \\
+#-ncs-mask-filter-radius 22 \\
+#-colin-wrk-free "/*/*/[FreeR_flag]" \\
 }
 
 run_phaser
