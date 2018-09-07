@@ -32,6 +32,7 @@ aimless hklin ${PREFIX}_pointless.mtz hklout ${PREFIX}_aimless.mtz \
       correlplot AIMLESS.correlplot \
       normplot   AIMLESS.norm \
       anomplot   AIMLESS.anom \
+      xmlout   ${PREFIX}_aimless.xml \
       > ${PREFIX}_aimless.log << eof
 cycles 0
 scales constant    # batch scaling is generally poorer than smoothed
