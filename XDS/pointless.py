@@ -33,7 +33,6 @@ def process_pointless_xml(file_name_id):
     # Reading final choosen cell paramters from the logfile
     logf = open(logf_name)
     logf_raw = logf.read()
-    logf_raw.find(" * Dataset ID, project")
     logf.close()
     id1 = logf_raw.find(" * Dataset ID, project")
     id2 = logf_raw.find(" * Number of Columns", id1)
