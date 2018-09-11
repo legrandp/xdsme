@@ -11,15 +11,16 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.4.0"
+__version__ = "0.6.5.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "06-02-2018"
+__date__ = "11-09-2018"
 __copyright__ = "Copyright (c) 2006-2018 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
 import sys
 import re
+import time
 
 if sys.version_info <= (2, 4, 0):
     from popen2 import Popen3
@@ -30,13 +31,14 @@ from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
 from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
 
-from pointless import pointless, is_pointless_installed, run_aimless, \
+from pointless import pointless, is_pointless_installed, run_aimless,\
                  run_xdsconv
-from xupy import XParam, xdsInp2Param, opWriteCl, \
-                 saveLastVersion, LP_names, xdsinp_base, \
-                 SPGlib, Lattice, resum_scaling, \
-                 get_BravaisToSpgs, get_number_of_processors, \
-                 EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
+from xml_output import xml_aimless_to_autoproc, XML_INTEGRATION_PART,\
+    XML_PROGRAM_PART, XML_TEMPL_MAIN
+from xupy import XParam, xdsInp2Param, opWriteCl, saveLastVersion,\
+    LP_names, xdsinp_base, SPGlib, Lattice, resum_scaling, get_BravaisToSpgs,\
+    get_number_of_processors, EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
+
 import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -156,6 +158,10 @@ USAGE = """
 
     -w, --wavelength
          Set the x-ray wavelength.
+
+    -X, --xml
+         Generate an XML file containing scaling statistics and postprocessing
+         refined values.
 
     --slow,
          Set parameters to process either more accurately.
@@ -631,11 +637,20 @@ class XDSLogParser:
                     rdi["IoverSigmaAsympt"] =  0.0
         #print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
         #                                       (4*K1s, (K2s/4+0.0001))
+        rdi["Cell_integrate"] = gpa(" UNIT_CELL_CONSTANTS=", limit=54)
+        rdi.update(dict(zip(["ia","ib","ic","ialpha","ibeta","igamma"],
+                             rdi["Cell_integrate"])))
         rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
         rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
         rdi["Space_group_num"] = gpa("SPACE GROUP NUMBER ")
         rdi["Cell_ref"] = gpa("UNIT CELL PARAMETERS")
         rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
+        rdi["det_dist"] = gpa("CRYSTAL TO DETECTOR DISTANCE (mm)")
+        rdi["x_beam"], rdi["y_beam"] = gpa("DETECTOR ORIGIN (PIXELS) AT")
+        rdi["rotation_axis"] = gpa("LAB COORDINATES OF ROTATION AXIS")
+        rdi.update(dict(zip(["rvx","rvy","rvz"],rdi["rotation_axis"])))
+        rdi["beam_axis"] = gpa("DIRECT BEAM COORDINATES (REC. ANGSTROEM)")
+        rdi.update(dict(zip(["bvx","bvy","bvz"],rdi["beam_axis"])))
         r = gpa(" "+"-"*74+"\n")
         rdi["I_sigma"], rdi["Rsym"] = r[2], r[4]
         rdi["Compared"], rdi["Total"] = r[6], r[7]
@@ -1255,15 +1270,39 @@ class XDS:
             sys.exit()
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         s["name"] = os.path.basename(self.inpParam["NAME_TEMPLATE_OF_DATA_FRAMES"])
+        s["image_path"] = os.path.realpath("img")
+        if XML_OUTPUT:
+            frame_ID = s["name"].split("?")[0]
+            s["cmd_line"] = " ".join(sys.argv).split(".cbf ")[0]
+            s["xdsme_version"] = xdsme_version
+            s["xds_version"] = xds_version
+            s["exec_time_start"] = time_start
+            s["run_dir"] = os.path.realpath(self.run_dir)
+            aimless_ID = "%saimless" % frame_ID
+            s["mtz_out"] = "%s.mtz" % aimless_ID
         print "\n", s.last_table
         print FMT_FINAL_STAT % vars(s)
         if s.absent:
             print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
             print FMT_ANOMAL % vars(s)
-        if s.compl > 85.:
-            if RUN_AIMLESS: run_aimless(self.run_dir)
-            if RUN_XDSCONV: run_xdsconv(self.run_dir)
+        if s.compl > 60. or XML_OUTPUT:
+            if RUN_AIMLESS:
+                run_aimless(self.run_dir)
+                if XML_OUTPUT:
+                    s["exec_time_end"] = time.strftime(STRFTIME)
+                    xmlfn = os.path.join(s["run_dir"], "%s.xml" % aimless_ID)
+                    res.results.update(s)
+                    xml_1 = XML_PROGRAM_PART % res.results
+                    xml_2 = xml_aimless_to_autoproc(xmlfn)
+                    xml_3 = XML_INTEGRATION_PART % res.results
+                    xmloutp = os.path.join(os.path.dirname(s["run_dir"]),
+                                  "%sxdsme.xml" % frame_ID)
+                    with open(xmloutp, "w") as outputxml:
+                       outputxml.write(XML_TEMPL_MAIN % (xml_1 + xml_2 + xml_3))
+            if RUN_XDSCONV:
+                run_xdsconv(self.run_dir)
+
 
     def run_scaleLaueGroup(self):
         """Runs the CORRECT step with reindexation for all the selected Laue
@@ -1537,7 +1576,7 @@ if __name__ == "__main__":
 
     import getopt
 
-    short_opt =  "123456aAbBc:d:E:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSF"
+    short_opt =  "123456aAbBc:d:E:f:F:i:IL:O:M:n:p:s:Sr:R:x:y:vw:WSFX"
     long_opt = ["anomal",
                 "Anomal",
                 "beam-x=",
@@ -1566,7 +1605,8 @@ if __name__ == "__main__":
                 "optimize",
                 "O1","O2","O3","O4","O",
                 "wavelength=",
-                "slow", "weak", "brute"]
+                "slow", "weak", "brute",
+                "xml"]
 
     if len(sys.argv) == 1:
         print USAGE
@@ -1578,6 +1618,8 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
+    STRFTIME = '%a %b %d  %H:%M:%S %Y'
+    time_start = time.strftime(STRFTIME)
     DIRNAME_PREFIX = "xdsme_"
     NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
@@ -1617,6 +1659,7 @@ if __name__ == "__main__":
     XDS_PATH = ""
     RUN_XDSCONV = True
     RUN_AIMLESS = True
+    XML_OUTPUT = False
 
     for o, a in opts:
         if o == "-v":
@@ -1710,6 +1753,9 @@ if __name__ == "__main__":
                 pass
             if OPTIMIZE > 4:
                 OPTIMIZE = 4
+        if o in ("-X", "--xml"):
+            XML_OUTPUT = True
+            RUN_AIMLESS = True
         if o in ("--slow"):
             SLOW = True
         if o in ("--brute"):
@@ -1879,10 +1925,12 @@ if __name__ == "__main__":
     if WEAK:
         newrun.mode.append("weak")
 
+    xds_version = XDSLogParser().get_xds_version()
+    xdsme_version = __version__
     if XDS_PATH: print ">> XDS_PATH set to: %s" % XDS_PATH
     print "\n    Simplified XDS Processing"
-    print "\n      xds   version: %18s" % XDSLogParser().get_xds_version()
-    print "      xdsme version: %18s" % __version__
+    print "\n      xds   version: %18s" % xds_version
+    print "      xdsme version: %18s" % xdsme_version
     print FMT_HELLO % vars(newrun.inpParam)
     print "  Selected resolution range:       %.2f - %.2f A" % \
                                            newPar["INCLUDE_RESOLUTION_RANGE"]
