@@ -673,7 +673,7 @@ class XDSLogParser:
         rdi["Cell_integrate"] = gpa(" UNIT_CELL_CONSTANTS=", limit=54)
         rdi.update(dict(zip(["ia","ib","ic","ialpha","ibeta","igamma"],
                              rdi["Cell_integrate"])))
-        if self.lp.count("REFINEMENT RESULTS NOT ACCEPTED ") == -1:
+        if self.lp.count("REFINEMENT RESULTS NOT ACCEPTED ") == 0:
             rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
             rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
             rdi["Space_group_num"] = gpa("SPACE GROUP NUMBER ")
@@ -878,7 +878,7 @@ class XDS:
             if self.step_name == "INTEGRATE":
                 if _init_parse:
                     prnt("    Processing    Mean #Strong  " +
-                         "Estimated   Overloaded" +
+                         "Estimated   Overloaded\n" +
                          "    Image Range   refl./image   " +
                          "Mosaicity   reflections\n")
                     table_int = []
@@ -1962,7 +1962,7 @@ if __name__ == "__main__":
     xdsme_version = __version__
     if XDS_PATH:
         prnt(">> XDS_PATH set to: %s" % XDS_PATH)
-    prnt(FMT_VERSION % (xds_version, xdsme_version)
+    prnt(FMT_VERSION % (xds_version, xdsme_version))
     prnt(FMT_HELLO % vars(newrun.inpParam))
     prnt("  Selected resolution range:       %.2f - %.2f A" % \
                                            newPar["INCLUDE_RESOLUTION_RANGE"])
