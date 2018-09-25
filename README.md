@@ -41,7 +41,7 @@ To update xdsme, you will only need to run the following command:
  $ git pull origin
 ```
 
-All scripts are pure python code, so the only dependency is Python version >= 2.2. It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
+All scripts are pure python code, so the only dependency is Python version >= 2.5. It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
 
 ## Examples
 
