@@ -11,7 +11,7 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.1"
+__version__ = "0.6.5.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "25-09-2018"
 __copyright__ = "Copyright (c) 2006-2018 Pierre Legrand"
@@ -58,6 +58,11 @@ def prnt(msg, lvl=INFO, timing=False):
     elif lvl == CRITICAL:
         prntLog.critical(COLOR_C + "!CRITICAL! " + msg + END_COLOR + "\n")
         sys.exit(0)
+
+import distutils.spawn
+if not distutils.spawn.find_executable("xds_par"):
+    prnt("Executable xds_par not found in PATH.", CRITICAL)
+
 from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
 from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
@@ -744,7 +749,7 @@ class XDSLogParser:
 
     def get_xds_version(self):
         "Get the version of XDS"
-        _execstr = "cd /tmp; %s" % os.path.join(XDS_PATH,"xds_par")
+        _execstr = "cd /tmp; %s" % os.path.join(XDS_PATH, "xds_par")
         wc_out = self.run_exec_str(_execstr).splitlines()[1:]
         if "license expired" in wc_out[0]:
             prnt(wc_out[0].replace(" licen", " XDS licen"), CRITICAL)
