@@ -128,18 +128,18 @@ XML_PROGRAM_PART = """  <AutoProcProgramContainer>
       <processingStartTime>%(exec_time_start)s</processingStartTime>
       <processingEndTime>%(exec_time_end)s</processingEndTime>
       <processingEnvironment>
-  Host      : process2
-  OS        : CentOS Linux release 7.4.1708 (Core) |PRETTY_NAME="CentOS Linux 7 (Core)"||REDHAT_SUPPORT_PRODUCT="centos"|REDHAT_SUPPORT_PRODUCT_VERSION="7"|x86_64|3.10.0-693.21.1.el7.x86_64
-  User      : picca (group = instrumentation)
-  Directory : /data1-1/proxima1-soleil/2018_Run2/2018-03-29/20171050/PROCESSED_DATA/Simone/Collect/Cpd1-21_4/autoPROC_Cpd1-21_4_2
-  Date      : Wed May  2 18:21:15 CEST 2018
-  autoPROC  : /data2/bioxsoft/progs/AUTOPROC/AUTOPROC_2017-12
+  Host      : %(hostname)s
+  OS        : %(osname)s
+  User      : %(username)s
+  Directory : %(run_dir)s
+  Date      : %(exec_time_end)s
+  xdsme     : /data2/bioxsoft/progs/XDSME/xdsme
       </processingEnvironment>
     </AutoProcProgram>
     <AutoProcProgramAttachment>
       <fileType>Log</fileType>
       <fileName>summary.html</fileName>
-      <filePath>/data1-1/proxima1-soleil/2018_Run2/2018-03-29/20171050/PROCESSED_DATA/Simone/Collect/Cpd1-21_4/autoPROC_Cpd1-21_4_2</filePath>
+      <filePath>%(run_dir_p)s</filePath>
     </AutoProcProgramAttachment>
     <AutoProcProgramAttachment>
       <fileType>Result</fileType>

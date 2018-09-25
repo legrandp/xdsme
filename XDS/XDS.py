@@ -1273,11 +1273,15 @@ class XDS:
         s["image_path"] = os.path.realpath("img")
         if XML_OUTPUT:
             frame_ID = s["name"].split("?")[0]
+            s["hostname"] = os.uname()[1]
+            s["osname"] = " ".join(os.uname())
+            s["username"] = "%s" % (os.environ["LOGNAME"])
             s["cmd_line"] = " ".join(sys.argv).split(".cbf ")[0]
             s["xdsme_version"] = xdsme_version
             s["xds_version"] = xds_version
             s["exec_time_start"] = time_start
             s["run_dir"] = os.path.realpath(self.run_dir)
+            s["run_dir_p"] = os.path.dirname(s["run_dir"])
             aimless_ID = "%saimless" % frame_ID
             s["mtz_out"] = "%s.mtz" % aimless_ID
         print "\n", s.last_table
