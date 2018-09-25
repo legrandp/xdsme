@@ -11,9 +11,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.0"
+__version__ = "0.6.5.1"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "11-09-2018"
+__date__ = "25-09-2018"
 __copyright__ = "Copyright (c) 2006-2018 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -1286,20 +1286,19 @@ class XDS:
             print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
             print FMT_ANOMAL % vars(s)
-        if s.compl > 60. or XML_OUTPUT:
+        if s.compl > MINIMAL_COMPL_TO_EXPORT or XML_OUTPUT:
             if RUN_AIMLESS:
                 run_aimless(self.run_dir)
                 if XML_OUTPUT:
                     s["exec_time_end"] = time.strftime(STRFTIME)
-                    xmlfn = os.path.join(s["run_dir"], "%s.xml" % aimless_ID)
+                    xmlaiml = os.path.join(s["run_dir"], "%s.xml" % aimless_ID)
                     res.results.update(s)
-                    xml_1 = XML_PROGRAM_PART % res.results
-                    xml_2 = xml_aimless_to_autoproc(xmlfn)
-                    xml_3 = XML_INTEGRATION_PART % res.results
-                    xmloutp = os.path.join(os.path.dirname(s["run_dir"]),
-                                  "%sxdsme.xml" % frame_ID)
-                    with open(xmloutp, "w") as outputxml:
-                       outputxml.write(XML_TEMPL_MAIN % (xml_1 + xml_2 + xml_3))
+                    xml1 = XML_PROGRAM_PART % res.results
+                    xml2 = xml_aimless_to_autoproc(xmlaiml)
+                    xml3 = XML_INTEGRATION_PART % res.results
+                    xmlo = os.path.join(s["run_dir"], "%sxdsme.xml" % frame_ID)
+                    with open(xmlo, "w") as outputxml:
+                       outputxml.write(XML_TEMPL_MAIN % (xml1 + xml2 + xml3))
             if RUN_XDSCONV:
                 run_xdsconv(self.run_dir)
 
@@ -1618,7 +1617,8 @@ if __name__ == "__main__":
         print USAGE
         sys.exit(2)
 
-    STRFTIME = '%a %b %d  %H:%M:%S %Y'
+    STRFTIME = '%a %b %d %X %Z %Y'
+    STRFTIME2 = '%F %X'
     time_start = time.strftime(STRFTIME)
     DIRNAME_PREFIX = "xdsme_"
     NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
@@ -1660,6 +1660,7 @@ if __name__ == "__main__":
     RUN_XDSCONV = True
     RUN_AIMLESS = True
     XML_OUTPUT = False
+    MINIMAL_COMPL_TO_EXPORT = 0.5
 
     for o, a in opts:
         if o == "-v":

@@ -3,13 +3,14 @@
 
 """ Module to parse XML file from AIMLESS"""
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "07-09-2018"
+__date__ = "24-09-2018"
 __copyright__ = "Copyright (c) 2018 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import sys
+import time
 from xml.dom import minidom
 PNAME = 'a', 'b', 'c', 'alpha', 'beta', 'gamma'
 RNAME = 'Overall', 'Inner', 'Outer'
@@ -115,7 +116,8 @@ XML_INTEGRATION_PART = """  <AutoProcIntegrationContainer>
         <beamVectorY>%(bvy).6f</beamVectorY>
         <beamVectorZ>%(bvz).6f</beamVectorZ>
       </AutoProcIntegration>
-   </AutoProcIntegrationContainer>"""
+   </AutoProcIntegrationContainer>
+  </AutoProcScalingContainer>"""
 
 XML_PROGRAM_PART = """  <AutoProcProgramContainer>
     <AutoProcProgram>
@@ -184,8 +186,8 @@ def parse_aimless_xml(xml_inp_name):
     extr['spgn'] = get_val(dom.getElementsByTagName('SpacegroupName')[0], str)
 
     tsi = xml_raw.find('RunTime="')
-    extr['scale_runtime'] = xml_raw[tsi:tsi+40].split('"')[1]
-
+    #extr['scale_runtime'] = xml_raw[tsi:tsi+40].split('"')[1]
+    extr['scale_runtime'] = time.strftime('%F %X')
     results = dom.getElementsByTagName('Result')[0]
     for elem in TRANSLATE_RESULTS:
         xxe = results.getElementsByTagName(elem)[0]
