@@ -21,12 +21,43 @@ import os
 import sys
 import re
 import time
+import logging
 
-if sys.version_info <= (2, 4, 0):
-    from popen2 import Popen3
-else:
-    from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+COLOR_W = '\033[93m'
+COLOR_C = '\033[91m'
+COLOR_E = '\033[91m'
+END_COLOR = '\033[0m'
+
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
+cslFormatter = logging.Formatter("%(message)s")
+prntLog = logging.getLogger()
+prntLog.setLevel(DEBUG)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(cslFormatter)
+prntLog.addHandler(consoleHandler)
+fileHandler = None
+
+def prnt(msg, lvl=INFO, timing=False):
+    "Fonction used to replace all print"
+    if timing and fileHandler:
+        fileHandler.setFormatter(logFormatter)
+    elif fileHandler:
+        fileHandler.setFormatter(cslFormatter)
+    if lvl == INFO:
+        prntLog.info(msg)
+    elif lvl == DEBUG: 
+        prntLog.debug(msg)
+    elif lvl == WARNING:
+        prntLog.warning(COLOR_W + " WARNING: " + msg + END_COLOR + "\n")
+    elif lvl == ERROR:
+        prntLog.error(COLOR_E + "!ERROR! " + msg + END_COLOR +  "\n")
+    elif lvl == CRITICAL:
+        prntLog.critical(COLOR_C + "!CRITICAL! " + msg + END_COLOR + "\n")
+        sys.exit(0)
 from XOconv.pycgtypes import mat3
 from XOconv.pycgtypes import vec3
 from XOconv.XOconv import reciprocal, UB_to_cellParam, BusingLevy, XDSParser
@@ -190,6 +221,11 @@ USAGE = """
 
 """ % PROGNAME
 
+FMT_VERSION = """
+    xdsme: XDS Made Easier\n
+       XDS   version: %18s
+       xdsme version: %18s"""  
+
 FMT_HELLO = """
     Diffraction Setup Parameters:\n
   Detector distance:             %(DETECTOR_DISTANCE)8.2f mm
@@ -287,8 +323,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
         try:
             _mkdir(dir_name)
         except Exception, err:
-            print "Error\n", err
-            sys.exit(0)
+            prnt(err, CRITICAL)
     #
     dir_name = os.path.abspath(dir_name)
     collect_im = {}
@@ -296,18 +331,15 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
     for _image in imagename_list:
         image = XIO.Image(_image, rotationAxis=rotationAxis)
         if VERBOSE:
-            print _image
+            prnt(_image)
         # How to safely modulate PhiStart outside the [-180,180] range?
-        if VERBOSE:
-            print "\tPhiStart %8.2f" % image.header['PhiStart']
-        if VERBOSE:
-            print "\tPhiWidth %8.2f" % image.header['PhiWidth']
+            prnt("\tPhiStart %8.2f" % image.header['PhiStart'])
+            prnt("\tPhiWidth %8.2f" % image.header['PhiWidth'])
         collect_im[image.header['PhiStart']] = _image
         osc_ranges.append(image.header['PhiWidth'])
 
     if max(osc_ranges) != min(osc_ranges):
-        print "Error. Image list contains different oscillation range!"
-        sys.exit(0)
+        prnt("Image list contains different oscillation range!", CRITICAL)
     #
     osc_starts = collect_im.keys()
     osc_starts.sort()
@@ -316,7 +348,7 @@ def make_xds_image_links(imagename_list, dir_name="img_links",
         link_name = os.path.join(dir_name, prefix+"_%04.0f.img" % _num)
         if os.path.lexists(link_name) and os.path.islink(link_name):
             if VERBOSE:
-                print "==> Removing existing link: %s" % link_name
+                prnt("==> Removing existing link: %s" % link_name)
             os.remove(link_name)
         os.symlink(os.path.abspath(collect_im[_osc]), link_name)
         link_list.append(link_name)
@@ -355,46 +387,48 @@ class XDSLogParser:
         else:
             self.lp = ""
         # Catch Errors:
-        _err = self.lp.find(" !!! ERROR " )
+        _err = self.lp.find(" !!! ") # Add a RE with ERROR or WARNING
         _err_type = None
         _err_level = None
         if _err != -1:
             _err_msg = self.lp[_err:]
             if _err_msg.count(" CANNOT READ IMAGE "):
                 _err_type = "Some images connot be read"
-                _err_level = "WARNING"
-            # IDXREF ERROR Messages:
+                _err_level = WARNING
             elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
                 _err_type = "IDXREF. Percentage of indexed"
                 _err_type += " reflections bellow limit.\n"
-                _err_level = "WARNING"
+                _err_level = WARNING
             elif _err_msg.count("ERROR IN REFINE !!! RETURN"):
                 _err_type = "IDXREF. Can't refine cell paramters."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("USELESS DATA SET"):
-                _err_type = "INTEGRATE:  USELESS DATA SET."
-                _err_type += " Not enough images or bad diffraction ?"
-                _err_level = "FATAL"
+                _err_type = ("INTEGRATE.  USELESS DATA SET." +
+                             " Not enough images or bad diffraction ?")
+                _err_level = CRITICAL
             elif _err_msg.count("SOLUTION IS INACCURATE"):
                 _err_type = "IDXREF. Solution is inaccurate.\n"
-                _err_level = "WARNING"
+                _err_level = WARNING
             elif _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
                 _err_type = "IDXREF. INSUFFICIENT NUMBER OF ACCEPTED SPOTS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("CANNOT INDEX REFLECTIONS"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
             elif _err_msg.count("CANNOT CONTINUE WITH A TWO-DIMENSIONAL"):
                 _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = "FATAL"
+                _err_level = CRITICAL
+            elif _err_msg.count("REFINEMENT RESULTS NOT ACCEPTED "):
+                _err_type = ("CORRECT. Diffraction parameters refinement " +
+                             "results not accepted.")
+                _err_level = WARNING
             else:
-                print "\n %s \n" % (self.lp[_err:-1])
-                sys.exit()
-        if _err_level in ("FATAL", "ERROR") and raiseErrors:
+                prnt("\n %s \n" % (self.lp[_err:-1]), CRITICAL)
+        if _err_level in (CRITICAL, ERROR) and raiseErrors:
             raise XDSExecError, (_err_level, _err_type)
 
         if self.verbose and _err != -1:
-            print "\n  !!! %s in %s" % (_err_level, _err_type)
+            prnt(_err_type, _err_level)
 
         if full_filename.count("INIT.LP"):
             self.parse_init()
@@ -483,7 +517,7 @@ class XDSLogParser:
         prp += "  Max table gain:   %(max_gain).2f\n"
         prp += "  Mean Background:  %(mean_background).2f\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_colspot(self):
@@ -500,7 +534,7 @@ class XDSLogParser:
         prp += "  Weak spots rejected:       %(weak_spots_ignored)10d\n"
         prp += "  Number of spots accepted:  %(spot_number)10d\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_idxref(self):
@@ -573,9 +607,9 @@ class XDSLogParser:
         prp2 += ppd[:-1] + ppe[:-1] + ppf[:-1] + "\n"
         #prp += " Index origin score: %.2f\n" % (rdi["index_score"])
         if self.verbose == 1:
-            print (prp + prp2) % rdi
+            prnt((prp + prp2) % rdi)
         elif self.verbose == 2:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_defpix(self):
@@ -584,7 +618,7 @@ class XDSLogParser:
         rdi["value_range"] = gpa("TRUSTED_DETECTOR_PIXELS= ")
         prp = "  Value range for trusted detector pixels: %(value_range)s"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_integrate(self):
@@ -598,7 +632,7 @@ class XDSLogParser:
         prp += "  Estimated divergence:                 %(divergence).3f\n"
         prp += "  Estimated mosaicity:                  %(mosaicity).3f\n"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def parse_xplan(self):
@@ -615,9 +649,8 @@ class XDSLogParser:
         prp += "  Spacegroup:      %(spacegroup)d\n"
         prp += "  Unitcell:        %(unitcell)s\n"
         if self.verbose:
-            print prp % rdi
-            print
-            print self.lp[st0:st2]
+            prnt(prp % rdi)
+            prnt("\n"+self.lp[st0:st2])
         return rdi, prp
 
     def parse_correct(self):
@@ -631,26 +664,40 @@ class XDSLogParser:
             rdi["IoverSigmaAsympt"] =  1/((K1s*(K2s+0.0004))**0.5)
         except:
             try:
-                    sp1 = self.lp.index("a        b          ISa") + 23
-                    rdi["IoverSigmaAsympt"] = float(self.lp[sp1:sp1+31].split()[2])
+                sp1 = self.lp.index("a        b          ISa") + 23
+                rdi["IoverSigmaAsympt"] = float(self.lp[sp1:sp1+31].split()[2])
             except:
-                    rdi["IoverSigmaAsympt"] =  0.0
+                rdi["IoverSigmaAsympt"] =  0.0
         #print "  Variance estimate scaling (K1, K2): %8.3f, %12.3e" % \
         #                                       (4*K1s, (K2s/4+0.0001))
         rdi["Cell_integrate"] = gpa(" UNIT_CELL_CONSTANTS=", limit=54)
         rdi.update(dict(zip(["ia","ib","ic","ialpha","ibeta","igamma"],
                              rdi["Cell_integrate"])))
-        rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
-        rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
-        rdi["Space_group_num"] = gpa("SPACE GROUP NUMBER ")
-        rdi["Cell_ref"] = gpa("UNIT CELL PARAMETERS")
-        rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
-        rdi["det_dist"] = gpa("CRYSTAL TO DETECTOR DISTANCE (mm)")
-        rdi["x_beam"], rdi["y_beam"] = gpa("DETECTOR ORIGIN (PIXELS) AT")
-        rdi["rotation_axis"] = gpa("LAB COORDINATES OF ROTATION AXIS")
-        rdi.update(dict(zip(["rvx","rvy","rvz"],rdi["rotation_axis"])))
-        rdi["beam_axis"] = gpa("DIRECT BEAM COORDINATES (REC. ANGSTROEM)")
-        rdi.update(dict(zip(["bvx","bvy","bvz"],rdi["beam_axis"])))
+        if self.lp.count("REFINEMENT RESULTS NOT ACCEPTED ") == -1:
+            rdi["RMSd_spotPosition"] = gpa("SPOT    POSITION (PIXELS)")
+            rdi["RMSd_spindlePosition"] = gpa("SPINDLE POSITION (DEGREES)")
+            rdi["Space_group_num"] = gpa("SPACE GROUP NUMBER ")
+            rdi["Cell_ref"] = gpa("UNIT CELL PARAMETERS")
+            rdi["Mosaicity"] = gpa("CRYSTAL MOSAICITY (DEGREES)")
+            rdi["det_dist"] = gpa("CRYSTAL TO DETECTOR DISTANCE (mm)")
+            rdi["x_beam"], rdi["y_beam"] = gpa("DETECTOR ORIGIN (PIXELS) AT")
+            rdi["rotation_axis"] = gpa("LAB COORDINATES OF ROTATION AXIS")
+            rdi.update(dict(zip(["rvx","rvy","rvz"],rdi["rotation_axis"])))
+            rdi["beam_axis"] = gpa("DIRECT BEAM COORDINATES (REC. ANGSTROEM)")
+            rdi.update(dict(zip(["bvx","bvy","bvz"],rdi["beam_axis"])))
+        else:
+            st0 = self.lp.index("SELECTED SPACE GROUP AND UNIT")
+            rdi["RMSd_spotPosition"] = rdi["RMSd_spindlePosition"] = -1.
+            rdi["Space_group_num"] = gpa(" SPACE_GROUP_NUMBER=", start=st0)            
+            rdi["Cell_ref"] = gpa(" UNIT_CELL_CONSTANTS=", start=st0)
+            rdi["Mosaicity"] = -1.
+            rdi["det_dist"] = gpa("CRYSTAL TO DETECTOR DISTANCE (mm)")
+            rdi["x_beam"], rdi["y_beam"] = gpa("DETECTOR ORIGIN (PIXELS) AT")
+            rdi["rotation_axis"] = [-1, -1, -1]
+            rdi.update(dict(zip(["rvx","rvy","rvz"],[-1,-1,-1])))
+            rdi["beam_axis"] = [-1, -1, -1]
+            rdi.update(dict(zip(["bvx","bvy","bvz"],[-1,-1,-1])))
+
         r = gpa(" "+"-"*74+"\n")
         rdi["I_sigma"], rdi["Rsym"] = r[2], r[4]
         rdi["Compared"], rdi["Total"] = r[6], r[7]
@@ -672,7 +719,7 @@ class XDSLogParser:
         prp += "\n  Compared reflections:                 %(Compared)d\n"
         prp += "  Total number of measures:             %(Total)d"
         if self.verbose:
-            print prp % rdi
+            prnt(prp % rdi)
         return rdi, prp
 
     def get_proper_resolition_range(self, res_table):
@@ -692,20 +739,17 @@ class XDSLogParser:
         return high_hit
 
     def run_exec_str(self, execstr):
-        if sys.version_info <= (2, 4, 0):
-            spot_file = os.popen(execstr)
-            outp = spot_file.read()
-            spot_file.close()
-        else:
-            outp = Popen([execstr], stdout=PIPE, shell=True).communicate()[0]
+        outp = Popen([execstr], stdout=PIPE, shell=True).communicate()[0]
         return outp
 
     def get_xds_version(self):
         "Get the version of XDS"
-        _execstr = "cd /tmp; %s | grep VERSION" % \
-                                         os.path.join(XDS_PATH,"xds_par")
-        wc_out = self.run_exec_str(_execstr)
-        return wc_out.strip()[24:-12].replace(")","")
+        _execstr = "cd /tmp; %s" % os.path.join(XDS_PATH,"xds_par")
+        wc_out = self.run_exec_str(_execstr).splitlines()[1:]
+        if "license expired" in wc_out[0]:
+            prnt(wc_out[0].replace(" licen", " XDS licen"), CRITICAL)
+        else:
+            return wc_out[0].strip()[24:-12].replace(")","")
 
     def get_spot_number(self):
         "Read the number of spot directly from SPOT.XDS"
@@ -757,14 +801,10 @@ class XDS:
 
     def _creat_process(self, _execstr):
         "Return a process with pipe redirected IO."
-        if sys.version_info <= (2, 4, 0):
-            self.wait_value = -1
-            return Popen3(_execstr)
-        else:
-            self.wait_value = None
-            return Popen(_execstr, stdin=PIPE, stdout=PIPE,
-                              stderr=PIPE, bufsize=1, close_fds=True,
-                              universal_newlines=True)
+        self.wait_value = None
+        return Popen(_execstr, stdin=PIPE, stdout=PIPE,
+                          stderr=PIPE, bufsize=1, close_fds=True,
+                          universal_newlines=True)
 
     def cancel(self):
         "Cancel the job."
@@ -800,7 +840,7 @@ class XDS:
                 try:
                     os.mkdir(self.run_dir)
                 except OSError, err:
-                    print "ERROR: %s" % err
+                    prnt(err, ERROR)
                     raise XIO.XIOError, \
                      ("\nSTOP! Can't create xds working directory: %s\n" % \
                                                               self.run_dir)
@@ -837,20 +877,20 @@ class XDS:
             # ilines parsing of stdout
             if self.step_name == "INTEGRATE":
                 if _init_parse:
-                    print "    Processing    Mean #Strong  ",
-                    print "Estimated   Overloaded"
-                    print "    Image Range   refl./image   ",
-                    print "Mosaicity   reflections\n"
+                    prnt("    Processing    Mean #Strong  " +
+                         "Estimated   Overloaded" +
+                         "    Image Range   refl./image   " +
+                         "Mosaicity   reflections\n")
                     table_int = []
                     _init_parse = False
                 if INTEGRATE_STEP_RE.search(lines):
-                    print lines[44:50]+" - "+lines[56:-1],
+                    _msg = lines[44:50]+" - "+lines[56:-1]
                     nimages = int(lines[56:-1]) - int(lines[44:50]) + 1
                 elif INTEGRATE_STRONG_RE.search(lines):
-                    print "%11.0f" % (float(lines.split()[0])/nimages),
+                    _msg += "%11.0f" % (float(lines.split()[0])/nimages)
                 elif INTEGRATE_MOSAICITY_RE.search(lines):
-                    print " %11.3f" % float(lines.split()[3]),
-                    print " %11d" %  overloaded_spots
+                    _msg += " %11.3f" % float(lines.split()[3])
+                    prnt(_msg + " %11d" % overloaded_spots)
                     overloaded_spots = 0
                 hit = SCALE_RE.search(lines)
                 if hit:
@@ -862,7 +902,7 @@ class XDS:
                 self.step_name = sm.group(2)
                 #if VERBOSE:
                 if verbose:
-                    print "\n --->  Running job: %20s\n" % self.step_name
+                    prnt("\n --->  Running job: %20s\n" % self.step_name)
             if lines:
                 self.outp.append(lines)
         self.step += 1
@@ -905,9 +945,8 @@ class XDS:
         newspots.writelines(filtredSpots)
         ni, nf = len(spots), len(filtredSpots)
         if verbose:
-            print ">> Selected spots with %.2f resolution cutoff:" % \
-                                                           (res_cutoff),
-            print "%d / %d (%.1f%%)" % (nf, ni, nf*100./ni)
+            prnt(">> Selected spots with %.2f resolution cutoff:  %d / %d (%.1f%%)" % \
+                           (res_cutoff, nf, ni, nf*100./ni))
         newspots.close()
 
     def run_init(self):
@@ -930,8 +969,8 @@ class XDS:
         self.run(rsave=True)
         res = XDSLogParser("INIT.LP", run_dir=self.run_dir, verbose=1)
         if res.results["mean_background"] < 1.:
-            print "  WARNING: INIT has found a very LOW mean background.\n" + \
-                  "  -> Setting FIXED_SCALE_FACTOR for INTEGRATE step."
+            prnt("INIT has found a very LOW mean background.\n" + \
+              "  -> Setting FIXED_SCALE_FACTOR for INTEGRATE step.", WARNING)
             self.inpParam["DATA_RANGE_FIXED_SCALE_FACTOR"] = i1, i2, 1.
         return res.results
 
@@ -989,7 +1028,7 @@ class XDS:
         _rs = "  Image range(s) for spot collection: "
         for sub_range in self.inpParam["SPOT_RANGE"]:
             _rs += ("  [%d - %d]," % tuple(sub_range))
-        print _rs[:-1] + "\n"
+        prnt(_rs[:-1] + "\n")
 
         res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         while res.results["spot_number"] < MIN_SPOT_NUMBER and _trial < 4:
@@ -998,9 +1037,9 @@ class XDS:
             self.inpParam["MINIMUM_NUMBER_OF_PIXELS_IN_A_SPOT"] = max(min_pixels-1, 1)
             self.inpParam["STRONG_PIXEL"] -= 1.
             #self.inpParam["SPOT_MAXIMUM_CENTROID"] += 1
-            print "Insuficiant number of spot (minimum set to %d)." % \
-                                                         MIN_SPOT_NUMBER
-            print "Recollecting spots. Trial number %d" % _trial
+            prnt("Insuficiant number of spot (minimum set to %d)." % \
+                                                         MIN_SPOT_NUMBER)
+            prnt("Recollecting spots. Trial number %d" % _trial)
             self.run(rsave=True)
             res = XDSLogParser("COLSPOT.LP", run_dir=self.run_dir, verbose=1)
         return res.results
@@ -1021,12 +1060,12 @@ class XDS:
         try:
             res = XDSLogParser("IDXREF.LP", run_dir=self.run_dir, verbose=1)
         except XDSExecError, err:
-            print " !!! ERROR in", err[1], "\n"
-            if err[0] == "FATAL" and not (beam_center_swap or beam_center_search):
+            prnt(" in %s\n" % err[1], ERROR)
+            if err[0] == "FATAL" and not (beam_center_swap or 
+                                          beam_center_search):
                 sys.exit()
         except Exception, err:
-            print err
-            sys.exit()
+            prnt(err, CRITICAL)
 
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         dist = self.inpParam["DETECTOR_DISTANCE"]
@@ -1048,20 +1087,20 @@ class XDS:
             for origin in origins:
                 self.inpParam["ORGX"] = origin[0]
                 self.inpParam["ORGY"] = origin[1]
-                print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
-                                           (origin[0]*qx, origin[1]*qy),
-                print "  %.1f, %.1f" % (origin[0], origin[1])
+                prnt("   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
+                                           (origin[0]*qx, origin[1]*qy) +
+                          "  %.1f, %.1f" % (origin[0], origin[1]))
                 self.run(rsave=True, verbose=False)
                 try:
                     test_results.append(XDSLogParser("IDXREF.LP",
-                                           run_dir=self.run_dir,
-                                           verbose=0, raiseErrors=True).results)
+                                         run_dir=self.run_dir,
+                                         verbose=0, raiseErrors=True).results)
                 except XDSExecError, err:
-                    print "\t\tError in", err
+                    prnt(" in %s" % err, ERROR)
         if beam_center_search:
             RD = res.results
-            print " Number of possible beam coordinates: %d" % \
-                              len(RD["index_origin_table"])
+            prnt(" Number of possible beam coordinates: %d" % \
+                                 len(RD["index_origin_table"]))
             maxTestOrigin = min(60, len(RD["index_origin_table"]))
             origins = RD["index_origin_table"][:maxTestOrigin]
             for origin in origins:
@@ -1074,27 +1113,27 @@ class XDS:
                 self.inpParam["INCIDENT_BEAM_DIRECTION"] = tuple(beam)
                 #print "DEBUG:  %7.1f %7.1f  - %7.1f %7.1f" % \
                 #  (coorx, coory, self.inpParam["ORGX"], self.inpParam["ORGY"])
-                print "   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
-                                           (origin[5]*qx, origin[6]*qy),
-                print "  %.1f, %.1f" % (origin[5], origin[6])
+                prnt("   Testing beam coordinate: (%.2fmm, %.2fmm) = " % \
+                                           (origin[5]*qx, origin[6]*qy) +
+                          "  %.1f, %.1f" % (origin[5], origin[6]))
                 self.run(rsave=True, verbose=False)
                 try:
                     test_results.append(XDSLogParser("IDXREF.LP",
-                                           run_dir=self.run_dir,
-                                           verbose=0, raiseErrors=True).results)
+                                         run_dir=self.run_dir,
+                                         verbose=0, raiseErrors=True).results)
                 except XDSExecError, err:
                     print "\t\tError in", err
         if beam_center_search or beam_center_swap:
-            print "\n"
+            prnt("\n")
             # Need to lookup in the results for the beam-center giving
             best_index_rank = rank_indexation(test_results, ranking_mode)
             #for o in origins:
             #    print origins.index(o), o[:-3]
             best_origin = origins[best_index_rank[ranking_mode]-1]
             if VERBOSE:
-                print best_index_rank
+                prnt(best_index_rank)
                 #fmt = "%4i%4i%4i%7.2f%7.2f%8.1f%8.1f%9.5f%9.5f%9.5f"
-                print "best_index_rank", best_index_rank[ranking_mode]
+                print("best_index_rank %s" % best_index_rank[ranking_mode])
                 #print "best_origin", fmt % tuple(best_origin)
             if beam_center_search:
                 best_beam = vec3(best_origin[7:10])
@@ -1116,7 +1155,7 @@ class XDS:
         "Checking normal terminaison."
         if not os.path.exists(os.path.join(self.run_dir, fileout)):
             err = "Abnormal terminaison. Can't locate file: '%s'" % fileout
-            print err
+            prnt(err, ERROR)
             raise Exception(err)
 
     def run_xplan(self, ridx=None):
@@ -1181,19 +1220,19 @@ class XDS:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         # run pointless on INTEGRATE.HKL
         if not is_pointless_installed():
-            print "!!  Warning. Pointless program not installed."
-            print "  -> Skipping pointless analysis."
+            prnt("Pointless program not installed. XDS will try to guess" +
+                 " the Laue group. Have a look at the systematic extinctions",
+                 WARNING)
             likely_spg = [["P1", 0],]
             new_cell = False
         else:
-            print "     Pointless analysis on the INTEGRATE.HKL file"
-            print "     "+44*"="
+            prnt("    Pointless analysis on the INTEGRATE.HKL\n"+"    "+44*"=")
             try:
                 likely_spg, new_cell = pointless(dir_name=self.run_dir,
                                                  hklinp="INTEGRATE.HKL")
             except:
                 raise
-                print "  -> ERROR. While running Pointless. Skipped"
+                prnt(" While running Pointless. Skipped", ERROR)
                 likely_spg = [["P1", 0],]
                 new_cell = False
         self.inpParam["JOB"] = "CORRECT",
@@ -1210,8 +1249,8 @@ class XDS:
         # run CORRECT
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
-        print "  Upper theoritical limit of I/sigma: %8.3f\n" % \
-                                             res.results["IoverSigmaAsympt"]
+        prnt("\n  Upper theoritical limit of I/sigma: %8.3f\n" % \
+                                             res.results["IoverSigmaAsympt"])
 
         L, H = self.inpParam["INCLUDE_RESOLUTION_RANGE"]
         newH = res.results["HighResCutoff"]
@@ -1249,11 +1288,11 @@ class XDS:
     def run_correct(self, res_cut=(1000, 0), spg_num=0):
         "Runs the last step: CORRECT"
         if res_cut[1]:
-            print "   ->  New high resolution limit: %.2f Å" % res_cut[1]
+            prnt("   ->  New high resolution limit: %.2f Å" % res_cut[1])
             self.inpParam["INCLUDE_RESOLUTION_RANGE"] = res_cut
         if spg_num:
-            print "   ->  Using spacegroup: %s  #%d" % \
-                                   (SPGlib[spg_num][1], spg_num)
+            prnt("   ->  Using spacegroup: %s  #%d" % \
+                                           (SPGlib[spg_num][1], spg_num))
         lattice = Lattice(self.inpParam["UNIT_CELL_CONSTANTS"],
                           symmetry=spg_num)
         lattice.idealize()
@@ -1262,12 +1301,11 @@ class XDS:
         self.inpParam["SPACE_GROUP_NUMBER"] = spg_num
         self.run(rsave=True)
         res = XDSLogParser("CORRECT.LP", run_dir=self.run_dir, verbose=1)
-        print "  Upper theoritical limit of I/sigma: %8.3f" % \
-                                             res.results["IoverSigmaAsympt"]        
+        prnt("\n  Upper theoritical limit of I/sigma: %8.3f\n" % \
+                                             res.results["IoverSigmaAsympt"])
         s = resum_scaling(lpf=os.path.join(self.run_dir,"CORRECT.LP"))
         if not s:
-            print "\nERROR while running CORRECT"
-            sys.exit()
+            prnt("while running CORRECT", CRITICAL)
         s["image_start"], s["image_last"] = self.inpParam["DATA_RANGE"]
         s["name"] = os.path.basename(self.inpParam["NAME_TEMPLATE_OF_DATA_FRAMES"])
         s["image_path"] = os.path.realpath("img")
@@ -1284,12 +1322,12 @@ class XDS:
             s["run_dir_p"] = os.path.dirname(s["run_dir"])
             aimless_ID = "%saimless" % frame_ID
             s["mtz_out"] = "%s.mtz" % aimless_ID
-        print "\n", s.last_table
-        print FMT_FINAL_STAT % vars(s)
+        prnt(s.last_table)
+        prnt(FMT_FINAL_STAT % vars(s))
         if s.absent:
             print FMT_ABSENCES % vars(s)
         if self.inpParam["FRIEDEL'S_LAW"] == "FALSE":
-            print FMT_ANOMAL % vars(s)
+            prnt(FMT_ANOMAL % vars(s))
         if s.compl > MINIMAL_COMPL_TO_EXPORT or XML_OUTPUT:
             if RUN_AIMLESS:
                 run_aimless(self.run_dir)
@@ -1338,8 +1376,8 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
     i_score = []
     for indexation in indexations:
         nind += 1
-        print " Test indexation number: %d" % nind
-        print prp % indexation
+        prnt(" Test indexation number: %d" % nind)
+        prnt(prp % indexation)
         #
         origin_t = indexation["index_origin_table"]
         quality_contrast = origin_t[1][3] - origin_t[0][3]
@@ -1353,7 +1391,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
         for items in rank_items:
             rank_table[items].append(indexation[items])
         #
-        print " Contrast in the quality of indexation: ", quality_contrast
+        prnt(" Contrast in the quality of indexation: %s" % quality_contrast)
         pp4, pp6 = "\n\tQuality:       ", "\n\tShift (pixels):"
         pp7, pp8 = "\n\tBeam X (pixel):", "\n\tBeam Y (pixel):"
         pp9 = "\n\tIndex Origin:  "
@@ -1364,10 +1402,10 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
             pp8 += "%9.1f," % (origin_t[i][6])
             pp9 += "%3d%3d%3d," % tuple(origin_t[i][0:3])
         #
-        print pp4[:-1] + pp6[:-1] + pp7[:-1] + pp8[:-1] +  pp9[:-1] + "\n"
+        prnt(pp4[:-1] + pp6[:-1] + pp7[:-1] + pp8[:-1] +  pp9[:-1] + "\n")
     #
     z_table = {}
-    print "%22s: " % "Test number", " %3d"*nind % tuple(range(1, nind+1))
+    prnt("%22s: " % "Test number" + (" %3d"*nind % tuple(range(1, nind+1))))
     for item in rank_table:
         isorted = rank_table[item][:]
         if item in ["indexed_percentage", "quality_contrast", "i_score"]:
@@ -1377,8 +1415,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
         isorted.sort(reverse=reverse)
         #
         rank = [isorted.index(i) + 1 for i in rank_table[item]]
-        print "%22s: " % item,
-        print " %3d"*len(rank) % tuple(rank)
+        prnt("%22s: " % item + " %3d"*len(rank) % tuple(rank))
         z_table[item] = rank
     #
     z_score = []
@@ -1386,8 +1423,7 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
         z_score.append(z_table["quality_contrast"][idq] +
                        z_table["xy_spot_position_ESD"][idq] +
                        z_table["z_spot_position_ESD"][idq])
-    print "%22s: " % "z_score",
-    print " %3d"*len(z_score) % tuple(z_score)
+    prnt("%22s: " % "z_score" + " %3d"*len(z_score) % tuple(z_score))
     z_best_index = z_score.index(min(z_score))
     i_best_index = i_score.index(max(i_score))
     best_beam_center = {}
@@ -1402,11 +1438,10 @@ def rank_indexation(indexations, ranking_mode="ISCORE"):
     _best =  best_beam_center[ranking_mode]
     fmt1 =  "%s Best  %s_score rank: %3d  for Solution #%-3d"
     fmt2 = " beamx=%7.1f beamy=%7.1f"
-    print
-    print fmt1 % (iflag, "I", 1, i_best_index+1),
-    print fmt2 % tuple(best_beam_center["ISCORE"])
-    print fmt1 % (zflag, "Z", min(z_score), z_best_index+1),
-    print fmt2 % tuple(best_beam_center["ZSCORE"])
+    prnt("\n" + fmt1 % (iflag, "I", 1, i_best_index+1) +
+                fmt2 % tuple(best_beam_center["ISCORE"]) +
+                fmt1 % (zflag, "Z", min(z_score), z_best_index+1) +
+                fmt2 % tuple(best_beam_center["ZSCORE"]))
     return {"ISCORE":i_best_index, "ZSCORE": z_best_index}
 
 def get_beam_origin(beam_coor, beam_vec, det_parameters):
@@ -1482,7 +1517,6 @@ def select_strategy(idxref_results, xds_par):
     "Interactive session to select strategy parameters."
     sel_spgn = SPG #xds_par["SPACE_GROUP_NUMBER"]
     sel_ano =  xds_par["FRIEDEL'S_LAW"]
-    #print xds_par["UNIT_CELL_CONSTANTS"]
     valid_inp = False
     bravais_to_spgs = get_BravaisToSpgs()
     # Select LATTICE
@@ -1510,15 +1544,15 @@ def select_strategy(idxref_results, xds_par):
             else:
                 raise Exception, "Invalid selection input."
         except Exception, err:
-            print "\n ERROR. ", err
+            prnt(err, ERROR)
     sel_lat = idxref_results["lattices_table"][selnum-1]
     if sel_spgn == 0:
         sel_spgn = sel_lat.symmetry_num
     valid_inp = False
     # Select SPACEGROUP
-    print " Possible spacegroup for this lattice are:\n"
+    prnt(" Possible spacegroup for this lattice are:\n")
     for spgsymb in bravais_to_spgs[sel_lat.Bravais_type]:
-        print "  %15s, number: %3d" % (SPGlib[spgsymb][1], spgsymb)
+        prnt("  %15s, number: %3d" % (SPGlib[spgsymb][1], spgsymb))
     while not valid_inp:
         selection = raw_input("\n Select the spacegroup [%s, %d]: "
                              % (SPGlib[sel_spgn][1], sel_spgn))
@@ -1543,7 +1577,7 @@ def select_strategy(idxref_results, xds_par):
                                  (SPGlib[spgsymb][1], spgsymb)
                 raise Exception, msg
         except Exception, err:
-            print "\n ERROR. ", err
+            prnt(err, ERROR)
     valid_inp = False
     # Select ANOMALOUS
     while not valid_inp:
@@ -1565,11 +1599,11 @@ def select_strategy(idxref_results, xds_par):
             else:
                 raise Exception, "Invalid answer [Y/N]."
         except Exception, err:
-            print "\n ERROR. ", err
-    print "\n Selected  cell paramters:  ", sel_lat
+            prnt(err, ERROR)
+    prnt("\n Selected  cell paramters:  %s" % sel_lat)
     if sel_spgn > 2:
         sel_lat.idealize()
-        print " Idealized cell parameters: ", sel_lat.prt()
+        prnt(" Idealized cell parameters: %s" % sel_lat.prt())
         xds_par["UNIT_CELL_CONSTANTS"] = sel_lat.prt()
     xds_par["SPACE_GROUP_NUMBER"] = sel_spgn
     return xds_par
@@ -1627,9 +1661,8 @@ if __name__ == "__main__":
     DIRNAME_PREFIX = "xdsme_"
     NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
-    WARNING = ""
+    WARN_MSG = ""
     VERBOSE = False
-    DEBUG = False
     WEAK = False
     ANOMAL = False
     ICE = False
@@ -1673,8 +1706,8 @@ if __name__ == "__main__":
             XDS_PATH = a
             xdsf = os.path.join(XDS_PATH, "xds_par")
             if not (os.path.isfile(xdsf) and os.access(xdsf, os.X_OK)):
-                print "WARNING: no 'xds_par' exec found in path %s." % XDS_PATH
-                print "         Using default $PATH location."
+                prnt("WARNING: no 'xds_par' exec found in path %s." % XDS_PATH, WARNING)
+                prnt("         Using default $PATH location.", WARNING)
                 XDS_PATH = ""
             else:
                 os.environ['PATH'] = "%s%s%s" % (XDS_PATH, os.pathsep,
@@ -1701,9 +1734,7 @@ if __name__ == "__main__":
             if os.path.isfile(a):
                 REFERENCE = str(a)
             else:
-                print "\n  ERROR: Can't open reference file %s." % a
-                print "  STOP!\n"
-                sys.exit()
+                prnt("Can't open reference file %s." % a, CRITICAL)
         if o in ("-F", "--first-frame"):
             FIRST_FRAME = int(a)
         if o in ("-L", "--last-frame"):
@@ -1714,9 +1745,7 @@ if __name__ == "__main__":
             if os.path.isfile(a):
                 ORIENTATION_MATRIX = str(a)
             else:
-                print "\n  ERROR: Can't open orientation matrix file %s." % a
-                print "  STOP!\n"
-                sys.exit()
+                prnt("Can't open orientation matrix file %s." % a, CRITICAL)
         if o in ("-n","--nthreads"):
             NUMBER_OF_PROCESSORS = int(a)
         if o in ("-p", "--project"):
@@ -1771,14 +1800,12 @@ if __name__ == "__main__":
             INVERT = True
         if o in ("-h", "--help"):
             print USAGE
-            sys.exit()
+            sys.exit(2)
 
     if not inputf:
-        print "\nFATAL ERROR. No image file specified.\n"
-        sys.exit(2)
+        prnt("No image file specified.", CRITICAL)
     elif not os.path.isfile(inputf[0]):
-        print "\nFATAL ERROR. Image file %s not found.\n" % inputf[0]
-        sys.exit(2)
+        prnt("Image file %s not found.\n" % inputf[0], CRITICAL)
     else:
         # TODO cycle over input_file with try/except to avoid XIOError
         _coll = XIO.Collect(inputf[0])
@@ -1786,10 +1813,14 @@ if __name__ == "__main__":
         newDir = DIRNAME_PREFIX + _coll.prefix
     else:
         newDir = DIRNAME_PREFIX + PROJECT
-    #
+
+    fileHandler = logging.FileHandler("{0}/{1}.log".format("./", newDir))
+    fileHandler.setFormatter(logFormatter)
+    prntLog.addHandler(fileHandler)
+
     _linkimages = False
     if not _coll.isContinuous(inputf):
-        print "Discontinous naming scheme, creating ling."
+        prnt("Discontinous naming scheme, creating links.", WARNING)
         _linkimages = True
         link_dir_name = "img_links"
         inputf = make_xds_image_links(inputf,
@@ -1805,9 +1836,8 @@ if __name__ == "__main__":
         collect.lookup_imageRanges(forceCheck=False)
 
     except XIO.XIOError, _mess:
-        print _mess
-        print "\nError: Can't access to file(s) %s.\nStop." % inputf
-        sys.exit(2)
+        prnt(_mess, ERROR)
+        prnt("Can't access to file(s) %s.\nStop." % inputf, CRITICAL)
 
     imgDir = collect.directory
     newPar = collect.export("xds")
@@ -1853,11 +1883,11 @@ if __name__ == "__main__":
         newPar["SPACE_GROUP_NUMBER"] = SPG
         newPar["UNIT_CELL_CONSTANTS"] = CELL
     elif SPG and not CELL:
-        WARNING = "  WARNING: Spacegroup is defined but not cell."
-        WARNING += " Waiting for indexation for setting cell."
+        WARN_MSG = "  WARNING: Spacegroup is defined but not cell."
+        WARN_MSG += " Waiting for indexation for setting cell."
     elif CELL and not SPG:
-        WARNING = "  WARNING: Cell is defined but not spacegroup,"
-        WARNING += " setting spacegroup to P1."
+        WARN_MSG = "  WARNING: Cell is defined but not spacegroup,"
+        WARN_MSG += " setting spacegroup to P1."
         newPar["SPACE_GROUP_NUMBER"] = 1
         newPar["UNIT_CELL_CONSTANTS"] = CELL
     if DISTANCE:
@@ -1879,9 +1909,8 @@ if __name__ == "__main__":
             newPar["UNIT_CELL_B_AXIS"] = omat[1]
             newPar["UNIT_CELL_C_AXIS"] = omat[2]
         except:
-            print "\nERROR Can't import orientation matrix from: %s" % \
-                                  ORIENTATION_MATRIX
-            sys.exit()
+            prnt("Can't import orientation matrix from: %s" % \
+                                          ORIENTATION_MATRIX, CRITICAL)
     if WAVELENGTH:
         newPar["X_RAY_WAVELENGTH"] = WAVELENGTH
     if OPTIMIZE in [1, 4]:
@@ -1889,7 +1918,7 @@ if __name__ == "__main__":
     if OPTIMIZE >= 2:
         profiles = getProfilRefPar(os.path.join(newDir, "INTEGRATE.LP"))
         newPar.update(profiles)
-        print "UPDATED PROFILES: %s" % profiles
+        prnt("UPDATED PROFILES: %s" % profiles)
     if OPTIMIZE == 4:
         newPar["REFINE(INTEGRATE)= NONE"]
     #if XDS_INPUT:
@@ -1916,7 +1945,6 @@ if __name__ == "__main__":
     newrun.inpParam.mix(newPar)
     newrun.set_collect_dir(os.path.abspath(imgDir))
     newrun.run_dir = newDir
-    #print newPar
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
     _DELPHI = NUMBER_OF_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
@@ -1932,31 +1960,30 @@ if __name__ == "__main__":
 
     xds_version = XDSLogParser().get_xds_version()
     xdsme_version = __version__
-    if XDS_PATH: print ">> XDS_PATH set to: %s" % XDS_PATH
-    print "\n    Simplified XDS Processing"
-    print "\n      xds   version: %18s" % xds_version
-    print "      xdsme version: %18s" % xdsme_version
-    print FMT_HELLO % vars(newrun.inpParam)
-    print "  Selected resolution range:       %.2f - %.2f A" % \
-                                           newPar["INCLUDE_RESOLUTION_RANGE"]
-    print "  Number of processors available:    %3d\n" % NUMBER_OF_PROCESSORS
+    if XDS_PATH:
+        prnt(">> XDS_PATH set to: %s" % XDS_PATH)
+    prnt(FMT_VERSION % (xds_version, xdsme_version)
+    prnt(FMT_HELLO % vars(newrun.inpParam))
+    prnt("  Selected resolution range:       %.2f - %.2f A" % \
+                                           newPar["INCLUDE_RESOLUTION_RANGE"])
+    prnt("  Number of processors available:    %3d\n" % NUMBER_OF_PROCESSORS)
 
-    if WARNING:
-        print WARNING
+    if WARN_MSG:
+        prnt(WARN_MSG, WARNING)
     if SPG:
         print _spg_str
 
     #newrun.run()
     R1 = R2 = R3 = R4 = R5 = None
     if STEP > 1:
-        print "\n Starting at step: %d (%s)\n" % (STEP, JOB_STEPS[STEP-1])
+        prnt("\n Starting at step: %d (%s)\n" % (STEP, JOB_STEPS[STEP-1]))
     if STEP <= 1:
         R1 = newrun.run_init()
     if STEP <= 2:
         R2 = newrun.run_colspot()
     if STEP <= 3:
         if RES_HIGH:
-            print "   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH
+            prnt("   Applying a SPOT RESOLUTION CUTOFF: %.2f A" % RES_HIGH)
             # July 2013: spot resolution cutoff is now included in xds
             #newrun.spots_resolution_cutoff(RES_HIGH, verbose=True)
         R3 = newrun.run_idxref(_beam_center_optimize,
@@ -1965,16 +1992,15 @@ if __name__ == "__main__":
     if R3:
         i = 0
         _selected_cell = []
-        print "    TABLE OF POSSIBLE LATTICES:\n"
-        print " num  Symm  quality  mult     a      b      c",
-        print "   alpha   beta  gamma"
-        print " "+"-"*67
+        prnt("    TABLE OF POSSIBLE LATTICES:\n")
+        prnt(" num  Symm  quality  mult     a      b      c   " +
+              "alpha   beta  gamma\n "+"-"*67)
         fmt_lat = "%3d) %5s %7.2f  %4d  %s"
         for LAT in R3["lattices_table"]:
             if LAT.fit <= LATTICE_GEOMETRIC_FIT_CUTOFF:
                 i += 1
-                print fmt_lat % (i, LAT.symmetry_str1,
-                            LAT.fit, LAT.multiplicity, LAT)
+                prnt(fmt_lat % (i, LAT.symmetry_str1,
+                            LAT.fit, LAT.multiplicity, LAT))
         # If not multiple possible solutions (like P2, or P1...)try to define
         # unitcell from spacegroup.
         #if _spg and not _cell:
