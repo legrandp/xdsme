@@ -74,7 +74,7 @@ from xml_output import xml_aimless_to_autoproc, XML_INTEGRATION_PART,\
 from xupy import XParam, xdsInp2Param, opWriteCl, saveLastVersion,\
     LP_names, xdsinp_base, SPGlib, Lattice, resum_scaling, get_BravaisToSpgs,\
     get_number_of_processors, EXCLUDE_ICE_RING, gxparm2xpar, getProfilRefPar
-
+from simple_xscale import simple_xscale
 import XIO
 
 PROGNAME = os.path.split(sys.argv[0])[1]
@@ -1346,6 +1346,7 @@ class XDS:
                     xmlo = os.path.join(s["run_dir"], "%sxdsme.xml" % frame_ID)
                     with open(xmlo, "w") as outputxml:
                        outputxml.write(XML_TEMPL_MAIN % (xml1 + xml2 + xml3))
+                    simple_xscale(run_dir=self.run_dir)
             if RUN_XDSCONV:
                 run_xdsconv(self.run_dir)
 
