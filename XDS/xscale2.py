@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "25-10-2017"
-__copyright__ = "Copyright (c) 2003-2017 Pierre Legrand"
+__date__ = "25-09-2018"
+__copyright__ = "Copyright (c) 2003-2018 Pierre Legrand"
 __license__ = "LGPL"
 
-usage   = """
+USAGE   = """
 
 >>>   Usage : xscale2.py [-h] [-u] [-a/n] [-N nbins] [reso_high ]
 
@@ -32,7 +32,7 @@ import os
 from xupy import exec_prog, resum_scaling
 from XDSReflectionFile import XDSReflectionFile
 
-input_head = """!
+INPUT_HEAD = """!
 !      A single output file is generated from scaling 2 input
 !      files making use of most of XSCALE's input parameters.
 !      To activate an input parameter remove all "!" left of it.
@@ -50,13 +50,13 @@ input_head = """!
 
 """
 
-output_str = """\nOUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
+OUTPUT_STR = """\nOUTPUT_FILE= %(hklout)s   ! For wavelength= %(wavelength).5f
 STRICT_ABSORPTION_CORRECTION= TRUE
       MERGE=%(merge)s
 
 """
 
-_fmt_final_stat = """
+FMT_FINAL_STAT = """
         Refined Parameters and Scaling Statistics
         =========================================\n
 
@@ -97,7 +97,7 @@ FRIEDELS_LAW = True
 FRIEDELS_LAW_TRUE = False
 
 if sys.argv.count("-h"):
-    print usage
+    print USAGE
     sys.exit()
 if sys.argv.count("-S0"):
     sys.argv.remove("-S0")
@@ -135,7 +135,7 @@ for arg in sys.argv[1:]:
         pass
 
 if xds_input_files == []:
-    print usage 
+    print USAGE 
     sys.exit()
 
 # the first reflection file is taken as the reference.
@@ -153,7 +153,7 @@ except:
     refdic['wavelength'] = float(hklref.header["ISET_1"])
     
 f = open("XSCALE.INP","w")
-f.write(input_head % refdic)
+f.write(INPUT_HEAD % refdic)
 
 hklf_files = []
 wavelengths = []
@@ -178,7 +178,7 @@ if len(wavelengths) > 1:
             break
 
 if not muliwavelength:
-    f.write((output_str % refdic).upper())
+    f.write((OUTPUT_STR % refdic).upper())
 
 mad_fnames = []
 print "MultiWavelength:", muliwavelength
@@ -189,7 +189,7 @@ for hklf in hklf_files:
         refdic['hklout'] = (fname)
         print fname, mad_fnames
         if fname not in mad_fnames:
-            f.write((output_str % refdic).upper())
+            f.write((OUTPUT_STR % refdic).upper())
             mad_fnames.append(fname)
     f.write("   INPUT_FILE= %s\n" % hklf.fileName)
     if ZERO_DOSE:
@@ -221,6 +221,6 @@ if not s:
     sys.exit()
     #else:
     #    print s
-print _fmt_final_stat % vars(s)
+print FMT_FINAL_STAT % vars(s)
 #if ["FRIEDEL'S_LAW"] == "FALSE":
 #   print _fmt_anomal % vars(s)
