@@ -428,7 +428,7 @@ class XDSLogParser:
                              "results not accepted.")
                 _err_level = WARNING
             else:
-                prnt("\n %s \n" % (self.lp[_err:-1]), CRITICAL)
+                prnt("\n %s \n" % (self.lp[_err:-1]), WARNING)
         if _err_level in (CRITICAL, ERROR) and raiseErrors:
             raise XDSExecError, (_err_level, _err_type)
 
@@ -1318,7 +1318,7 @@ class XDS:
             frame_ID = s["name"].split("?")[0]
             s["hostname"] = os.uname()[1]
             s["osname"] = " ".join(os.uname())
-            s["username"] = "%s" % (os.environ["LOGNAME"])
+            s["username"] = "autoprocessing" #"%s" % (os.environ["LOGNAME"])
             s["cmd_line"] = " ".join(sys.argv).split(".cbf ")[0]
             s["xdsme_version"] = xdsme_version
             s["xds_version"] = xds_version
