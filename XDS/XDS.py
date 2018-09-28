@@ -391,49 +391,25 @@ class XDSLogParser:
                 raise IOError, "Can't read file: %s" % full_filename
         else:
             self.lp = ""
-        # Catch Errors:
+        # Catch Errors or Warnings:
         _err = self.lp.find(" !!! ") # Add a RE with ERROR or WARNING
-        _err_type = None
-        _err_level = None
         if _err != -1:
-            _err_msg = self.lp[_err:]
-            if _err_msg.count(" CANNOT READ IMAGE "):
-                _err_type = "Some images connot be read"
-                _err_level = WARNING
-            elif _err_msg.count("INSUFFICIENT PERCENTAGE (<"):
-                _err_type = "IDXREF. Percentage of indexed"
-                _err_type += " reflections bellow limit.\n"
-                _err_level = WARNING
-            elif _err_msg.count("ERROR IN REFINE !!! RETURN"):
-                _err_type = "IDXREF. Can't refine cell paramters."
-                _err_level = CRITICAL
-            elif _err_msg.count("USELESS DATA SET"):
-                _err_type = ("INTEGRATE.  USELESS DATA SET." +
-                             " Not enough images or bad diffraction ?")
-                _err_level = CRITICAL
-            elif _err_msg.count("SOLUTION IS INACCURATE"):
-                _err_type = "IDXREF. Solution is inaccurate.\n"
-                _err_level = WARNING
-            elif _err_msg.count("INSUFFICIENT NUMBER OF ACCEPTED SPOTS."):
-                _err_type = "IDXREF. INSUFFICIENT NUMBER OF ACCEPTED SPOTS."
-                _err_level = CRITICAL
-            elif _err_msg.count("CANNOT INDEX REFLECTIONS"):
-                _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = CRITICAL
-            elif _err_msg.count("CANNOT CONTINUE WITH A TWO-DIMENSIONAL"):
-                _err_type = "IDXREF. CANNOT INDEX REFLECTIONS."
-                _err_level = CRITICAL
-            elif _err_msg.count("REFINEMENT RESULTS NOT ACCEPTED "):
-                _err_type = ("CORRECT. Diffraction parameters refinement " +
-                             "results not accepted.")
-                _err_level = WARNING
-            else:
-                prnt("\n %s \n" % (self.lp[_err:-1]), WARNING)
-        if _err_level in (CRITICAL, ERROR) and raiseErrors:
-            raise XDSExecError, (_err_level, _err_type)
-
-        if self.verbose and _err != -1:
-            prnt(_err_type, _err_level)
+            ERR_LEVELS = {"WARNING": WARNING, "ERROR": ERROR, "CRITICAL": CRITICAL}
+            _err_lp = self.lp[_err:_err+200].splitlines()
+            _err_level, _err_msg = _err_lp[0].split(" !!! ")[1:]
+            _critical_err_types = (
+               "CANNOT INTERPRETE LATTICE BY THE GIVEN UNIT CELL",
+               "INSUFFICIENT PERCENTAGE (<",
+               "INSUFFICIENT NUMBER OF ACCEPTED SPOTS.",
+               "CANNOT INDEX REFLECTIONS",
+               "CANNOT CONTINUE WITH A TWO-DIMENSIONAL")
+            _level = ERR_LEVELS[_err_level]
+            for errstr in _critical_err_types:
+                 if errstr in _err_msg:
+                    _level = CRITICAL
+            prnt(_err_msg, _level)
+            if _level in (CRITICAL, ERROR) and raiseErrors:
+                raise XDSExecError, (_level, _err_msg)
 
         if full_filename.count("INIT.LP"):
             self.parse_init()
@@ -696,8 +672,8 @@ class XDSLogParser:
             rdi["Space_group_num"] = gpa(" SPACE_GROUP_NUMBER=", start=st0)            
             rdi["Cell_ref"] = gpa(" UNIT_CELL_CONSTANTS=", start=st0)
             rdi["Mosaicity"] = -1.
-            rdi["det_dist"] = gpa("CRYSTAL TO DETECTOR DISTANCE (mm)")
-            rdi["x_beam"], rdi["y_beam"] = gpa("DETECTOR ORIGIN (PIXELS) AT")
+            rdi["det_dist"] = 0.
+            rdi["x_beam"], rdi["y_beam"] = 0, 0
             rdi["rotation_axis"] = [-1, -1, -1]
             rdi.update(dict(zip(["rvx","rvy","rvz"],[-1,-1,-1])))
             rdi["beam_axis"] = [-1, -1, -1]
