@@ -106,7 +106,7 @@ def run_aimless(dir_name, hklinp="XDS_ASCII.HKL"):
     os.chdir("..")
 
 def run_xdsconv(dir_name, hklinp="XDS_ASCII.HKL"):
-    cmline = "xdsconv.py XDS_ASCII.HKL ccp4 -q" 
+    cmline = "xdsconv.py XDS_ASCII.HKL ccp4if -q" 
     os.chdir(dir_name)
     os.system(cmline)
 
