@@ -3,9 +3,9 @@
 
 """ Module to parse XML file from AIMLESS"""
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "24-09-2018"
+__date__ = "01-10-2018"
 __copyright__ = "Copyright (c) 2018 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -138,12 +138,22 @@ XML_PROGRAM_PART = """  <AutoProcProgramContainer>
     </AutoProcProgram>
     <AutoProcProgramAttachment>
       <fileType>Log</fileType>
-      <fileName>summary.html</fileName>
+      <fileName>%(xdsmeout)s</fileName>
       <filePath>%(run_dir_p)s</filePath>
+    </AutoProcProgramAttachment>
+    <AutoProcProgramAttachment>
+      <fileType>Log</fileType>
+      <fileName>%(aimlessout)s</fileName>
+      <filePath>%(run_dir)s</filePath>
     </AutoProcProgramAttachment>
     <AutoProcProgramAttachment>
       <fileType>Result</fileType>
       <fileName>%(mtz_out)s</fileName>
+      <filePath>%(run_dir)s/ccp4if</filePath>
+    </AutoProcProgramAttachment>
+    <AutoProcProgramAttachment>
+      <fileType>Result</fileType>
+      <fileName>XSCALE.LP</fileName>
       <filePath>%(run_dir)s</filePath>
     </AutoProcProgramAttachment>
   </AutoProcProgramContainer>"""
@@ -170,8 +180,9 @@ def parse_aimless_xml(xml_inp_name):
     #xml_inp = file_name_id + ""
     extr = {}
     # Raw read of the XML file
-    with open(xml_inp_name) as filein:
-        xml_raw = filein.read()
+    filein = open(xml_inp_name)
+    xml_raw = filein.read()
+    filein.close()
 
     # Reading informations from the XML file
     try:

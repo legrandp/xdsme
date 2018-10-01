@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "26-09-2018"
+__date__ = "01-10-2018"
 __copyright__ = "Copyright (c) 2018 Pierre Legrand"
 __license__ = "LGPL"
 
@@ -33,8 +33,9 @@ def simple_xscale(inpfn="XDS_ASCII.HKL", run_dir=None):
         os.chdir(run_dir)
     if not distutils.spawn.find_executable(XSCALE_PROGNAME):
         print("Executable xscale_par not found in PATH.")
-    with open("XSCALE.INP","w") as xinp:
-        xinp.write(XSCALE_INP_TEMPL % inpfn)
+    xinp = open("XSCALE.INP","w")
+    xinp.write(XSCALE_INP_TEMPL % inpfn)
+    xinp.close()
     lp = run_exec_str(XSCALE_PROGNAME)
     os.chdir(init_dir)
     return lp
@@ -55,6 +56,6 @@ if __name__ == '__main__':
         else:
             print "Error. Can't access XDS_ASCII.HKL file."
     if lpstr:
-        with open("xscale.log", "w") as lp:
-            lp.write(lpstr)
+        lp = open("xscale.log", "w")
+        lp.write(lpstr)
 
