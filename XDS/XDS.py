@@ -1810,7 +1810,7 @@ if __name__ == "__main__":
     else:
         newDir = DIRNAME_PREFIX + PROJECT
 
-    fileHandler = logging.FileHandler("{0}.log".format(newDir))
+    fileHandler = logging.FileHandler("%s.log" % newDir)
     fileHandler.setFormatter(logFormatter)
     prntLog.addHandler(fileHandler)
 
