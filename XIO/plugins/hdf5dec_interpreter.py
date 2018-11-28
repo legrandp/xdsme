@@ -3,16 +3,16 @@
 """ XIO plugin for the Dectris HDF5 image format.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "18-11-2017"
-__copyright__ = "Copyright (c) 2015-2017 Pierre Legrand"
+__date__ = "28-11-2018"
+__copyright__ = "Copyright (c) 2016-2018 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 
 FLOAT2 = lambda x: float(x)*1e3
-
+FLOAT3 = lambda x: x[0] if ('__iter__' in dir(x)) else x
 
 def date_time(time_str):
     """from str return standard str: 'Wed Oct 28 16:42:12 2009'"""
@@ -67,8 +67,8 @@ class Interpreter:
     'Width':(['/entry/instrument/detector/detectorSpecific/x_pixels_in_detector'], int),
     'Height':(['/entry/instrument/detector/detectorSpecific/y_pixels_in_detector'], int),
     'Message':(['MESSAGE'], lambda x: x.split(';')),
-    'PhiStart':(['/entry/sample/goniometer/phi'], lambda x: x[0]),
-    'PhiEnd':(['/entry/sample/goniometer/phi_end'], lambda x: x[0]),
+    'PhiStart':(['/entry/sample/goniometer/phi'], FLOAT3), 
+    'PhiEnd':(['/entry/sample/goniometer/phi_end'], FLOAT3),
     'PhiWidth':(['/entry/sample/goniometer/omega_range_average'], float),
     'EdgeResolution':(['/entry/instrument/detector/x_pixel_size',
        '/entry/instrument/detector/detectorSpecific/x_pixels_in_detector',
