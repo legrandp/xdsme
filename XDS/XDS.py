@@ -1655,7 +1655,7 @@ if __name__ == "__main__":
     STRFTIME2 = '%F %X'
     time_start = time.strftime(STRFTIME)
     DIRNAME_PREFIX = "xdsme_"
-    NUMBER_OF_PROCESSORS = min(32, get_number_of_processors())
+    NUMBER_OF_PROCESSORS = min(64, get_number_of_processors())
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
     WARN_MSG = ""
     VERBOSE = False
