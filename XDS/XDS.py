@@ -1059,7 +1059,7 @@ class XDS:
                                           beam_center_search):
                 sys.exit()
         except Exception, err:
-            prnt(err, CRITICAL)
+            prnt(" %s\n" % err, CRITICAL)
 
         qx, qy = self.inpParam["QX"], self.inpParam["QY"]
         dist = self.inpParam["DETECTOR_DISTANCE"]
