@@ -345,6 +345,24 @@ class Image:
                 self.detModel = "Pilatus 300k"
             else:
                 self.detModel = "Pilatus" 
+        elif self.type == "hdf5dec":
+            if (self.header["Width"] == 4150 and
+                self.header["Height"] == 4371):
+                self.detModel = "Eiger 16M"
+            elif (self.header["Width"] == 3110 and
+                self.header["Height"] == 3269):
+                self.detModel = "Eiger 9M"
+            elif (self.header["Width"] == 2070 and
+                self.header["Height"] == 2167):
+                self.detModel = "Eiger 4M"
+            elif (self.header["Width"] == 1030 and
+                self.header["Height"] == 1065):
+                self.detModel = "Eiger 1M"
+            elif (self.header["Width"] == 1030 and
+                self.header["Height"] == 514):
+                self.detModel = "Eiger 500K"
+            else:
+                self.detModel = "Eiger"
         elif self.type == "adsc":
             if 190. > _size > 187.:
                 self.detModel = "ADSC Q4"
@@ -943,13 +961,14 @@ class Collect:
         try:
             spec_SN = exporter.SPECIFIC_SUPPLEMENTARY_KEYWORDS
             for spec_type in spec_SN.keys():
-                if spec_type in self.image.header["SerialNumber"] or spec_type == self.image.detModel:
+                if spec_type in self.image.header["SerialNumber"] or \
+                         spec_type in self.image.detModel:
                     exportDict["SPECIFIC_KEYWORDS"] += spec_SN[spec_type]
         except:
             raise
             #pass
         if exportDict["_LIB"]:
-            exportDict["SPECIFIC_KEYWORDS"] += "LIB= %s" % exportDict["_LIB"]
+            exportDict["SPECIFIC_KEYWORDS"] += " LIB= %s" % exportDict["_LIB"]
         if "OverloadValue" in self.image.header:
             exportDict["OVERLOAD"] = self.image.header['OverloadValue']
         return exportDict
@@ -1046,7 +1065,7 @@ def test1(filename):
     "Simple test"
     im = Image(filename)
     im.info()
-    dc = Collect(filename)
+    return Collect(filename)
 
 def test2(filename):
     "More complete test"
