@@ -33,6 +33,7 @@ You can either:
 ```bash
  $ cd $HOME/progs 
  $ git clone https://github.com/legrandp/xdsme.git
+ $ cd xdsme ; git submodule init ; git submodule update
  $ export PATH=$PATH:$HOME/progs/xdsme/bin/noarch
 ```
 
@@ -40,6 +41,8 @@ To update xdsme, you will only need to run the following command:
 ```bash
  $ git pull origin
 ```
+
+If you have an [external library to read images](https://strucbio.biologie.uni-konstanz.de/xdswiki/index.php/LIB) using the xds plugin mechanism, you can specify its location by setting the [XDS_LIB_HDF5DEC environment variable](https://github.com/legrandp/xdsme/wiki/Eiger_Dectris_HDF5).
 
 All scripts are pure python code, so the only dependency is Python version >= 2.4 (or >= 2.7 for native processing of [HDF5 files](https://github.com/legrandp/xdsme/wiki/Eiger_Dectris_HDF5)). It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
 
