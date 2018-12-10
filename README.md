@@ -12,7 +12,7 @@ The XDSME package contains a collection of python scripts made to simplify the p
 
 ## Features
 
-Supported detector image format include: PILATUS, EIGER, ADSC, MARCCD, MAR345, SATURN. There is an experimental support for RAXIS and MAR555 detectors (limited by lack of test images).
+Supported detector image format include: PILATUS, [EIGER](https://github.com/legrandp/xdsme/wiki/Eiger_Dectris_HDF5), ADSC, MARCCD, MAR345, SATURN. There is an experimental support for RAXIS and MAR555 detectors (limited by lack of test images).
 
 xdsme and xds are able to directly process compressed frames in the .gz or .bz2 formats. 
 
@@ -41,7 +41,7 @@ To update xdsme, you will only need to run the following command:
  $ git pull origin
 ```
 
-All scripts are pure python code, so the only dependency is Python version >= 2.4 (or >= 2.7 for native processing of HDF5 files). It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
+All scripts are pure python code, so the only dependency is Python version >= 2.4 (or >= 2.7 for native processing of [HDF5 files](https://github.com/legrandp/xdsme/wiki/Eiger_Dectris_HDF5)). It should work on any linux or mac-osx directly after unpacking by adding the xdsme/bin/noarch dir to your PATH variable.
 
 
 ## Examples
