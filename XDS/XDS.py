@@ -610,7 +610,10 @@ class XDSLogParser:
         "Parse DEFPIX.LP"
         rdi, gpa = self.results, self.get_par
         rdi["value_range"] = gpa("TRUSTED_DETECTOR_PIXELS= ")
-        prp = "  Value range for trusted detector pixels: %(value_range)s"
+        rdi["mean_background_unmasked"] = gpa('ED PIXELS IN  "BKGPIX.cbf"')/1e2
+        prp = "  Value range for trusted detector pixels: %(value_range)s\n"
+        prp += "  Mean Background in trusted region: "
+        prp += "%(mean_background_unmasked).2f\n"
         if self.verbose:
             prnt(prp % rdi)
         return rdi, prp
@@ -1185,7 +1188,11 @@ class XDS:
         "Runs the 2 first steps: DEFPIX and INTEGRATE"
         self.inpParam["JOB"] = "DEFPIX",
         self.run(rsave=True)
+        i1, i2 = self.inpParam["DATA_RANGE"]
         res = XDSLogParser("DEFPIX.LP", run_dir=self.run_dir, verbose=1)
+        if res.results["mean_background_unmasked"] < 1.:
+            prnt("   -> Setting FIXED_SCALE_FACTOR for INTEGRATE step.")
+            self.inpParam["DATA_RANGE_FIXED_SCALE_FACTOR"] = i1, i2, 1.
 
         if len(image_ranges) >= 1:
             self.inpParam["JOB"] = "INTEGRATE",
