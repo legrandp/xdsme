@@ -11,10 +11,10 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.2"
+__version__ = "0.6.5.3"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "25-09-2018"
-__copyright__ = "Copyright (c) 2006-2018 Pierre Legrand"
+__date__ = "19-01-2019"
+__copyright__ = "Copyright (c) 2006-2019 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 import os
@@ -976,8 +976,9 @@ class XDS:
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         self.inpParam["JOB"] = "COLSPOT",
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = 1
-        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = NUMBER_OF_PROCESSORS
+        if SET_NTHREADS:
+            self.inpParam["MAXIMUM_NUM_PROCESSORS"] = 1
+            self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = NUM_PROCESSORS
         _trial = 0
 
         # DEFAULT=3.2 deg., SLOW=6.4 deg., FAST=1.6 deg.
@@ -1159,8 +1160,9 @@ class XDS:
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
         "Running the strategy."
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
-        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
+        if SET_NTHREADS:
+            self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUM_PROCESSORS
+            self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
 
         select_strategy(ridx, self.inpParam)
         prnt("\n Starting strategy calculation.")
@@ -1179,8 +1181,9 @@ class XDS:
            self.inpParam["DELPHI"] = 20.
         if XDS_INPUT:
             self.inpParam.mix(xdsInp2Param(inp_str=XDS_INPUT))
-        self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUMBER_OF_PROCESSORS
-        self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
+        if SET_NTHREADS:
+            self.inpParam["MAXIMUM_NUMBER_OF_PROCESSORS"] = NUM_PROCESSORS
+            self.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
         if ("slow" in self.mode) or BRUTE:
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_ALPHA_BETA"] = 13
             self.inpParam["NUMBER_OF_PROFILE_GRID_POINTS_ALONG_GAMMA"] = 13
@@ -1662,7 +1665,8 @@ if __name__ == "__main__":
     STRFTIME2 = '%F %X'
     time_start = time.strftime(STRFTIME)
     DIRNAME_PREFIX = "xdsme_"
-    NUMBER_OF_PROCESSORS = min(64, get_number_of_processors())
+    NUM_PROCESSORS = min(64, get_number_of_processors())
+    SET_NTHREADS = False
     # Use a maximum of 16 proc. by job. Change it if you whant another limit.
     WARN_MSG = ""
     VERBOSE = False
@@ -1750,7 +1754,8 @@ if __name__ == "__main__":
             else:
                 print("Can't open orientation matrix file %s." % a, CRITICAL)
         if o in ("-n","--nthreads"):
-            NUMBER_OF_PROCESSORS = int(a)
+            SET_NTHREADS = True
+            NUM_PROCESSORS = int(a)
         if o in ("-p", "--project"):
             PROJECT = str(a).strip("/").replace("/","_")
         if o in ("-S", "--strategy"):
@@ -1947,7 +1952,7 @@ if __name__ == "__main__":
     newrun.run_dir = newDir
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
-    _DELPHI = NUMBER_OF_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
+    _DELPHI = NUM_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
     while _DELPHI < _MIN_DELPHI:
         _DELPHI *= 2
     newrun.inpParam["DELPHI"] = _DELPHI
@@ -1966,7 +1971,7 @@ if __name__ == "__main__":
     prnt(FMT_HELLO % vars(newrun.inpParam))
     prnt("  Selected resolution range:       %.2f - %.2f A" % \
                                            newPar["INCLUDE_RESOLUTION_RANGE"])
-    prnt("  Number of processors available:    %3d\n" % NUMBER_OF_PROCESSORS)
+    prnt("  Number of processors available:    %3d\n" % NUM_PROCESSORS)
 
     if WARN_MSG:
         prnt(WARN_MSG, WARNING)
