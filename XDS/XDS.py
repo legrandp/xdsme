@@ -11,7 +11,7 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.3"
+__version__ = "0.6.5.5"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
 __date__ = "19-01-2019"
 __copyright__ = "Copyright (c) 2006-2019 Pierre Legrand"
@@ -31,7 +31,7 @@ COLOR_C = '\033[91m'
 COLOR_E = '\033[91m'
 END_COLOR = '\033[0m'
 
-logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
 cslFormatter = logging.Formatter("%(message)s")
 prntLog = logging.getLogger()
 prntLog.setLevel(DEBUG)
