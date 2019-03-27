@@ -11,9 +11,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.5"
+__version__ = "0.6.5.6"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "19-01-2019"
+__date__ = "27-03-2019"
 __copyright__ = "Copyright (c) 2006-2019 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
@@ -152,7 +152,7 @@ USAGE = """
 
     -O,  --oscillation
          Set frame oscillation range in degree.
-         For example: -c 0.5
+         For example: -O 0.5
 
     -n, --nthreads
          Set the maximum number of threads to use. Default is to use the
@@ -1952,11 +1952,12 @@ if __name__ == "__main__":
     newrun.run_dir = newDir
     # Setting DELPHI as a fct of OSCILLATION_RANGE, MODE and NPROC
     _MIN_DELPHI = 5. # in degree
-    _DELPHI = NUM_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
-    while _DELPHI < _MIN_DELPHI:
-        _DELPHI *= 2
+    #_DELPHI = NUM_PROCESSORS * newrun.inpParam["OSCILLATION_RANGE"]
+    _DELPHI = 6 #* newrun.inpParam["OSCILLATION_RANGE"]
+    #while _DELPHI < _MIN_DELPHI:
+    #    _DELPHI *= 2
     newrun.inpParam["DELPHI"] = _DELPHI
-
+    newrun.inpParam["MAXIMUM_NUMBER_OF_JOBS"] = 1
     if SLOW:
         newrun.inpParam["DELPHI"] *= 2
         newrun.mode.append("slow")
