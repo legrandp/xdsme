@@ -3,9 +3,9 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "20-02-2016"
+__date__ = "27-03-2019"
 __copyright__ = "Copyright (c) 2009-2016 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
@@ -61,7 +61,7 @@ def DISTANCE(inp):
 
 BEAMX = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[0])\
                                                                *FLOAT2(y)
-BEAMY = lambda x, y: float(x[x.find("(")+1:x.find(")")-1].split(",")[1])\
+BEAMY = lambda x, y: float(x[x.find("(")+1:x.find(")")].split(",")[1])\
                                                                *FLOAT2(y)
 
 class Interpreter:
