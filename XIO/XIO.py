@@ -10,10 +10,10 @@
 New BSD License http://www.opensource.org/licenses/bsd-license.php
 """
 
-__version__ = "0.5.5"
+__version__ = "0.5.6"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "06-02-2018"
-__copyright__ = "Copyright (c) 2005-2018 Pierre Legrand"
+__date__ = "27-03-2019"
+__copyright__ = "Copyright (c) 2005-2019 Pierre Legrand"
 __license__ = "New BSD License www.opensource.org/licenses/bsd-license.php"
 
 
@@ -293,9 +293,9 @@ class Image:
             self.intCompression = "CBF"
             return self.type
 
-        # Test to identify miniCIF (PILATUS)
+        # Test to identify miniCIF (PILATUS or Eiger)
         elif self.rawHead[0:7] == "###CBF:" and \
-                self.rawHead.count("PILATUS"):
+                (self.rawHead.count("PILATUS") or self.rawHead.count('Eiger')):
             self.type = "minicbf"
             self.intCompression = "CBF"
             return self.type
@@ -343,6 +343,12 @@ class Image:
             elif (self.header["Width"] == 487 and
                 self.header["Height"] == 619):
                 self.detModel = "Pilatus 300k"
+            elif (self.header["Width"] == 4150 and
+                self.header["Height"] == 4371):
+                self.detModel = "Eiger 16M"
+            elif (self.header["Width"] == 3269 and
+                self.header["Height"] == 3110):
+                self.detModel = "Eiger 9M"
             else:
                 self.detModel = "Pilatus" 
         elif self.type == "hdf5dec":
