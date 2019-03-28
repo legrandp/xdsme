@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
     15/01/03 First version
     xds2mos.py is inspired form the wk2al.f

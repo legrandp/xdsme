@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """    
     Uses some denzo convertion recipies taken from the rotgen CCP4 program
     by John W. Campbell.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """    
     Uses the mat3 and vec3 classes from Python Computer Graphics Kit v1.2.0
     module by Matthias Baas (see http://cgkit.sourceforge.net).

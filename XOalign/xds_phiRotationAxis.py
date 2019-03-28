@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Script used for the SOLEIL_PROXIMA-1 Kappa, in the case where
 # data are collected with the phi axis when Kappa and Omega are non-null.

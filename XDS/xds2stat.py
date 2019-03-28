@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
     09/07/03 legrand@embl-grenoble.fr
     

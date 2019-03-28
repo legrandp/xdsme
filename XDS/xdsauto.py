@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # TODO.
 # Verifications:
 #   - verify the input parameter from auto.par (creat a dic of alowed keys)

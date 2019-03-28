@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 28/01/02 pierre.legrand@crchul.ulaval.ca
 """

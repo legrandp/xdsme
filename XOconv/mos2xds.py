@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
     24/09/04 1st version pierre.legrand@synchrotron-soleil.fr
     
