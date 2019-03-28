@@ -11,9 +11,9 @@
  TODO-3: Generating plots !
 """
 
-__version__ = "0.6.5.6"
+__version__ = "0.6.6.0"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "27-03-2019"
+__date__ = "28-03-2019"
 __copyright__ = "Copyright (c) 2006-2019 Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
