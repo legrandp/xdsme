@@ -154,6 +154,8 @@ except:
     
 f = open("XSCALE.INP","w")
 f.write(INPUT_HEAD % refdic)
+if SCALE_TYPE == 0:
+    f.write("SNRC=50\n")
 
 hklf_files = []
 wavelengths = []
