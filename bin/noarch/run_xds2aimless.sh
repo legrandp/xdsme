@@ -14,7 +14,7 @@ function get_ascii_type() {
 
 function get_prefix {
    b=$(head  $1 | grep NAME_TEMPLATE_OF_DATA_FRAMES  | awk '{print $1}')
-   test -z $b && b="XSCALE"
+   test -z $b && b="$1"
    c=$(basename $b)
    echo ${c%_*.*}
 }
