@@ -14,14 +14,13 @@ function get_ascii_type() {
 function get_prefix {
    b=$(head  $1 | grep NAME_TEMPLATE_OF_DATA_FRAMES  | awk '{print $1}')
    test -z $b && b="$1"
-   c=$(basename $b)
+   c=$(basename $b .HKL )
    echo ${c%_*.*}
 }
 
 function run_staraniso() {
 PREFIX=$(get_prefix $1)
 ANOMALOUS=OFF
-prefix=$(basename $1 .HKL)
 pointless -copy XDSIN $1 \
           HKLOUT ${PREFIX}_pointless.mtz > ${PREFIX}_pointless.log
 aimless hklin ${PREFIX}_pointless.mtz hklout ${PREFIX}_aimless.mtz \
