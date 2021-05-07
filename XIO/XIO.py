@@ -971,8 +971,8 @@ class Collect:
                          spec_type in self.image.detModel:
                     exportDict["SPECIFIC_KEYWORDS"] += spec_SN[spec_type]
         except:
-            raise
-            #pass
+            #raise
+            pass
         if exportDict["_LIB"]:
             exportDict["SPECIFIC_KEYWORDS"] += " LIB= %s" % exportDict["_LIB"]
         if "OverloadValue" in self.image.header:
