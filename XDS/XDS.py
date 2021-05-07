@@ -403,9 +403,12 @@ class XDSLogParser:
         # Catch Errors or Warnings:
         _err = self.lp.find(" !!! ") # Add a RE with ERROR or WARNING
         if _err != -1:
-            ERR_LEVELS = {"WARNING": WARNING, "ERROR": ERROR, "CRITICAL": CRITICAL}
+            ERR_LEVELS = {"WARNING": WARNING,
+                          "ERROR": ERROR,
+                          "CRITICAL": CRITICAL}
             _err_lp = self.lp[_err:_err+200].splitlines()
             _err_level, _err_msg = _err_lp[0].split(" !!! ")[1:]
+            _err_level = _err_level.split()[0]
             _non_critical_err_types = (
                "INSUFFICIENT PERCENTAGE (<",)
             _critical_err_types = (
@@ -546,7 +549,10 @@ class XDSLogParser:
         rdi["total_spots"] = nts
         rdi["indexed_percentage"] = 100.*nis/nts
         #
-        st0 = self.lp.index("START OF INTEGRATION *****")
+        try:
+            st0 = self.lp.index("START OF INTEGRATION *****")
+        except ValueError:
+            raise XDSExecError, "Error while parsing XDS logfile"
         st1 = "STANDARD DEVIATION OF SPOT    POSITION (PIXELS)"
         st2 = "STANDARD DEVIATION OF SPINDLE POSITION (DEGREES)"
         st3 = "UNIT CELL PARAMETERS"
