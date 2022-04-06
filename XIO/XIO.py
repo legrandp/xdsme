@@ -295,7 +295,8 @@ class Image:
 
         # Test to identify miniCIF (PILATUS or Eiger)
         elif self.rawHead[0:7] == "###CBF:" and \
-                (self.rawHead.count("PILATUS") or self.rawHead.count('Eiger')):
+                (self.rawHead.upper().count("PILATUS") or \
+                 self.rawHead.upper().count('EIGER')):
             self.type = "minicbf"
             self.intCompression = "CBF"
             return self.type
@@ -346,6 +347,9 @@ class Image:
             elif (self.header["Width"] == 4150 and
                 self.header["Height"] == 4371):
                 self.detModel = "Eiger 16M"
+            elif (self.header["Width"] == 4148 and
+                self.header["Height"] == 4362):
+                self.detModel = "Eiger2 16M"
             elif (self.header["Width"] == 3269 and
                 self.header["Height"] == 3110):
                 self.detModel = "Eiger 9M"
@@ -401,7 +405,7 @@ class Image:
     def headerInterpreter(self):
         """Try to interpret the header, and return a dictionary with the header
         information"""
-        #print self.type
+        #print("headerInterpreter of type %s" % self.type)
         interpreterClass = importName("XIO.plugins.%s_interpreter" % \
                                        self.type, "Interpreter")
         if not  interpreterClass:

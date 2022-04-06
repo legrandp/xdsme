@@ -3,15 +3,15 @@
 """ XIO plugin for the minicbf format of images (DECTRIS-PILATUS).
 """
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 __author__ = "Pierre Legrand (pierre.legrand@synchrotron-soleil.fr)"
-__date__ = "27-03-2019"
-__copyright__ = "Copyright (c) 2009-2016 Pierre Legrand"
+__date__ = "06-04-2022"
+__copyright__ = "Copyright (c) 2009-2022 Pierre Legrand"
 __license__ = "New BSD, http://www.opensource.org/licenses/bsd-license.php"
 
 import time
 
-HEADER_KEYS = ["Detector:", "Pixel_size", "Silicon", "Exposure_time",
+HEADER_KEYS = ["Detector:", "Pixel_size", "Exposure_time",
 "Exposure_period", "Tau", "Count_cutoff", "Threshold_setting",
 "N_excluded_pixels","Excluded_pixels:", "Flat_field:", "Trim_directory:",
 "Wavelength", "Energy_range", "Detector_distance", "Detector_Voffset",
@@ -97,7 +97,8 @@ class Interpreter:
     'OscAxis':(['Oscillation_axis'], lambda x: x.split(",")[0].lower().strip()),
     'DateStr':(['DATE'], str),
     'DateSeconds':(['DATE'], date_seconds),
-    'SensorThickness':(['Silicon'], FLOAT2),
+    'SensorThickness':(['SENSOR_THICKNESS'], FLOAT2),
+    #'SensorThickness':(['CdTe'], FLOAT2),
     }
 
     SpecialRules = {
@@ -138,6 +139,8 @@ class Interpreter:
         self.raw_head_dict.update(dict([ val for val in lis2 \
                                              if "Binary-" in val[0]]))
         # Add some default values
+        i_t = raw_head.rfind("sensor, thickness")
+        self.raw_head_dict.update({'SENSOR_THICKNESS': raw_head[i_t:i_t+50].splitlines()[0]})
         self.raw_head_dict.update({'HEADER_SIZE': i_3})
         self.raw_head_dict.update({'DATE': " ".join(lis[1])})
         #self.raw_head_dict.update({'MESSAGE': '', 'TWO_THETA': '0',
