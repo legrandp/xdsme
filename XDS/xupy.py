@@ -19,10 +19,10 @@ import commands
 import shutil
 from time import time, sleep
 
-__version__ = "0.7.15"
+__version__ = "0.7.16"
 __author__ = "Pierre Legrand (pierre.legrand \at synchrotron-soleil.fr)"
-__date__ = "25-01-2017"
-__copyright__ = "Copyright (c) 2006-2017  Pierre Legrand"
+__date__ = "26-11-2022"
+__copyright__ = "Copyright (c) 2006-2021  Pierre Legrand"
 __license__ = "New BSD http://www.opensource.org/licenses/bsd-license.php"
 
 
@@ -174,7 +174,7 @@ Bravais_to_Laue = {
 SPGlib = {
 # each SGnumber entry maps (SGsymbol1,SGsymbol2,SGorder) 5:("C2","C2",4),
 0:("P1","P1",1),
-1:("P1","P1",1),3:("P2","P2",2),4:("P21","P2(1)",2),5:("C2","C2",4),
+1:("P1","P1",1),2:("P-1","P-1",2),3:("P2","P2",2),4:("P21","P2(1)",2),5:("C2","C2",4),
 6:("Pm","Pm",4),7:("Pc","Pc",2),8:("Cm","Cm",2),9:("Cc","Cc",4),
 10:("P2m"," P2/m",4),11:("P21m","P2(1)/m",4),12:("C2m","C2/m",8),
 13:("P2c","P2/c",4),14:(" P21c","P2(1)/c",4),15:("C2c","C2/c",8),
@@ -972,7 +972,7 @@ def resum_scaling(lpf="CORRECT.LP", ios_threshold=2.0):
     stcell = lp.index("UNIT_CELL_CONSTANTS=", stcs)+20
     s.cell = lp[stcell:stcell+51].rstrip()
     stspg = lp.index("SPACE_GROUP_NUMBER=", stcs)+19
-    s.spg_num = int(lp[stspg:stspg+5])
+    s.spg_num = int(lp[stspg:stspg+5].split()[0])
     s.spg_sym = SPGlib[s.spg_num][1]
     ind = 0
     for i in range(len(reso)):
