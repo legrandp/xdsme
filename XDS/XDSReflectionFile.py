@@ -37,8 +37,9 @@ class XDSReflectionFile:
             l_s = rec_xdsPar.split(line[1:])
             len_s = len(l_s)
             if len_s > 1 and l_s[1] == "ISET=":
-                #print l_s
-                lpar.append(("ISET_"+l_s[2].strip(), l_s[4].split()[0]))
+                if l_s[3] == 'X-RAY_WAVELENGTH=':
+                    lpar.append(('X-RAY_WAVELENGTH', float(l_s[4].split()[0])))
+                #lpar.append(("ISET_"+l_s[2].strip(), l_s[4].split()[0]))
             elif len_s > 1 and len_s % 2:
                 for i in range(1,len_s,2):                    
                     lpar.append((l_s[i][:-1],l_s[i+1].strip()))
